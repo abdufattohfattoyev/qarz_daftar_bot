@@ -1,0 +1,89 @@
+version: '3.9'
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: qarz_db
+    restart: always
+    environment:
+      POSTGRES_DB: qarz_daftar
+      POSTGRES_USER: qarz_user
+      POSTGRES_PASSWORD: qarz_pass_2025
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qarz_user -d qarz_daftar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: qarz_redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nasiya_backend
+    restart: always
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=your-super-secret-key-change-in-production-123!
+      - DB_NAME=qarz_daftar
+      - DB_USER=qarz_user
+      - DB_PASSWORD=qarz_pass_2025
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - BOT_TOKEN=your_telegram_bot_token_here
+      - ALLOWED_HOSTS=localhost,127.0.0.1,nasiya-karta.uz,www.nasiya-karta.uz
+      - CORS_ORIGINS=https://nasiya-karta.uz,https://www.nasiya-karta.uz
+      - WEBAPP_URL=https://nasiya-karta.uz
+    volumes:
+      - media_files:/app/media
+      - static_files:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    networks:
+      - internal
+      - nasiya-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nasiya_frontend
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - internal
+      - nasiya-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_files:
+  static_files:
+
+networks:
+  internal:
+    driver: bridge
+  nasiya-network:
+    external: true
