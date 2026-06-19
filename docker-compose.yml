@@ -7,9 +7,9 @@ services:
     container_name: qarz_db
     restart: always
     environment:
-      POSTGRES_DB: qarz_daftar
-      POSTGRES_USER: qarz_user
-      POSTGRES_PASSWORD: qarz_pass_2025
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -36,18 +36,8 @@ services:
     container_name: nasiya_backend
     restart: always
     environment:
-      - DEBUG=0
-      - SECRET_KEY=your-super-secret-key-change-in-production-123!
-      - DB_NAME=qarz_daftar
-      - DB_USER=qarz_user
-      - DB_PASSWORD=qarz_pass_2025
-      - DB_HOST=db
-      - DB_PORT=5432
-      - REDIS_URL=redis://redis:6379/0
-      - BOT_TOKEN=your_telegram_bot_token_here
-      - ALLOWED_HOSTS=localhost,127.0.0.1,nasiya-karta.uz,www.nasiya-karta.uz
-      - CORS_ORIGINS=https://nasiya-karta.uz,https://www.nasiya-karta.uz
-      - WEBAPP_URL=https://nasiya-karta.uz
+    env_file:
+      - .env
     volumes:
       - media_files:/app/media
       - static_files:/app/staticfiles
