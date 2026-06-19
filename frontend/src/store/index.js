@@ -10,28 +10,41 @@ export const useAuthStore = create((set, get) => ({
   init: async () => {
     try {
       const tg = window.Telegram?.WebApp
-      if (tg) {
+      if (tg?.initData) {
         tg.ready()
         tg.expand()
-      }
-
-      const initData = tg?.initData || ''
-
-      if (!initData && import.meta.env.DEV) {
-        // Dev rejimida test uchun
-        console.warn('Dev mode: initData yo\'q, test user ishlatilmoqda')
-        set({ loading: false })
+        const { data } = await authAPI.telegramAuth(tg.initData)
+        localStorage.setItem('access_token', data.tokens.access)
+        localStorage.setItem('refresh_token', data.tokens.refresh)
+        set({ user: data.user, loading: false })
         return
       }
 
-      const { data } = await authAPI.telegramAuth(initData)
-      localStorage.setItem('access_token', data.tokens.access)
-      localStorage.setItem('refresh_token', data.tokens.refresh)
-      set({ user: data.user, loading: false })
+      // Telegram'dan ochilmagan — saqlangan token bor bo'lsa ishlatamiz
+      const saved = localStorage.getItem('access_token')
+      if (saved) {
+        try {
+          const { data } = await authAPI.me()
+          set({ user: data, loading: false })
+          return
+        } catch {
+          localStorage.clear()
+        }
+      }
+
+      // Hech narsa yo'q — dev login ekranini ko'rsat
+      set({ loading: false, needDevLogin: true })
     } catch (err) {
       console.error('Auth xatosi:', err)
       set({ error: 'Autentifikatsiya xatosi', loading: false })
     }
+  },
+
+  devLogin: async () => {
+    const { data } = await authAPI.devLogin()
+    localStorage.setItem('access_token', data.tokens.access)
+    localStorage.setItem('refresh_token', data.tokens.refresh)
+    set({ user: data.user, needDevLogin: false })
   },
 
   updateUser: async (updates) => {

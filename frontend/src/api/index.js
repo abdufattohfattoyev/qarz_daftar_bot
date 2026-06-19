@@ -39,6 +39,7 @@ api.interceptors.response.use(
 // Auth
 export const authAPI = {
   telegramAuth: (init_data) => api.post('/auth/telegram/', { init_data }),
+  devLogin: () => api.post('/auth/dev-login/', {}),
   me: () => api.get('/auth/me/'),
   updateMe: (data) => api.patch('/auth/me/', data),
 }

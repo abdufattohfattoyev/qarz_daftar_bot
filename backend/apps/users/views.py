@@ -84,6 +84,27 @@ def me(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+def dev_login(request):
+    """Faqat DEBUG=True da ishlaydi — local test uchun"""
+    from django.conf import settings
+    if not settings.DEBUG:
+        return Response({'error': 'Faqat dev rejimda ishlaydi'}, status=403)
+
+    telegram_id = request.data.get('telegram_id', 999999999)
+    user, _ = User.objects.get_or_create(
+        telegram_id=telegram_id,
+        defaults={
+            'username': f'dev_{telegram_id}',
+            'full_name': 'Dev Foydalanuvchi',
+            'telegram_username': 'dev_user',
+        }
+    )
+    tokens = get_tokens_for_user(user)
+    return Response({'tokens': tokens, 'user': UserSerializer(user).data})
+
+
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def token_refresh_view(request):
     """Token yangilash"""
