@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmt, fmtDate, fmtTime, initials, avatarColor, haptic } from '../utils'
+import { ArrowUpIcon, ArrowDownIcon, TrashIcon, PayIcon, ChevronRight } from '../components/Icons'
+
+const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(parseFloat(v || 0)))
 
 export default function Home() {
   const navigate = useNavigate()
@@ -11,289 +14,265 @@ export default function Home() {
 
   useEffect(() => { fetchDebts() }, [])
 
+  const active = debts.filter(d => d.status !== 'paid')
+  const totalGave = active.filter(d => d.debt_type === 'gave').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
+  const totalGot  = active.filter(d => d.debt_type === 'got').reduce((s,  d) => s + parseFloat(d.remaining_amount || 0), 0)
+  const net = totalGave - totalGot
   const groups = groupedByDate()
 
-  const totalGave = debts.filter(d => d.debt_type === 'gave' && d.status !== 'paid')
-    .reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
-  const totalGot = debts.filter(d => d.debt_type === 'got' && d.status !== 'paid')
-    .reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
-
-  const openSheet = (debt) => { haptic('light'); setSheet(debt) }
-  const closeSheet = () => setSheet(null)
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
 
-      {/* HEADER */}
+      {/* ── HEADER ── */}
       <div style={{
-        background: 'linear-gradient(160deg, #1a8c44 0%, #16a34a 60%, #22c55e 100%)',
-        padding: '18px 20px 32px', flexShrink: 0,
-        borderRadius: '0 0 28px 28px',
+        background: 'linear-gradient(150deg,#0f5c2e 0%,#16a34a 55%,#22c55e 100%)',
+        padding: '20px 20px 70px', flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.25)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15, fontWeight: 700, color: '#fff',
-              border: '2px solid rgba(255,255,255,0.4)',
-            }}>
-              {initials(user?.display_name || 'U')}
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>Xush kelibsiz</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>
-                {user?.display_name || 'Foydalanuvchi'}
-              </div>
-            </div>
+        {/* top row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.65)', fontWeight: 500 }}>
+              {new Date().toLocaleDateString('uz-UZ', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+            <h2 style={{ margin: '2px 0 0', fontSize: 18, fontWeight: 700, color: '#fff' }}>
+              Salom, {(user?.display_name || 'Foydalanuvchi').split(' ')[0]} 👋
+            </h2>
           </div>
-          <button onClick={() => { haptic(); navigate('/add') }} style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.35)',
-            borderRadius: 12, padding: '8px 14px', cursor: 'pointer',
-            fontSize: 13, fontWeight: 700, color: '#fff',
+          <div style={{
+            width: 42, height: 42, borderRadius: 14,
+            background: 'rgba(255,255,255,.18)',
+            border: '1.5px solid rgba(255,255,255,.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, fontWeight: 800, color: '#fff',
           }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1V13M1 7H13" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Qarz
-          </button>
+            {initials(user?.display_name || 'U')}
+          </div>
         </div>
 
-        {/* BALANCE CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div style={{
-            background: 'rgba(255,255,255,0.18)', borderRadius: 18, padding: '14px 16px',
-            border: '1px solid rgba(255,255,255,0.25)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 12V2M2 7L7 2L12 7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>BERILGAN</span>
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: -0.5 }}>
-              {new Intl.NumberFormat('uz-UZ').format(totalGave)}
-            </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>UZS</div>
-          </div>
-          <div style={{
-            background: 'rgba(0,0,0,0.15)', borderRadius: 18, padding: '14px 16px',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(239,68,68,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 2V12M12 7L7 12L2 7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>OLINGAN</span>
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: -0.5 }}>
-              {new Intl.NumberFormat('uz-UZ').format(totalGot)}
-            </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>UZS</div>
-          </div>
+        {/* net balance */}
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.6)', letterSpacing: '.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+            Sof balans
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 38, fontWeight: 800, color: '#fff', letterSpacing: -1.5 }}>
+            {net >= 0 ? '+' : '−'}{n(Math.abs(net))}
+            <span style={{ fontSize: 16, fontWeight: 600, marginLeft: 6, opacity: .75 }}>UZS</span>
+          </p>
         </div>
       </div>
 
-      {/* LIST */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16, marginTop: -4 }}>
+      {/* ── BALANCE CARDS ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '-44px 16px 0', flexShrink: 0, position: 'relative', zIndex: 10 }}>
+        {/* Gave */}
+        <div style={{
+          background: '#fff', borderRadius: 20, padding: '16px 14px',
+          boxShadow: '0 4px 20px rgba(0,0,0,.08)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+              <ArrowUpIcon />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Berganim</span>
+          </div>
+          <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#16a34a', letterSpacing: -.5 }}>{n(totalGave)}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: '#94a3b8', fontWeight: 500 }}>UZS</p>
+        </div>
+        {/* Got */}
+        <div style={{
+          background: '#fff', borderRadius: 20, padding: '16px 14px',
+          boxShadow: '0 4px 20px rgba(0,0,0,.08)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+              <ArrowDownIcon />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Olganim</span>
+          </div>
+          <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#ef4444', letterSpacing: -.5 }}>{n(totalGot)}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: '#94a3b8', fontWeight: 500 }}>UZS</p>
+        </div>
+      </div>
 
-        {/* Section title */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 10px' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>Tranzaksiyalar</span>
-          <span style={{ fontSize: 12, color: '#aaa' }}>{debts.length} ta</span>
+      {/* ── TRANSACTIONS ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0 90px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 20px 10px' }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Tranzaksiyalar</h3>
+          <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>{debts.length} ta</span>
         </div>
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: 60, color: '#aaa' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 14 }}>
             Yuklanmoqda...
           </div>
         )}
 
         {!loading && groups.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '50px 40px' }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <div style={{
-              width: 80, height: 80, borderRadius: '50%',
-              background: 'linear-gradient(135deg,#dcfce7,#bbf7d0)',
+              width: 72, height: 72, borderRadius: 22, background: '#f0fdf4',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px', fontSize: 36
+              margin: '0 auto 14px', fontSize: 34,
             }}>📭</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 6 }}>Qarzlar yo'q</div>
-            <div style={{ fontSize: 13, color: '#aaa', marginBottom: 24 }}>Birinchi qarzni qo'shing</div>
+            <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Qarzlar yo'q</p>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#94a3b8' }}>Birinchi qarzni qo'shing</p>
             <button onClick={() => navigate('/add')} style={{
               padding: '12px 28px', borderRadius: 14, border: 'none',
               background: 'linear-gradient(135deg,#22c55e,#16a34a)',
-              color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer'
+              color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(22,163,74,.35)',
             }}>+ Qarz qo'shish</button>
           </div>
         )}
 
         {groups.map((group) => (
-          <div key={group.date} style={{ marginBottom: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 20px 6px' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af' }}>{fmtDate(group.date)}</span>
+          <div key={group.date} style={{ marginBottom: 6 }}>
+            {/* date row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px 6px' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>{fmtDate(group.date)}</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: group.total >= 0 ? '#16a34a' : '#ef4444' }}>
-                {group.total >= 0 ? '+' : ''}{new Intl.NumberFormat('uz-UZ').format(group.total)}
+                {group.total >= 0 ? '+' : ''}{n(group.total)}
               </span>
             </div>
 
-            <div style={{ margin: '0 14px', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+            {/* cards */}
+            <div style={{ margin: '0 14px', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 2px 14px rgba(0,0,0,.05)' }}>
               {group.debts.map((debt, idx) => {
                 const isGave = debt.debt_type === 'gave'
                 const av = avatarColor(debt.contact_name)
                 return (
-                  <div key={debt.id} onClick={() => openSheet(debt)} style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '13px 16px', cursor: 'pointer',
-                    borderBottom: idx < group.debts.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  <div key={debt.id} onClick={() => { haptic('light'); setSheet(debt) }} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', cursor: 'pointer',
+                    borderBottom: idx < group.debts.length - 1 ? '1px solid #f8fafc' : 'none',
+                    transition: 'background .15s',
                   }}>
-                    {/* Avatar */}
+                    {/* avatar */}
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <div style={{
                         width: 46, height: 46, borderRadius: 15,
                         background: av.bg, color: av.text,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 15, fontWeight: 700,
-                      }}>
-                        {initials(debt.contact_name)}
-                      </div>
+                      }}>{initials(debt.contact_name)}</div>
                       <div style={{
                         position: 'absolute', bottom: -2, right: -2,
                         width: 18, height: 18, borderRadius: '50%',
                         background: isGave ? '#16a34a' : '#ef4444',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         border: '2px solid #fff',
+                        color: '#fff',
                       }}>
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                          {isGave
-                            ? <path d="M4 6V2M2 4L4 2L6 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            : <path d="M4 2V6M6 4L4 6L2 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          }
-                        </svg>
+                        {isGave ? <ArrowUpIcon /> : <ArrowDownIcon />}
                       </div>
                     </div>
 
-                    {/* Info */}
+                    {/* text */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#111', marginBottom: 3 }}>
-                        {debt.contact_name}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{debt.contact_name}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                         <span style={{
-                          fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 6,
-                          background: isGave ? '#dcfce7' : '#fee2e2',
+                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                          background: isGave ? '#f0fdf4' : '#fff1f2',
                           color: isGave ? '#16a34a' : '#ef4444',
-                        }}>
-                          {isGave ? 'Berdim' : 'Oldim'}
-                        </span>
-                        <span style={{ fontSize: 11, color: '#bbb' }}>{fmtTime(debt.created_at)}</span>
+                        }}>{isGave ? 'Berdim' : 'Oldim'}</span>
+                        {debt.status === 'paid' && (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#f1f5f9', color: '#64748b' }}>To'langan</span>
+                        )}
+                        <span style={{ fontSize: 11, color: '#cbd5e1' }}>{fmtTime(debt.created_at)}</span>
                       </div>
                     </div>
 
-                    {/* Amount */}
+                    {/* amount */}
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: isGave ? '#16a34a' : '#ef4444', letterSpacing: -0.3 }}>
-                        {isGave ? '+' : '-'}{new Intl.NumberFormat('uz-UZ').format(debt.remaining_amount)}
-                      </div>
-                      <div style={{ fontSize: 10, color: '#bbb', marginTop: 2 }}>{debt.currency}</div>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 800, letterSpacing: -.3, color: isGave ? '#16a34a' : '#ef4444' }}>
+                        {isGave ? '+' : '−'}{n(debt.remaining_amount)}
+                      </p>
+                      <p style={{ margin: '2px 0 0', fontSize: 10, color: '#cbd5e1' }}>{debt.currency}</p>
                     </div>
+                    <ChevronRight />
                   </div>
                 )
               })}
             </div>
           </div>
         ))}
-        <div style={{ height: 80 }} />
       </div>
 
-      {/* BOTTOM SHEET */}
+      {/* ── BOTTOM SHEET ── */}
       {sheet && (
         <>
-          <div onClick={closeSheet} style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            zIndex: 100, maxWidth: 480, margin: '0 auto', backdropFilter: 'blur(4px)'
+          <div onClick={() => setSheet(null)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)',
+            zIndex: 100, maxWidth: 430, margin: '0 auto', backdropFilter: 'blur(6px)',
           }} />
           <div style={{
             position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-            width: '100%', maxWidth: 480,
-            background: '#fff', borderRadius: '28px 28px 0 0',
-            zIndex: 101, paddingBottom: 34,
-            boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
+            width: '100%', maxWidth: 430, background: '#fff',
+            borderRadius: '28px 28px 0 0', zIndex: 101, paddingBottom: 36,
+            boxShadow: '0 -8px 40px rgba(0,0,0,.18)',
           }}>
-            <div style={{ width: 40, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 0' }} />
+            <div style={{ width: 40, height: 4, background: '#e2e8f0', borderRadius: 2, margin: '14px auto 0' }} />
 
-            {/* Hero */}
+            {/* hero */}
             <div style={{
-              margin: '16px 16px 12px', borderRadius: 22, padding: '20px',
+              margin: '16px 16px 14px', borderRadius: 22,
               background: sheet.debt_type === 'gave'
-                ? 'linear-gradient(135deg,#22c55e,#16a34a)'
-                : 'linear-gradient(135deg,#f87171,#ef4444)',
-              display: 'flex', alignItems: 'center', gap: 16,
+                ? 'linear-gradient(135deg,#22c55e 0%,#15803d 100%)'
+                : 'linear-gradient(135deg,#f87171 0%,#dc2626 100%)',
+              padding: '22px 20px', overflow: 'hidden', position: 'relative',
             }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: 18,
-                background: 'rgba(255,255,255,0.2)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 26, color: '#fff', fontWeight: 800
-              }}>
-                {initials(sheet.contact_name)}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 4 }}>
-                  {sheet.debt_type === 'gave' ? '📤 Men berdim' : '📥 Men oldim'}
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: -1 }}>
-                  {new Intl.NumberFormat('uz-UZ').format(sheet.amount)} {sheet.currency}
-                </div>
-                {parseFloat(sheet.paid_amount) > 0 && (
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
-                    Qoldi: {new Intl.NumberFormat('uz-UZ').format(sheet.remaining_amount)} {sheet.currency}
-                  </div>
-                )}
-              </div>
+              {/* decorative circle */}
+              <div style={{ position: 'absolute', right: -30, top: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.08)' }} />
+              <div style={{ position: 'absolute', right: 20, bottom: -40, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,.06)' }} />
+
+              <p style={{ margin: '0 0 6px', fontSize: 12, color: 'rgba(255,255,255,.7)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                {sheet.debt_type === 'gave' ? '📤 Men berdim' : '📥 Men oldim'}
+              </p>
+              <p style={{ margin: '0 0 4px', fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: -1 }}>
+                {n(sheet.amount)} <span style={{ fontSize: 18, fontWeight: 600, opacity: .8 }}>{sheet.currency}</span>
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,.7)', fontWeight: 500 }}>
+                {sheet.contact_name} • {fmtDate(sheet.created_at)}
+              </p>
             </div>
 
-            {/* Details */}
-            <div style={{ margin: '0 16px 12px', background: '#f9fafb', borderRadius: 18, overflow: 'hidden' }}>
+            {/* info rows */}
+            <div style={{ margin: '0 16px 14px', background: '#f8fafc', borderRadius: 18, overflow: 'hidden' }}>
               {[
-                { label: 'Kim bilan', value: sheet.contact_name },
-                { label: 'Sana', value: `${fmtDate(sheet.created_at)}, ${fmtTime(sheet.created_at)}` },
                 { label: 'Holat', value: { active: '🟡 Faol', partial: '🟠 Qisman', paid: '🟢 To\'langan' }[sheet.status] },
+                parseFloat(sheet.paid_amount) > 0 && { label: 'To\'langan', value: `${n(sheet.paid_amount)} ${sheet.currency}` },
+                parseFloat(sheet.remaining_amount) !== parseFloat(sheet.amount) && { label: 'Qoldi', value: `${n(sheet.remaining_amount)} ${sheet.currency}` },
                 sheet.note && { label: 'Izoh', value: sheet.note },
                 sheet.due_date && { label: 'Muddat', value: fmtDate(sheet.due_date) },
               ].filter(Boolean).map((row, i, arr) => (
                 <div key={row.label} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '12px 16px',
-                  borderBottom: i < arr.length - 1 ? '1px solid #f0f0f0' : 'none',
+                  borderBottom: i < arr.length - 1 ? '1px solid #f1f5f9' : 'none',
                 }}>
-                  <span style={{ fontSize: 13, color: '#6b7280' }}>{row.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{row.value}</span>
+                  <span style={{ fontSize: 13, color: '#64748b' }}>{row.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{row.value}</span>
                 </div>
               ))}
             </div>
 
-            {/* Buttons */}
+            {/* action buttons */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '0 16px' }}>
-              <button onClick={() => { closeSheet(); navigate(`/debt/${sheet.id}/pay`) }} style={{
-                padding: '14px', borderRadius: 16, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff',
-                fontSize: 14, fontWeight: 700,
+              <button onClick={() => { setSheet(null); navigate(`/debt/${sheet.id}/pay`) }} style={{
+                padding: 15, borderRadius: 16, border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg,#22c55e,#15803d)',
+                color: '#fff', fontSize: 14, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                boxShadow: '0 4px 12px rgba(22,163,74,.3)',
               }}>
-                ✅ To'lash
+                <PayIcon /> To'lash
               </button>
-              <button onClick={async () => { haptic('heavy'); await deleteDebt(sheet.id); closeSheet() }} style={{
-                padding: '14px', borderRadius: 16, border: 'none', cursor: 'pointer',
-                background: '#fef2f2', color: '#ef4444',
+              <button onClick={async () => { haptic('heavy'); await deleteDebt(sheet.id); setSheet(null) }} style={{
+                padding: 15, borderRadius: 16, border: '1.5px solid #fee2e2', cursor: 'pointer',
+                background: '#fff', color: '#ef4444',
                 fontSize: 14, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
               }}>
-                🗑 O'chirish
+                <TrashIcon /> O'chirish
               </button>
             </div>
           </div>

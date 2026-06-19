@@ -1,58 +1,13 @@
 import React from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-
-const HomeIcon = ({ active }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path d="M3 12L12 3L21 12V21H15V15H9V21H3V12Z"
-      fill={active ? '#16a34a' : 'none'}
-      stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth="1.8" strokeLinejoin="round"/>
-  </svg>
-)
-
-const ContactsIcon = ({ active }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <circle cx="9" cy="8" r="3" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth="1.8"/>
-    <path d="M3 20C3 17 5.5 14 9 14C12.5 14 15 17 15 20" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round"/>
-    <path d="M17 11C18.1 11 19 10.1 19 9C19 7.9 18.1 7 17 7" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round"/>
-    <path d="M21 20C21 17.8 19.8 16 18 15.2" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round"/>
-  </svg>
-)
-
-const StatsIcon = ({ active }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <rect x="3" y="14" width="4" height="7" rx="1.5" fill={active ? '#16a34a' : '#d1d5db'}/>
-    <rect x="10" y="9" width="4" height="12" rx="1.5" fill={active ? '#16a34a' : '#d1d5db'}/>
-    <rect x="17" y="4" width="4" height="17" rx="1.5" fill={active ? '#16a34a' : '#d1d5db'}/>
-  </svg>
-)
-
-const AddIcon = () => (
-  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-    <circle cx="14" cy="14" r="14" fill="url(#addGrad)"/>
-    <path d="M14 8V20M8 14H20" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-    <defs>
-      <linearGradient id="addGrad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#4ade80"/>
-        <stop offset="1" stopColor="#16a34a"/>
-      </linearGradient>
-    </defs>
-  </svg>
-)
-
-const SettingsIcon = ({ active }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="3" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth="1.8"/>
-    <path d="M12 2V4M12 20V22M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M2 12H4M20 12H22M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22"
-      stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth="1.8" strokeLinecap="round"/>
-  </svg>
-)
+import { HomeIcon, UsersIcon, ChartIcon, SettingIcon, PlusIcon } from './Icons'
 
 const NAV = [
-  { to: '/', icon: HomeIcon, label: 'Asosiy' },
-  { to: '/contacts', icon: ContactsIcon, label: 'Mijozlar' },
-  { to: '/add', icon: null, label: '' },
-  { to: '/stats', icon: StatsIcon, label: 'Statistika' },
-  { to: '/settings', icon: SettingsIcon, label: 'Sozlamalar' },
+  { to: '/', Icon: HomeIcon, label: 'Asosiy' },
+  { to: '/contacts', Icon: UsersIcon, label: 'Mijozlar' },
+  { to: '/add', Icon: null, label: '' },
+  { to: '/stats', Icon: ChartIcon, label: 'Statistika' },
+  { to: '/settings', Icon: SettingIcon, label: 'Sozlamalar' },
 ]
 
 export default function Layout() {
@@ -61,64 +16,75 @@ export default function Layout() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100vh',
-      maxWidth: 480, margin: '0 auto', background: '#F2F3F7'
+      maxWidth: 430, margin: '0 auto', background: '#F0F2F5',
+      position: 'relative', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </div>
 
+      {/* NAV */}
       <nav style={{
-        display: 'flex', background: '#fff',
-        borderTop: '1px solid rgba(0,0,0,0.06)',
+        display: 'flex', alignItems: 'center',
+        background: '#fff',
+        borderTop: '1px solid #f1f5f9',
         paddingBottom: 'env(safe-area-inset-bottom)',
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+        paddingTop: 4,
+        boxShadow: '0 -1px 20px rgba(0,0,0,0.07)',
+        position: 'relative', zIndex: 50,
       }}>
         {NAV.map((item) => {
-          const active = item.to === '/'
-            ? location.pathname === '/'
-            : location.pathname.startsWith(item.to)
-
-          if (!item.icon) {
+          if (!item.Icon) {
             return (
               <NavLink key={item.to} to={item.to} style={{
                 flex: 1, display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                padding: '8px 0 12px', textDecoration: 'none',
+                textDecoration: 'none', paddingBottom: 8,
               }}>
                 <div style={{
-                  width: 52, height: 52, borderRadius: '50%',
-                  background: 'linear-gradient(135deg,#4ade80,#16a34a)',
+                  width: 54, height: 54, borderRadius: '50%',
+                  background: 'linear-gradient(145deg, #22d05a, #15803d)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginTop: -22, boxShadow: '0 6px 20px rgba(22,163,74,0.4)',
+                  marginTop: -26,
+                  boxShadow: '0 8px 24px rgba(21,128,61,0.45), 0 2px 8px rgba(21,128,61,0.3)',
+                  border: '3px solid #fff',
                 }}>
-                  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-                    <path d="M13 5V21M5 13H21" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-                  </svg>
+                  <PlusIcon />
                 </div>
               </NavLink>
             )
           }
 
-          const Icon = item.icon
+          const active = item.to === '/'
+            ? location.pathname === '/'
+            : location.pathname.startsWith(item.to)
+
+          const { Icon } = item
           return (
             <NavLink key={item.to} to={item.to} style={{
               flex: 1, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: 4, padding: '10px 0 12px',
-              textDecoration: 'none',
+              alignItems: 'center', gap: 3, paddingBottom: 8,
+              textDecoration: 'none', paddingTop: 8, position: 'relative',
             }}>
-              <Icon active={active} />
-              <span style={{
-                fontSize: 10, fontWeight: active ? 700 : 500,
-                color: active ? '#16a34a' : '#9ca3af',
-                letterSpacing: '0.01em',
-              }}>{item.label}</span>
               {active && (
                 <div style={{
-                  position: 'absolute', bottom: 0,
-                  width: 32, height: 3, borderRadius: '3px 3px 0 0',
-                  background: '#16a34a'
+                  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                  width: 32, height: 3, borderRadius: '0 0 4px 4px',
+                  background: 'linear-gradient(90deg, #22d05a, #15803d)',
                 }} />
               )}
+              <div style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: active ? '#f0fdf4' : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all .2s',
+              }}>
+                <Icon active={active} />
+              </div>
+              <span style={{
+                fontSize: 10, fontWeight: active ? 700 : 500,
+                color: active ? '#15803d' : '#94a3b8',
+              }}>{item.label}</span>
             </NavLink>
           )
         })}
