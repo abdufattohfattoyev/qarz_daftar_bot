@@ -70,7 +70,7 @@ export default function AddDebt() {
 
   useEffect(() => { fetchContacts() }, [])
 
-  // Search as user types phone
+  // Search as user types phone — auto-fill name if found
   useEffect(() => {
     const digits = phone.replace(/\D/g, '')
     if (digits.length < 7) {
@@ -82,9 +82,11 @@ export default function AddDebt() {
     if (match) {
       setFoundContact(match)
       setIsNew(false)
+      setName(match.name)   // auto-fill name
     } else {
       setFoundContact(null)
       setIsNew(true)
+      // don't clear name so user can keep typing
     }
   }, [phone, contacts])
 
@@ -275,37 +277,28 @@ export default function AddDebt() {
           </div>
         </div>
 
-        {/* Found existing contact */}
-        {foundContact && (
-          <div style={{ padding: '0 14px', marginBottom: 12, animation: 'fadeUp .2s both' }}>
-            <PersonBadge name={foundContact.name} phone={foundContact.phone} />
-          </div>
-        )}
-
-        {/* New contact — ask for name */}
-        {isNew && !foundContact && phone.replace(/\D/g, '').length >= 9 && (
-          <div style={{ padding: '0 14px', marginBottom: 12, animation: 'fadeUp .2s both' }}>
-            <div style={{ padding: '12px 14px', background: accentL, borderRadius: 14, marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
-                <circle cx="8" cy="8" r="7" stroke={accent} strokeWidth="1.4"/>
-                <path d="M8 7v4M8 5v.5" stroke={accent} strokeWidth="1.4" strokeLinecap="round"/>
-              </svg>
-              <span style={{ fontSize: 12, color: accent, lineHeight: 1.5 }}>
-                Bu raqam yangi. Ism kiriting — kontakt bazaga qo'shiladi.
-              </span>
-            </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.5" stroke="#64748b" strokeWidth="1.4"/><path d="M2 14c0-3.5 2.7-5.5 6-5.5s6 2 6 5.5" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round"/></svg>
-              Ism *
-            </label>
-            <input
-              type="text" placeholder="Ism Familiya"
-              value={name} onChange={(e) => setName(e.target.value)}
-              autoFocus
-              style={{ width: '100%', padding: '13px 14px', border: name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 15, fontWeight: 600, color: '#111', background: '#fff', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-        )}
+        {/* Name — always visible */}
+        <div style={{ padding: '0 14px', marginBottom: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.5" stroke="#64748b" strokeWidth="1.4"/><path d="M2 14c0-3.5 2.7-5.5 6-5.5s6 2 6 5.5" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round"/></svg>
+            Ism *
+            {foundContact && <span style={{ marginLeft: 4, fontSize: 11, color: '#22c55e', fontWeight: 700 }}>— topildi</span>}
+            {isNew && phone.replace(/\D/g,'').length >= 9 && <span style={{ marginLeft: 4, fontSize: 11, color: accent, fontWeight: 700 }}>— yangi</span>}
+          </label>
+          <input
+            type="text" placeholder="Ism Familiya"
+            value={name} onChange={(e) => setName(e.target.value)}
+            readOnly={!!foundContact}
+            style={{
+              width: '100%', padding: '13px 14px',
+              border: foundContact ? '2px solid #22c55e' : name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
+              borderRadius: 14, fontSize: 15, fontWeight: 600,
+              color: foundContact ? '#15803d' : '#111',
+              background: foundContact ? '#f0fdf4' : '#fff',
+              fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+        </div>
 
         {/* Note */}
         <div style={{ padding: '0 14px', marginBottom: 12 }}>
