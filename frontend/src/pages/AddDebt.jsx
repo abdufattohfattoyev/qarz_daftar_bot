@@ -122,6 +122,17 @@ export default function AddDebt() {
     await addDebt({ contact: contactId, debt_type: debtType, amount, currency, note, due_date: dueDate })
   }
 
+  // Xatoni aniq ko'rsatamiz: HTTP status + server xabari (diagnostika uchun)
+  const describeError = (e) => {
+    if (!e.response) return `Tarmoq xatosi: ${e.message || 'javob yo\'q'}`
+    const d = e.response.data
+    let body = ''
+    if (typeof d === 'string') body = d.slice(0, 160)
+    else if (d?.detail) body = d.detail
+    else if (d && typeof d === 'object') body = Object.entries(d).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' · ')
+    return `[${e.response.status}] ${body || t('err_generic')}`
+  }
+
   const handleSubmit = async () => {
     const digits = phone.replace(/\D/g, '')
     if (digits.length < 9)                 return setError(t('err_phone'))
@@ -143,21 +154,12 @@ export default function AddDebt() {
           navigate('/')
           return
         } catch (e2) {
-          // Sahifani reload qilmaymiz (forma yo'qoladi) — aniq xatoni ko'rsatamiz
-          const d2 = e2.response?.data
-          const msg2 = d2?.detail
-            || (d2 && typeof d2 === 'object' ? Object.values(d2).flat().join(' · ') : null)
-            || t('session_refresh')
-          setError(msg2)
+          setError(describeError(e2))
           haptic('error')
           return
         }
       }
-      const d = e.response?.data
-      const msg = d?.detail
-        || (d && typeof d === 'object' ? Object.values(d).flat().join(' · ') : null)
-        || t('err_generic')
-      setError(msg)
+      setError(describeError(e))
       haptic('error')
     } finally { setLoading(false) }
   }
