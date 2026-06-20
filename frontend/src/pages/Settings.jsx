@@ -93,31 +93,35 @@ export default function Settings() {
       {modal && (
         <>
           <div
-            onTouchEnd={() => setModal(null)}
+            onTouchStart={() => setModal(null)}
             onClick={() => setModal(null)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 998 }}
           />
-          <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
-            background: '#fff', borderRadius: '22px 22px 0 0',
-            paddingBottom: 'env(safe-area-inset-bottom, 20px)',
-            maxHeight: '75vh', overflowY: 'auto',
-          }}>
+          <div
+            onTouchStart={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
+              background: '#fff', borderRadius: '22px 22px 0 0',
+              paddingBottom: 'env(safe-area-inset-bottom, 20px)',
+              maxHeight: '75vh', overflowY: 'auto',
+            }}>
             <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 18px' }} />
 
             {modal === 'currency' && (
               <>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#111', padding: '0 20px 12px' }}>Valyuta tanlang</div>
                 {currencies.map(c => (
-                  <div
+                  <button
                     key={c.val}
-                    onTouchEnd={(e) => { e.preventDefault(); save('currency', c.val) }}
+                    onTouchStart={(e) => { e.stopPropagation(); save('currency', c.val) }}
                     onClick={() => save('currency', c.val)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 20px', cursor: 'pointer',
-                      borderBottom: '0.5px solid #f3f4f6',
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 20px', cursor: 'pointer', border: 'none',
+                      borderBottom: '0.5px solid #f3f4f6', fontFamily: 'inherit',
                       background: user?.currency === c.val ? '#f0fdf4' : '#fff',
+                      textAlign: 'left',
                     }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: 13, fontWeight: 800, color: c.color }}>{c.code}</span>
@@ -125,11 +129,11 @@ export default function Settings() {
                     <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{c.label}</span>
                     <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 600 }}>{c.val}</span>
                     {user?.currency === c.val && (
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </div>
                     )}
-                  </div>
+                  </button>
                 ))}
                 <div style={{ height: 20 }} />
               </>
@@ -139,26 +143,27 @@ export default function Settings() {
               <>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#111', padding: '0 20px 12px' }}>Til tanlang</div>
                 {languages.map(l => (
-                  <div
+                  <button
                     key={l.val}
-                    onTouchEnd={(e) => { e.preventDefault(); save('language', l.val) }}
+                    onTouchStart={(e) => { e.stopPropagation(); save('language', l.val) }}
                     onClick={() => save('language', l.val)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 20px', cursor: 'pointer',
-                      borderBottom: '0.5px solid #f3f4f6',
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 20px', cursor: 'pointer', border: 'none',
+                      borderBottom: '0.5px solid #f3f4f6', fontFamily: 'inherit',
                       background: user?.language === l.val ? '#f0fdf4' : '#fff',
+                      textAlign: 'left',
                     }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: l.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 18 }}>{l.icon}</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: '#374151' }}>{l.icon}</span>
                     </div>
                     <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{l.label}</span>
                     {user?.language === l.val && (
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </div>
                     )}
-                  </div>
+                  </button>
                 ))}
                 <div style={{ height: 20 }} />
               </>
