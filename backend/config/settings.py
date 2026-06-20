@@ -115,6 +115,15 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
+# HTTPS proxy ortida — nginx X-Forwarded-Proto yuboradi
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Admin login uchun CSRF ishonchli manbalar (HTTPS domenlar)
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://nasiya-karta.uz,https://www.nasiya-karta.uz'
+).split(',')
+
 LANGUAGE_CODE = 'uz'
 TIME_ZONE = 'Asia/Tashkent'
 USE_I18N = True
