@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDebtStore, useContactStore } from '../store'
+import { useDebtStore, useContactStore, useAuthStore } from '../store'
 import { haptic } from '../utils'
-import { contactsAPI } from '../api'
+import axios from 'axios'
 
 const CalIcon = () => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
@@ -115,29 +115,60 @@ export default function AddDebt() {
 
   const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
+  const reAuth = async () => {
+    const tg = window.Telegram?.WebApp
+    if (tg?.initData) {
+      const { data } = await axios.post('/api/auth/telegram/', { init_data: tg.initData })
+      localStorage.setItem('access_token', data.tokens.access)
+      localStorage.setItem('refresh_token', data.tokens.refresh)
+      return true
+    }
+    return false
+  }
+
+  const doSave = async () => {
+    const digits = phone.replace(/\D/g, '')
+    let contactId
+    if (foundContact) {
+      contactId = foundContact.id
+    } else {
+      const cleanPhone = '+' + digits
+      const newC = await addContact({ name: name.trim(), phone: cleanPhone })
+      contactId = newC.id
+    }
+    await addDebt({ contact: contactId, debt_type: debtType, amount, currency, note, due_date: dueDate })
+  }
+
   const handleSubmit = async () => {
     const digits = phone.replace(/\D/g, '')
     if (digits.length < 9) return setError('Telefon raqam kiriting')
     if (!amount || parseFloat(amount) <= 0) return setError('Miqdor kiriting')
-    if (isNew && !name.trim()) return setError('Ism kiriting')
+    if (!foundContact && !name.trim()) return setError('Ism kiriting')
 
     setLoading(true); setError('')
     try {
-      let contactId
-      if (foundContact) {
-        contactId = foundContact.id
-      } else {
-        // Create new contact
-        const cleanPhone = '+' + digits
-        const newC = await addContact({ name: name.trim(), phone: cleanPhone })
-        contactId = newC.id
-      }
-
-      await addDebt({ contact: contactId, debt_type: debtType, amount, currency, note, due_date: dueDate })
+      await doSave()
       haptic('success')
       navigate('/')
     } catch (e) {
-      setError(e.response?.data?.detail || 'Xato yuz berdi')
+      if (e.response?.status === 401) {
+        // Token eskirgan — qayta auth qilib retry
+        try {
+          const ok = await reAuth()
+          if (ok) {
+            await doSave()
+            haptic('success')
+            navigate('/')
+            return
+          }
+        } catch {}
+        setError('Sessiya tugadi. Botdan qayta kiring.')
+      } else {
+        const msg = e.response?.data?.detail
+          || Object.values(e.response?.data || {}).flat().join(', ')
+          || 'Xato yuz berdi'
+        setError(msg)
+      }
       haptic('error')
     } finally { setLoading(false) }
   }
