@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useAuthStore } from '../store'
 import { initials, haptic } from '../utils'
 import { statsAPI } from '../api'
+import { CurrencyIcon, GlobeIcon, BellIcon, ExcelIcon, DeleteAllIcon } from '../components/Icons'
 
 export default function Settings() {
   const { user, updateUser } = useAuthStore()
@@ -63,12 +64,12 @@ export default function Settings() {
         {/* App settings */}
         <SectionLabel>Ilova sozlamalari</SectionLabel>
         <Card>
-          <Row icon="💱" bg="#fef9c3" label="Valyuta" value={user?.currency} onClick={() => { haptic('light'); setModal('currency') }} />
+          <Row icon={<CurrencyIcon />} label="Valyuta" value={user?.currency} onClick={() => { haptic('light'); setModal('currency') }} />
           <Divider />
-          <Row icon="🌐" bg="#dcfce7" label="Til" value={user?.language === 'uz' ? "O'zbek" : 'Русский'} onClick={() => { haptic('light'); setModal('language') }} />
+          <Row icon={<GlobeIcon />} label="Til" value={user?.language === 'uz' ? "O'zbek" : 'Русский'} onClick={() => { haptic('light'); setModal('language') }} />
           <Divider />
           <ToggleRow
-            icon="🔔" bg="#dbeafe" label="Eslatmalar"
+            icon={<BellIcon />} label="Eslatmalar"
             checked={user?.notifications_enabled}
             onChange={async () => { haptic('light'); await updateUser({ notifications_enabled: !user?.notifications_enabled }) }}
           />
@@ -77,9 +78,9 @@ export default function Settings() {
         {/* Data */}
         <SectionLabel>Ma'lumotlar</SectionLabel>
         <Card>
-          <Row icon="📊" bg="#dcfce7" label="Excel eksport" value="⬇" onClick={exportExcel} />
+          <Row icon={<ExcelIcon />} label="Excel eksport" value="⬇" onClick={exportExcel} />
           <Divider />
-          <Row icon="🗑️" bg="#fee2e2" label="Hammasini o'chirish" danger onClick={() => { haptic('medium'); setModal('delete') }} />
+          <Row icon={<DeleteAllIcon />} label="Hammasini o'chirish" danger onClick={() => { haptic('medium'); setModal('delete') }} />
         </Card>
 
         {/* App version */}
@@ -186,13 +187,13 @@ function Divider() {
   return <div style={{ height: '0.5px', background: 'rgba(0,0,0,0.06)', marginLeft: 58 }} />
 }
 
-function Row({ icon, bg, label, value, onClick, danger }) {
+function Row({ icon, label, value, onClick, danger }) {
   return (
     <button onClick={onClick} style={{
       width: '100%', display: 'flex', alignItems: 'center', gap: 12,
       padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left'
     }}>
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {icon}
       </div>
       <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: danger ? '#ef4444' : '#111' }}>{label}</span>
@@ -201,10 +202,10 @@ function Row({ icon, bg, label, value, onClick, danger }) {
   )
 }
 
-function ToggleRow({ icon, bg, label, checked, onChange }) {
+function ToggleRow({ icon, label, checked, onChange }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {icon}
       </div>
       <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#111' }}>{label}</span>

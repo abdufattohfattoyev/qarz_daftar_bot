@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmt, fmtDate, fmtTime, initials, avatarColor, haptic } from '../utils'
-import { ArrowUpIcon, ArrowDownIcon, TrashIcon, PayIcon, ChevronRight } from '../components/Icons'
+import { ArrowUpIcon, ArrowDownIcon, TrashIcon, PayIcon, ChevronRight, EmptyIcon } from '../components/Icons'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(parseFloat(v || 0)))
 
@@ -107,14 +107,10 @@ export default function Home() {
         )}
 
         {!loading && groups.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: 22, background: '#f0fdf4',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 14px', fontSize: 34,
-            }}>📭</div>
+          <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+            <div style={{ margin: '0 auto 16px', width: 80, height: 80 }}><EmptyIcon /></div>
             <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Qarzlar yo'q</p>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#94a3b8' }}>Birinchi qarzni qo'shing</p>
+            <p style={{ margin: '0 0 22px', fontSize: 13, color: '#94a3b8' }}>Birinchi qarzni qo'shing</p>
             <button onClick={() => navigate('/add')} style={{
               padding: '12px 28px', borderRadius: 14, border: 'none',
               background: 'linear-gradient(135deg,#22c55e,#16a34a)',
