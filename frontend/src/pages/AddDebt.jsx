@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDebtStore, useContactStore, useAuthStore } from '../store'
+import { useDebtStore, useContactStore } from '../store'
 import { haptic } from '../utils'
 import axios from 'axios'
 
@@ -10,140 +10,118 @@ const CalIcon = () => (
     <path d="M5 1.5V4M11 1.5V4M1.5 7h13" stroke="#16a34a" strokeWidth="1.4" strokeLinecap="round"/>
   </svg>
 )
-
 const NoteIcon = () => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
     <rect x="2" y="1.5" width="12" height="13" rx="2.5" stroke="#64748b" strokeWidth="1.4"/>
     <path d="M5 6h6M5 9h6M5 12h4" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round"/>
   </svg>
 )
-
 const PhoneIcon = ({ color = '#16a34a' }) => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
     <path d="M14 11.2c-.2-.2-1-.7-1.5-.9-.5-.2-.8-.1-1 .1l-.6.7c-.2.2-.4.2-.6.1-1-.5-2.6-1.9-3.4-3-.2-.3-.1-.5.1-.7l.6-.6c.3-.2.3-.5.1-.9-.2-.5-.7-1.3-1-1.6-.3-.3-.6-.3-.8-.2L5 4.5c-.9.6-1.3 1.6-1 2.7.5 1.4 1.6 2.9 2.9 4.1 1.2 1.2 2.7 2.3 4.1 2.8 1.1.4 2.1 0 2.7-.9l.5-.8c.2-.3.1-.5-.2-.7z" fill={color}/>
   </svg>
 )
-
-const PersonBadge = ({ name, phone }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-    background: '#f0fdf4', borderRadius: 14, border: '2px solid #22c55e',
-  }}>
-    <div style={{ width: 38, height: 38, borderRadius: 12, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="7" r="4" fill="#16a34a"/>
-        <path d="M3 18c0-3.9 3.1-6 7-6s7 2.1 7 6" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round"/>
-      </svg>
-    </div>
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: '#15803d' }}>{name}</p>
-      <p style={{ margin: 0, fontSize: 12, color: '#86efac' }}>{phone}</p>
-    </div>
-    <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    </div>
-  </div>
+const PersonIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+    <circle cx="8" cy="6" r="3.5" stroke="#64748b" strokeWidth="1.4"/>
+    <path d="M2 14c0-3.5 2.7-5.5 6-5.5s6 2 6 5.5" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round"/>
+  </svg>
 )
 
+const formatPhone = (raw) => {
+  const d = raw.replace(/\D/g, '')
+  if (!d) return '+998 '
+  const base = d.startsWith('998') ? d : d.startsWith('0') ? '998' + d.slice(1) : '998' + d
+  const n = base.slice(3, 12)
+  let r = '+998'
+  if (n.length > 0) r += ' ' + n.slice(0, 2)
+  if (n.length > 2) r += ' ' + n.slice(2, 5)
+  if (n.length > 5) r += ' ' + n.slice(5, 7)
+  if (n.length > 7) r += ' ' + n.slice(7, 9)
+  return r
+}
+
 export default function AddDebt() {
-  const navigate = useNavigate()
-  const { addDebt } = useDebtStore()
+  const navigate   = useNavigate()
+  const { addDebt }                       = useDebtStore()
   const { contacts, fetchContacts, addContact } = useContactStore()
 
-  const [debtType, setDebtType] = useState('gave')
-  const [amount, setAmount]     = useState('')
-  const [numStr, setNumStr]     = useState('')
-  const [currency, setCurrency] = useState('UZS')
-  const [note, setNote]         = useState('')
-  const [dueDate, setDueDate]   = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [debtType,  setDebtType]  = useState('gave')
+  const [amount,    setAmount]    = useState('')
+  const [numStr,    setNumStr]    = useState('')
+  const [currency,  setCurrency]  = useState('UZS')
+  const [note,      setNote]      = useState('')
+  const [dueDate,   setDueDate]   = useState('')
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState('')
 
-  // Phone-first contact flow
-  const [phone, setPhone]             = useState('+998 ')
-  const [name, setName]               = useState('')
-  const [foundContact, setFoundContact] = useState(null)  // existing contact
-  const [isNew, setIsNew]             = useState(false)   // need to create
-  const phoneRef = useRef(null)
+  const [phone,         setPhone]         = useState('+998 ')
+  const [name,          setName]          = useState('')
+  const [foundContact,  setFoundContact]  = useState(null)
+  const [isNew,         setIsNew]         = useState(false)
+
+  // track already-created contactId across retries
+  const createdContactId = useRef(null)
 
   useEffect(() => { fetchContacts() }, [])
 
-  // Search as user types phone — auto-fill name if found
   useEffect(() => {
     const digits = phone.replace(/\D/g, '')
     if (digits.length < 7) {
-      setFoundContact(null)
-      setIsNew(false)
+      setFoundContact(null); setIsNew(false)
+      createdContactId.current = null
       return
     }
     const match = contacts.find(c => c.phone && c.phone.replace(/\D/g, '').includes(digits))
     if (match) {
-      setFoundContact(match)
-      setIsNew(false)
-      setName(match.name)   // auto-fill name
+      setFoundContact(match); setIsNew(false)
+      setName(match.name)
+      createdContactId.current = null
     } else {
-      setFoundContact(null)
-      setIsNew(true)
-      // don't clear name so user can keep typing
+      setFoundContact(null); setIsNew(true)
     }
   }, [phone, contacts])
-
-  const formatPhone = (raw) => {
-    const d = raw.replace(/\D/g, '')
-    if (d.length === 0) return ''
-    if (d.startsWith('998')) {
-      const n = d.slice(3, 12)
-      let r = '+998'
-      if (n.length > 0) r += ' ' + n.slice(0, 2)
-      if (n.length > 2) r += ' ' + n.slice(2, 5)
-      if (n.length > 5) r += ' ' + n.slice(5, 7)
-      if (n.length > 7) r += ' ' + n.slice(7, 9)
-      return r
-    }
-    return '+' + d.slice(0, 12)
-  }
 
   const handlePhoneChange = (e) => {
     const raw = e.target.value
     const digits = raw.replace(/\D/g, '')
-    // auto-prepend 998 if starts with 0
-    const normalized = digits.startsWith('0') ? '998' + digits.slice(1) : digits
-    setPhone(formatPhone(normalized))
+    if (!digits) { setPhone('+998 '); return }
+    setPhone(formatPhone(digits))
   }
 
   const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
+  // Re-auth via Telegram
   const reAuth = async () => {
     const tg = window.Telegram?.WebApp
-    if (tg?.initData) {
-      const { data } = await axios.post('/api/auth/telegram/', { init_data: tg.initData })
-      localStorage.setItem('access_token', data.tokens.access)
-      localStorage.setItem('refresh_token', data.tokens.refresh)
-      return true
-    }
-    return false
+    if (!tg?.initData) return false
+    const { data } = await axios.post('/api/auth/telegram/', { init_data: tg.initData })
+    localStorage.setItem('access_token', data.tokens.access)
+    localStorage.setItem('refresh_token', data.tokens.refresh)
+    return true
   }
 
+  // Core save — idempotent (tracks contactId to avoid duplicate on retry)
   const doSave = async () => {
     const digits = phone.replace(/\D/g, '')
-    let contactId
-    if (foundContact) {
-      contactId = foundContact.id
-    } else {
-      const cleanPhone = '+' + digits
-      const newC = await addContact({ name: name.trim(), phone: cleanPhone })
-      contactId = newC.id
+    let contactId = createdContactId.current
+    if (!contactId) {
+      if (foundContact) {
+        contactId = foundContact.id
+      } else {
+        const newC = await addContact({ name: name.trim(), phone: '+' + digits })
+        contactId = newC.id
+        createdContactId.current = contactId
+      }
     }
     await addDebt({ contact: contactId, debt_type: debtType, amount, currency, note, due_date: dueDate })
   }
 
   const handleSubmit = async () => {
     const digits = phone.replace(/\D/g, '')
-    if (digits.length < 9) return setError('Telefon raqam kiriting')
-    if (!amount || parseFloat(amount) <= 0) return setError('Miqdor kiriting')
-    if (!foundContact && !name.trim()) return setError('Ism kiriting')
+    if (digits.length < 9)                      return setError('Telefon raqam to\'liq kiriting')
+    if (!amount || parseFloat(amount) <= 0)      return setError('Miqdor kiriting')
+    if (!foundContact && !name.trim())           return setError('Ism kiriting')
 
     setLoading(true); setError('')
     try {
@@ -152,20 +130,15 @@ export default function AddDebt() {
       navigate('/')
     } catch (e) {
       if (e.response?.status === 401) {
-        // Token eskirgan — qayta auth qilib retry
         try {
           const ok = await reAuth()
-          if (ok) {
-            await doSave()
-            haptic('success')
-            navigate('/')
-            return
-          }
+          if (ok) { await doSave(); haptic('success'); navigate('/'); return }
         } catch {}
         setError('Sessiya tugadi. Botdan qayta kiring.')
       } else {
-        const msg = e.response?.data?.detail
-          || Object.values(e.response?.data || {}).flat().join(', ')
+        const d = e.response?.data
+        const msg = d?.detail
+          || (d && typeof d === 'object' ? Object.values(d).flat().join(' · ') : null)
           || 'Xato yuz berdi'
         setError(msg)
       }
@@ -173,21 +146,23 @@ export default function AddDebt() {
     } finally { setLoading(false) }
   }
 
-  const isGave  = debtType === 'gave'
-  const accent  = isGave ? '#16a34a' : '#ef4444'
-  const accentL = isGave ? '#f0fdf4' : '#fef2f2'
-  const canSubmit = phone.replace(/\D/g, '').length >= 9 && parseFloat(amount) > 0 && (!isNew || name.trim())
+  const isGave     = debtType === 'gave'
+  const accent     = isGave ? '#16a34a' : '#ef4444'
+  const digits     = phone.replace(/\D/g, '')
+  const canSubmit  = digits.length >= 9
+    && parseFloat(amount) > 0
+    && (foundContact || name.trim())
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
 
-      {/* HEADER — compact sticky bar only */}
+      {/* ── STICKY HEADER ── */}
       <div style={{
         flexShrink: 0,
         background: isGave
           ? 'linear-gradient(135deg,#0a4d26,#16a34a)'
           : 'linear-gradient(135deg,#7f1d1d,#dc2626)',
-        padding: '12px 16px 12px',
+        padding: '12px 16px',
         display: 'flex', alignItems: 'center', gap: 10,
         transition: 'background .3s',
       }}>
@@ -201,40 +176,38 @@ export default function AddDebt() {
           </svg>
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: -0.3 }}>Yangi qarz</div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)' }}>{isGave ? 'Siz qarz berdingiz' : 'Siz qarz oldingiz'}</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>Yangi qarz</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)' }}>
+            {isGave ? 'Siz qarz berdingiz' : 'Siz qarz oldingiz'}
+          </div>
         </div>
-        {/* active type chip */}
         <div style={{ padding: '4px 10px', background: 'rgba(255,255,255,.2)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#fff' }}>
           {isGave ? '↗ Qarz berdim' : '↙ Qarz oldim'}
         </div>
       </div>
 
-      {/* SCROLL BODY */}
+      {/* ── SCROLL BODY ── */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24 }}>
 
-        {/* Type toggle — inside scroll so it disappears on scroll */}
+        {/* Type toggle */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '12px 14px 4px' }}>
           {[
             { value: 'gave', title: 'Qarz berdim', desc: 'U menga qaytarishi kerak',  arrow: '↗', green: true },
-            { value: 'got',  title: 'Qarz oldim',  desc: 'Men qaytarishim kerak',    arrow: '↙', green: false },
+            { value: 'got',  title: 'Qarz oldim',  desc: 'Men qaytarishim kerak',     arrow: '↙', green: false },
           ].map((t) => {
             const active = debtType === t.value
             return (
-              <button key={t.value} className="pill-btn" onClick={() => { haptic('light'); setDebtType(t.value) }} style={{
-                padding: '12px 12px', borderRadius: 16, fontFamily: 'inherit', cursor: 'pointer',
-                border: `2px solid ${active ? (t.green ? '#16a34a' : '#ef4444') : 'rgba(0,0,0,0.07)'}`,
-                background: active ? (t.green ? '#f0fdf4' : '#fef2f2') : '#fff',
-                display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                gap: 4, textAlign: 'left', position: 'relative',
-                boxShadow: active ? (t.green ? '0 3px 12px rgba(22,163,74,.2)' : '0 3px 12px rgba(239,68,68,.2)') : '0 1px 4px rgba(0,0,0,.05)',
-              }}>
-                <div style={{
-                  width: 30, height: 30, borderRadius: 9,
-                  background: t.green ? '#dcfce7' : '#fee2e2',
-                  color: t.green ? '#16a34a' : '#ef4444',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, marginBottom: 2,
-                }}>{t.arrow}</div>
+              <button key={t.value} className="pill-btn"
+                onClick={() => { haptic('light'); setDebtType(t.value) }}
+                style={{
+                  padding: '12px', borderRadius: 16, fontFamily: 'inherit', cursor: 'pointer',
+                  border: `2px solid ${active ? (t.green ? '#16a34a' : '#ef4444') : 'rgba(0,0,0,0.07)'}`,
+                  background: active ? (t.green ? '#f0fdf4' : '#fef2f2') : '#fff',
+                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                  gap: 4, textAlign: 'left', position: 'relative',
+                  boxShadow: active ? (t.green ? '0 3px 12px rgba(22,163,74,.2)' : '0 3px 12px rgba(239,68,68,.2)') : '0 1px 4px rgba(0,0,0,.05)',
+                }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: t.green ? '#dcfce7' : '#fee2e2', color: t.green ? '#16a34a' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{t.arrow}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: active ? (t.green ? '#16a34a' : '#ef4444') : '#374151' }}>{t.title}</div>
                 <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.3 }}>{t.desc}</div>
                 {active && (
@@ -248,57 +221,52 @@ export default function AddDebt() {
         </div>
 
         {/* Currency */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#e8eaf0', borderRadius: 14, padding: 3, gap: 3, margin: '12px 14px 12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#e8eaf0', borderRadius: 14, padding: 3, gap: 3, margin: '12px 14px' }}>
           {['UZS', 'USD'].map((c) => (
             <button key={c} className="pill-btn" onClick={() => { haptic('light'); setCurrency(c) }} style={{
-              padding: '10px', border: currency === c ? `1.5px solid ${accent}30` : 'none',
-              borderRadius: 12, background: currency === c ? '#fff' : 'transparent',
+              padding: '10px', borderRadius: 12, fontFamily: 'inherit', cursor: 'pointer',
+              border: currency === c ? `1.5px solid ${accent}40` : 'none',
+              background: currency === c ? '#fff' : 'transparent',
               fontSize: 14, fontWeight: currency === c ? 700 : 500,
-              color: currency === c ? accent : '#94a3b8', cursor: 'pointer', fontFamily: 'inherit',
+              color: currency === c ? accent : '#94a3b8',
             }}>{c}</button>
           ))}
         </div>
 
         {/* Amount */}
         <div style={{ margin: '0 14px 12px' }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6, display: 'block' }}>Summa</label>
+          <label style={{ fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6, display: 'block' }}>
+            Summa
+          </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', background: '#fff', borderRadius: 16, border: `2px solid ${accent}`, boxSizing: 'border-box' }}>
-            <span style={{ fontSize: 16, color: accent, fontWeight: 800 }}>{currency === 'USD' ? '$' : 'UZS'}</span>
+            <span style={{ fontSize: 15, color: accent, fontWeight: 800, flexShrink: 0 }}>{currency === 'USD' ? '$' : 'UZS'}</span>
             <input
-              type="text" inputMode="numeric" placeholder="0"
-              value={numStr}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/\D/g, '')
-                setNumStr(fmtNum(raw))
-                setAmount(raw)
-              }}
-              style={{ flex: 1, padding: '16px 0', border: 'none', fontSize: 26, fontWeight: 800, color: '#0f172a', background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: -0.5, width: '100%', boxSizing: 'border-box' }}
+              type="text" inputMode="numeric" placeholder="0" value={numStr}
+              onChange={(e) => { const r = e.target.value.replace(/\D/g, ''); setNumStr(fmtNum(r)); setAmount(r) }}
+              style={{ flex: 1, padding: '15px 0', border: 'none', fontSize: 26, fontWeight: 800, color: '#0f172a', background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: -0.5, minWidth: 0 }}
             />
           </div>
         </div>
 
-        {/* ─── PHONE FIRST ─── */}
+        {/* Phone */}
         <div style={{ padding: '0 14px', marginBottom: 10 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
             <PhoneIcon color="#64748b" /> Telefon raqam
           </label>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px',
-            background: '#fff', borderRadius: 14,
+            display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
+            background: '#fff', borderRadius: 14, boxSizing: 'border-box',
             border: foundContact ? '2px solid #22c55e' : isNew ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
-            boxSizing: 'border-box',
           }}>
             <PhoneIcon color={foundContact ? '#22c55e' : accent} />
             <input
-              ref={phoneRef}
-              type="tel" inputMode="numeric"
-              placeholder="+998 90 123 45 67"
-              value={phone}
-              onChange={handlePhoneChange}
-              style={{ flex: 1, padding: '13px 0', border: 'none', fontSize: 16, fontWeight: 600, color: '#0f172a', background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: .3 }}
+              type="tel" inputMode="numeric" placeholder="+998 90 123 45 67"
+              value={phone} onChange={handlePhoneChange}
+              style={{ flex: 1, padding: '13px 0', border: 'none', fontSize: 16, fontWeight: 600, color: '#0f172a', background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: .3, minWidth: 0 }}
             />
-            {phone && (
-              <button onClick={() => { setPhone('+998 '); setFoundContact(null); setIsNew(false); setName('') }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}>
+            {digits.length > 3 && (
+              <button onClick={() => { setPhone('+998 '); setFoundContact(null); setIsNew(false); setName(''); createdContactId.current = null }}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <circle cx="8" cy="8" r="7" fill="#e5e7eb"/>
                   <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#9ca3af" strokeWidth="1.4" strokeLinecap="round"/>
@@ -311,22 +279,21 @@ export default function AddDebt() {
         {/* Name — always visible */}
         <div style={{ padding: '0 14px', marginBottom: 12 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.5" stroke="#64748b" strokeWidth="1.4"/><path d="M2 14c0-3.5 2.7-5.5 6-5.5s6 2 6 5.5" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round"/></svg>
-            Ism *
-            {foundContact && <span style={{ marginLeft: 4, fontSize: 11, color: '#22c55e', fontWeight: 700 }}>— topildi</span>}
-            {isNew && phone.replace(/\D/g,'').length >= 9 && <span style={{ marginLeft: 4, fontSize: 11, color: accent, fontWeight: 700 }}>— yangi</span>}
+            <PersonIcon /> Ism *
+            {foundContact && <span style={{ marginLeft: 4, fontSize: 11, color: '#22c55e', fontWeight: 700 }}>— topildi ✓</span>}
+            {isNew && digits.length >= 9 && <span style={{ marginLeft: 4, fontSize: 11, color: accent, fontWeight: 700 }}>— yangi kontakt</span>}
           </label>
           <input
             type="text" placeholder="Ism Familiya"
-            value={name} onChange={(e) => setName(e.target.value)}
+            value={name} onChange={(e) => { if (!foundContact) setName(e.target.value) }}
             readOnly={!!foundContact}
             style={{
-              width: '100%', padding: '13px 14px',
+              width: '100%', padding: '13px 14px', borderRadius: 14, boxSizing: 'border-box',
               border: foundContact ? '2px solid #22c55e' : name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
-              borderRadius: 14, fontSize: 15, fontWeight: 600,
+              fontSize: 15, fontWeight: 600,
               color: foundContact ? '#15803d' : '#111',
               background: foundContact ? '#f0fdf4' : '#fff',
-              fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+              fontFamily: 'inherit', outline: 'none',
             }}
           />
         </div>
@@ -356,9 +323,12 @@ export default function AddDebt() {
 
         {/* Error */}
         {error && (
-          <div style={{ margin: '0 14px 12px', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fef2f2', borderRadius: 12 }}>
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#ef4444" strokeWidth="1.5"/><path d="M8 5v3.5M8 10.5v.5" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            <span style={{ fontSize: 13, color: '#ef4444' }}>{error}</span>
+          <div style={{ margin: '0 14px 12px', display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px', background: '#fef2f2', borderRadius: 12, border: '1px solid #fecaca' }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+              <circle cx="8" cy="8" r="7" stroke="#ef4444" strokeWidth="1.5"/>
+              <path d="M8 5v3.5M8 10.5v.5" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize: 13, color: '#ef4444', lineHeight: 1.4 }}>{error}</span>
           </div>
         )}
 
@@ -376,8 +346,8 @@ export default function AddDebt() {
             fontSize: 14, fontWeight: 700,
             color: canSubmit ? '#fff' : '#94a3b8',
             cursor: canSubmit && !loading ? 'pointer' : 'default', fontFamily: 'inherit',
+            opacity: loading ? 0.8 : 1,
             boxShadow: canSubmit ? (isGave ? '0 4px 14px rgba(22,163,74,.35)' : '0 4px 14px rgba(239,68,68,.35)') : 'none',
-            transition: 'all .2s',
           }}>
             {loading ? 'Saqlanmoqda...' : isGave ? '+ Saqlash (Qarz berdim)' : '+ Saqlash (Qarz oldim)'}
           </button>
