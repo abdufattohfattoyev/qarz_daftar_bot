@@ -1,4 +1,4 @@
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from datetime import timedelta
@@ -8,55 +8,85 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 import openpyxl
 from django.http import HttpResponse
-from .models import Debt
+from .models import Debt, Payment
 
 
-def get_period_filter(period):
-    now = timezone.now()
+def get_period_range(period):
+    """Davr uchun (boshlanish, tugash) sanalarini qaytaradi. None — barchasi."""
+    today = timezone.now().date()
     if period == 'today':
-        return now.date()
-    elif period == '7days':
-        return now.date() - timedelta(days=7)
-    elif period == 'month':
-        return now.replace(day=1).date()
-    elif period == 'last_month':
-        first_this = now.replace(day=1).date()
-        return (first_this - timedelta(days=1)).replace(day=1)
-    return None
+        return today, today
+    if period == '7days':
+        return today - timedelta(days=6), today      # bugun bilan birga 7 kun
+    if period == 'month':
+        return today.replace(day=1), today
+    if period == 'last_month':
+        first_this = today.replace(day=1)
+        last_prev = first_this - timedelta(days=1)    # o'tgan oyning oxirgi kuni
+        return last_prev.replace(day=1), last_prev    # faqat o'tgan oy oralig'i
+    return None, today
+
+
+def _f(v):
+    return float(v or 0)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def stats(request):
-    """Asosiy statistika"""
+    """Asosiy statistika — davr filtri, to'lovlar va kunlik diagramma bilan."""
     user = request.user
     period = request.query_params.get('period', 'all')
     currency = request.query_params.get('currency', 'UZS')
 
     qs = Debt.objects.filter(user=user, currency=currency)
+    date_from, date_to = get_period_range(period)
+    if period != 'all' and date_from:
+        qs = qs.filter(created_at__date__gte=date_from, created_at__date__lte=date_to)
 
-    if period != 'all':
-        date_from = get_period_filter(period)
-        if date_from:
-            qs = qs.filter(created_at__date__gte=date_from)
-
-    # Menga berishadi (men berdim, faol)
+    # Faol qoldiqlar (butun balans — davrdan qat'i nazar emas, joriy qarzlar bo'yicha)
     gave_active = qs.filter(debt_type='gave', status__in=['active', 'partial'])
-    gave_total = gave_active.aggregate(
-        total=Sum('amount'), paid=Sum('paid_amount')
-    )
-    gave_remaining = (gave_total['total'] or Decimal(0)) - (gave_total['paid'] or Decimal(0))
+    gt = gave_active.aggregate(total=Sum('amount'), paid=Sum('paid_amount'))
+    gave_remaining = (gt['total'] or Decimal(0)) - (gt['paid'] or Decimal(0))
 
-    # Men beraman (mendan oldi, faol)
     got_active = qs.filter(debt_type='got', status__in=['active', 'partial'])
-    got_total = got_active.aggregate(
-        total=Sum('amount'), paid=Sum('paid_amount')
-    )
-    got_remaining = (got_total['total'] or Decimal(0)) - (got_total['paid'] or Decimal(0))
+    gott = got_active.aggregate(total=Sum('amount'), paid=Sum('paid_amount'))
+    got_remaining = (gott['total'] or Decimal(0)) - (gott['paid'] or Decimal(0))
 
-    # Umumiy berilgan / qabul qilingan
+    # Davr ichida yaratilgan qarzlar (berdim / oldim)
     all_gave = qs.filter(debt_type='gave').aggregate(total=Sum('amount'))
     all_got = qs.filter(debt_type='got').aggregate(total=Sum('amount'))
+
+    # To'lovlar (davr ichida, paid_at bo'yicha)
+    pay_qs = Payment.objects.filter(debt__user=user, debt__currency=currency)
+    if period != 'all' and date_from:
+        pay_qs = pay_qs.filter(paid_at__date__gte=date_from, paid_at__date__lte=date_to)
+    received = pay_qs.filter(debt__debt_type='gave').aggregate(s=Sum('amount'))['s']  # menga qaytarishdi
+    paid_out = pay_qs.filter(debt__debt_type='got').aggregate(s=Sum('amount'))['s']    # men to'ladim
+    payments_count = pay_qs.count()
+
+    # Kunlik diagramma (berdim vs oldim, sana bo'yicha)
+    by_day = {}
+    for row in qs.annotate(d=TruncDate('created_at')).values('d', 'debt_type').annotate(s=Sum('amount')):
+        slot = by_day.setdefault(row['d'], {'gave': 0, 'got': 0})
+        slot[row['debt_type']] = _f(row['s'])
+
+    chart = []
+    if period != 'all' and date_from:
+        # Davrning har bir kunini to'ldiramiz (bo'sh kunlar 0)
+        start = date_from
+        if (date_to - start).days > 31:
+            start = date_to - timedelta(days=31)
+        d = start
+        while d <= date_to:
+            v = by_day.get(d, {})
+            chart.append({'date': d.isoformat(), 'gave': v.get('gave', 0), 'got': v.get('got', 0)})
+            d += timedelta(days=1)
+    else:
+        # Barchasi — mavjud kunlardan oxirgi 31 tasi
+        for d in sorted(by_day)[-31:]:
+            v = by_day[d]
+            chart.append({'date': d.isoformat(), 'gave': v.get('gave', 0), 'got': v.get('got', 0)})
 
     # Top qarzdorlar (menga beradigan)
     from apps.contacts.models import Contact
@@ -67,8 +97,7 @@ def stats(request):
         debts__debt_type='gave',
         debts__currency=currency
     ).distinct()
-
-    for contact in contacts_with_debt[:10]:
+    for contact in contacts_with_debt[:20]:
         debts = contact.debts.filter(
             user=user, debt_type='gave',
             status__in=['active', 'partial'], currency=currency
@@ -76,31 +105,34 @@ def stats(request):
         remaining = sum(d.remaining_amount for d in debts)
         if remaining > 0:
             top_contacts.append({
-                'id': contact.id,
-                'name': contact.name,
-                'initials': contact.initials,
-                'phone': contact.phone,
-                'remaining': remaining,
+                'id': contact.id, 'name': contact.name,
+                'initials': contact.initials, 'phone': contact.phone,
+                'remaining': float(remaining),
             })
-
     top_contacts.sort(key=lambda x: x['remaining'], reverse=True)
 
-    # Qarzdorlar soni
     debtors_count = gave_active.values('contact').distinct().count()
 
     return Response({
         'currency': currency,
         'period': period,
         'summary': {
-            'i_lent': str(gave_remaining),        # Menga berishadi
-            'i_borrowed': str(got_remaining),      # Men beraman
+            'i_lent': str(gave_remaining),
+            'i_borrowed': str(got_remaining),
             'net_balance': str(gave_remaining - got_remaining),
             'debtors_count': debtors_count,
+            'total_count': qs.count(),               # davr ichidagi qarzlar soni
         },
         'totals': {
             'total_gave': str(all_gave['total'] or 0),
             'total_got': str(all_got['total'] or 0),
         },
+        'payments': {
+            'received': str(received or 0),           # qabul qildim
+            'paid': str(paid_out or 0),               # to'ladim
+            'count': payments_count,
+        },
+        'chart': chart,
         'top_debtors': top_contacts[:5],
         'active_debts': qs.filter(status__in=['active', 'partial']).count(),
         'paid_debts': qs.filter(status='paid').count(),

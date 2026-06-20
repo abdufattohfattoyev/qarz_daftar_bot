@@ -115,6 +115,13 @@ export const translations = {
     uzs_owes: 'UZS qarzdor',
     no_data_period: "{period} uchun ma'lumot yo'q",
     no_data_desc: "Bu davr uchun hech qanday qarz qayd etilmagan",
+    received_label: 'Qabul qildim',
+    paid_out_label: "To'ladim",
+    payments_cnt: "to'lov",
+    chart_title: 'Kunlik harakat',
+    no_chart: "Diagramma uchun ma'lumot yo'q",
+    owes_me_short: 'Menga qarzdor',
+    i_owe_short: 'Men qarzdor',
 
     // Settings
     settings_title: 'Sozlamalar',
@@ -273,6 +280,13 @@ export const translations = {
     uzs_owes: 'UZS долг',
     no_data_period: 'Нет данных за {period}',
     no_data_desc: 'За этот период долги не зафиксированы',
+    received_label: 'Принял',
+    paid_out_label: 'Оплатил',
+    payments_cnt: 'платежей',
+    chart_title: 'Активность по дням',
+    no_chart: 'Нет данных для графика',
+    owes_me_short: 'Должны мне',
+    i_owe_short: 'Я должен',
 
     // Settings
     settings_title: 'Настройки',
