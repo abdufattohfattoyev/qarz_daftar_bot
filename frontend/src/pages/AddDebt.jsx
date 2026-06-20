@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useContactStore, useAuthStore } from '../store'
 import { haptic } from '../utils'
 import { useT } from '../i18n'
-import axios from 'axios'
 
 const CalIcon = () => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
@@ -17,11 +16,6 @@ const NoteIcon = () => (
     <path d="M5 6h6M5 9h6M5 12h4" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round"/>
   </svg>
 )
-const PhoneIcon = ({ color = '#16a34a' }) => (
-  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-    <path d="M14 11.2c-.2-.2-1-.7-1.5-.9-.5-.2-.8-.1-1 .1l-.6.7c-.2.2-.4.2-.6.1-1-.5-2.6-1.9-3.4-3-.2-.3-.1-.5.1-.7l.6-.6c.3-.2.3-.5.1-.9-.2-.5-.7-1.3-1-1.6-.3-.3-.6-.3-.8-.2L5 4.5c-.9.6-1.3 1.6-1 2.7.5 1.4 1.6 2.9 2.9 4.1 1.2 1.2 2.7 2.3 4.1 2.8 1.1.4 2.1 0 2.7-.9l.5-.8c.2-.3.1-.5-.2-.7z" fill={color}/>
-  </svg>
-)
 const PersonIcon = () => (
   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
     <circle cx="8" cy="6" r="3.5" stroke="#64748b" strokeWidth="1.4"/>
@@ -29,24 +23,11 @@ const PersonIcon = () => (
   </svg>
 )
 
-const formatPhone = (raw) => {
-  const d = raw.replace(/\D/g, '')
-  if (!d) return '+998 '
-  const base = d.startsWith('998') ? d : d.startsWith('0') ? '998' + d.slice(1) : '998' + d
-  const n = base.slice(3, 12)
-  let r = '+998'
-  if (n.length > 0) r += ' ' + n.slice(0, 2)
-  if (n.length > 2) r += ' ' + n.slice(2, 5)
-  if (n.length > 5) r += ' ' + n.slice(5, 7)
-  if (n.length > 7) r += ' ' + n.slice(7, 9)
-  return r
-}
-
 export default function AddDebt() {
-  const navigate   = useNavigate()
+  const navigate = useNavigate()
   const t = useT()
-  const { addDebt }                       = useDebtStore()
-  const { contacts, fetchContacts, addContact } = useContactStore()
+  const { addDebt } = useDebtStore()
+  const { addContact } = useContactStore()
 
   const [debtType,  setDebtType]  = useState('gave')
   const [amount,    setAmount]    = useState('')
@@ -56,79 +37,28 @@ export default function AddDebt() {
   const [dueDate,   setDueDate]   = useState('')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
+  const [name, setName] = useState('')
 
-  const [phone,         setPhone]         = useState('+998 ')
-  const [name,          setName]          = useState('')
-  const [foundContact,  setFoundContact]  = useState(null)
-  const [isNew,         setIsNew]         = useState(false)
-
-  // track already-created contactId across retries
   const createdContactId = useRef(null)
-
-  useEffect(() => { fetchContacts() }, [])
-
-  useEffect(() => {
-    const digits = phone.replace(/\D/g, '')
-    // Faqat raqam TO'LIQ yozilganda (998 + 9 = 12 raqam) kontaktni qidiramiz —
-    // qisman yozayotganda ism maydoniga erta moslik chiqmasligi uchun
-    if (digits.length < 12) {
-      setFoundContact(null); setIsNew(false)
-      createdContactId.current = null
-      return
-    }
-    // Aniq moslik (includes emas) — butun raqam bir xil bo'lsa
-    const match = contacts.find(c => c.phone && c.phone.replace(/\D/g, '') === digits)
-    if (match) {
-      setFoundContact(match); setIsNew(false)
-      setName(match.name)
-      createdContactId.current = null
-    } else {
-      setFoundContact(null); setIsNew(true)
-    }
-  }, [phone, contacts])
-
-  const handlePhoneChange = (e) => {
-    const raw = e.target.value
-    const digits = raw.replace(/\D/g, '')
-    if (!digits) { setPhone('+998 '); return }
-    setPhone(formatPhone(digits))
-  }
 
   const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
-  // Core save — idempotent (tracks contactId to avoid duplicate on retry)
   const doSave = async () => {
-    const digits = phone.replace(/\D/g, '')
     let contactId = createdContactId.current
     if (!contactId) {
-      if (foundContact) {
-        contactId = foundContact.id
-      } else {
-        // Yangi kontakt yaratamiz. Backend ba'zan id qaytarmasligi yoki kontakt
-        // allaqachon mavjud bo'lishi mumkin — har holatda ro'yxatdan id'ni topamiz.
-        let newC = null
-        let createErr = null
-        try {
-          newC = await addContact({ name: name.trim(), phone: '+' + digits })
-        } catch (e) { createErr = e }
-        contactId = newC?.id
-        if (!contactId) {
-          await fetchContacts().catch(() => {})
-          const found = useContactStore.getState().contacts.find(
-            (c) => c.phone && c.phone.replace(/\D/g, '') === digits
-          )
-          contactId = found?.id
-        }
-        // Topilmadi va kontakt yaratishda xato bo'lgan bo'lsa — o'sha aniq xatoni ko'rsatamiz
-        if (!contactId && createErr) throw createErr
-        createdContactId.current = contactId
-      }
+      let newC = null
+      let createErr = null
+      try {
+        newC = await addContact({ name: name.trim() })
+      } catch (e) { createErr = e }
+      contactId = newC?.id
+      if (!contactId && createErr) throw createErr
+      if (!contactId) throw new Error('Kontakt yaratilmadi')
+      createdContactId.current = contactId
     }
-    if (!contactId) throw new Error('Kontakt yaratilmadi')
     await addDebt({ contact: contactId, debt_type: debtType, amount, currency, note, due_date: dueDate })
   }
 
-  // Xatoni aniq ko'rsatamiz: HTTP status + server xabari (diagnostika uchun)
   const describeError = (e) => {
     if (!e.response) return `Tarmoq xatosi: ${e.message || 'javob yo\'q'}`
     const d = e.response.data
@@ -140,10 +70,8 @@ export default function AddDebt() {
   }
 
   const handleSubmit = async () => {
-    const digits = phone.replace(/\D/g, '')
-    if (digits.length < 12)                return setError(t('err_phone'))
-    if (!amount || parseFloat(amount) <= 0) return setError(t('err_amount'))
-    if (!foundContact && !name.trim())      return setError(t('err_name'))
+    if (!name.trim())                        return setError(t('err_name'))
+    if (!amount || parseFloat(amount) <= 0)  return setError(t('err_amount'))
 
     setLoading(true); setError('')
     try {
@@ -152,7 +80,6 @@ export default function AddDebt() {
       navigate('/')
     } catch (e) {
       if (e.response?.status === 401) {
-        // Token eskirgan → auth store init() orqali qayta auth qilib, bir marta qayta urinamiz
         try {
           await useAuthStore.getState().init()
           await doSave()
@@ -170,12 +97,9 @@ export default function AddDebt() {
     } finally { setLoading(false) }
   }
 
-  const isGave     = debtType === 'gave'
-  const accent     = isGave ? '#16a34a' : '#ef4444'
-  const digits     = phone.replace(/\D/g, '')
-  const canSubmit  = digits.length >= 12
-    && parseFloat(amount) > 0
-    && (foundContact || name.trim())
+  const isGave    = debtType === 'gave'
+  const accent    = isGave ? '#16a34a' : '#ef4444'
+  const canSubmit = name.trim() && parseFloat(amount) > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -272,51 +196,18 @@ export default function AddDebt() {
           </div>
         </div>
 
-        {/* Phone */}
-        <div style={{ padding: '0 14px', marginBottom: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
-            <PhoneIcon color="#64748b" /> {t('phone_num')}
-          </label>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
-            background: '#fff', borderRadius: 14, boxSizing: 'border-box',
-            border: foundContact ? '2px solid #22c55e' : isNew ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
-          }}>
-            <PhoneIcon color={foundContact ? '#22c55e' : accent} />
-            <input
-              type="tel" inputMode="numeric" placeholder="+998 90 123 45 67"
-              value={phone} onChange={handlePhoneChange}
-              style={{ flex: 1, padding: '13px 0', border: 'none', fontSize: 16, fontWeight: 600, color: '#0f172a', background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: .3, minWidth: 0 }}
-            />
-            {digits.length > 3 && (
-              <button onClick={() => { setPhone('+998 '); setFoundContact(null); setIsNew(false); setName(''); createdContactId.current = null }}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="7" fill="#e5e7eb"/>
-                  <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#9ca3af" strokeWidth="1.4" strokeLinecap="round"/>
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Name — always visible */}
+        {/* Name */}
         <div style={{ padding: '0 14px', marginBottom: 12 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
             <PersonIcon /> {t('name_req')}
-            {foundContact && <span style={{ marginLeft: 4, fontSize: 11, color: '#22c55e', fontWeight: 700 }}>{t('found_tag')}</span>}
-            {isNew && digits.length >= 12 && <span style={{ marginLeft: 4, fontSize: 11, color: accent, fontWeight: 700 }}>{t('new_contact_tag')}</span>}
           </label>
           <input
             type="text" placeholder={t('name_ph2')}
-            value={name} onChange={(e) => { if (!foundContact) setName(e.target.value) }}
-            readOnly={!!foundContact}
+            value={name} onChange={(e) => setName(e.target.value)}
             style={{
               width: '100%', padding: '13px 14px', borderRadius: 14, boxSizing: 'border-box',
-              border: foundContact ? '2px solid #22c55e' : name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
-              fontSize: 15, fontWeight: 600,
-              color: foundContact ? '#15803d' : '#111',
-              background: foundContact ? '#f0fdf4' : '#fff',
+              border: name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
+              fontSize: 15, fontWeight: 600, color: '#111', background: '#fff',
               fontFamily: 'inherit', outline: 'none',
             }}
           />
@@ -339,12 +230,60 @@ export default function AddDebt() {
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
             <CalIcon /> {t('due_optional')}
           </label>
-          <input
-            type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-            onClick={(e) => { try { e.currentTarget.showPicker?.() } catch {} }}
-            onFocus={(e) => { try { e.currentTarget.showPicker?.() } catch {} }}
-            style={{ width: '100%', padding: '13px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 16, color: dueDate ? '#111' : '#94a3b8', background: '#fff', fontFamily: 'inherit', outline: 'none', WebkitAppearance: 'none', boxSizing: 'border-box', minHeight: 48 }}
-          />
+          <div style={{ position: 'relative' }}>
+            {/* Visual button */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '0 14px', background: '#fff', borderRadius: 14,
+              border: dueDate ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
+              minHeight: 50, boxSizing: 'border-box', pointerEvents: 'none',
+            }}>
+              <CalIcon />
+              <span style={{ flex: 1, fontSize: 15, fontWeight: dueDate ? 600 : 400, color: dueDate ? '#0f172a' : '#94a3b8' }}>
+                {dueDate
+                  ? new Date(dueDate).toLocaleDateString('uz-UZ', { day: '2-digit', month: 'long', year: 'numeric' })
+                  : t('due_optional')}
+              </span>
+              {dueDate
+                ? (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="7" fill="#e5e7eb"/>
+                    <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#9ca3af" strokeWidth="1.4" strokeLinecap="round"/>
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 7l2 2 2-2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+            </div>
+            {/* Actual date input — transparent, covers full area */}
+            <input
+              type="date" value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              onClick={(e) => { try { e.currentTarget.showPicker?.() } catch {} }}
+              onFocus={(e) => { try { e.currentTarget.showPicker?.() } catch {} }}
+              style={{
+                position: 'absolute', inset: 0, opacity: 0,
+                width: '100%', height: '100%', cursor: 'pointer',
+                WebkitAppearance: 'none', border: 'none', padding: 0, margin: 0,
+              }}
+            />
+            {/* Clear button — above the overlay */}
+            {dueDate && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setDueDate('') }}
+                style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  zIndex: 2, border: 'none', background: 'none', cursor: 'pointer', padding: 4,
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" fill="#e5e7eb"/>
+                  <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#9ca3af" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Error */}

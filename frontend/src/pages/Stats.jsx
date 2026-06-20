@@ -135,7 +135,7 @@ export default function Stats() {
             </div>
 
             {/* CHART — kunlik harakat */}
-            <div style={{ margin: '0 14px 12px', background: '#fff', borderRadius: 18, padding: '14px 14px 12px', boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
+            <div style={{ margin: '0 14px 12px', background: '#fff', borderRadius: 18, padding: '14px 14px 10px', boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{t('chart_title')}</span>
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -147,34 +147,7 @@ export default function Stats() {
               {chart.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: '#94a3b8' }}>{t('no_chart')}</div>
               ) : (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: chart.length > 16 ? 2 : 5, height: 120 }}>
-                    {chart.map((pt) => {
-                      const total = (pt.gave || 0) + (pt.got || 0)
-                      const h = (total / chartMax) * 100
-                      const gaveH = total ? (pt.gave / total) * 100 : 0
-                      return (
-                        <div key={pt.date} title={`${pt.date}`} style={{ flex: 1, minWidth: 4, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                          <div style={{
-                            height: `${h}%`, minHeight: total ? 4 : 0, width: '100%',
-                            borderRadius: '4px 4px 2px 2px', overflow: 'hidden',
-                            display: 'flex', flexDirection: 'column',
-                            transition: 'height .4s cubic-bezier(.25,.8,.25,1)',
-                          }}>
-                            <div style={{ height: `${gaveH}%`, background: 'linear-gradient(180deg,#34d399,#16a34a)' }} />
-                            <div style={{ flex: 1, background: 'linear-gradient(180deg,#f87171,#dc2626)' }} />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {/* x-axis: birinchi / oxirgi kun */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>
-                    <span>{fmtDay(chart[0]?.date)}</span>
-                    {chart.length > 2 && <span>{fmtDay(chart[Math.floor(chart.length / 2)]?.date)}</span>}
-                    <span>{fmtDay(chart[chart.length - 1]?.date)}</span>
-                  </div>
-                </>
+                <BarChart chart={chart} />
               )}
             </div>
 
@@ -306,4 +279,105 @@ function fmtDay(iso) {
   if (!iso) return ''
   const d = new Date(iso)
   return `${d.getDate()}.${d.getMonth() + 1}`
+}
+
+function fmtShort(v) {
+  if (v >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1) + 'B'
+  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'M'
+  if (v >= 1_000) return Math.round(v / 1_000) + 'K'
+  return Math.round(v)
+}
+
+function BarChart({ chart }) {
+  const CHART_H = 150
+  const Y_W = 34
+  const GAP = chart.length > 20 ? 1 : chart.length > 12 ? 2 : 4
+
+  const peak = Math.max(1, ...chart.map(c => Math.max(c.gave || 0, c.got || 0)))
+  // nice round ceiling for y-axis
+  const mag = Math.pow(10, Math.floor(Math.log10(peak)))
+  const yMax = Math.ceil(peak / mag) * mag
+
+  const ticks = [0.25, 0.5, 0.75, 1]
+
+  // x-axis labels: first, ~25%, ~50%, ~75%, last — deduplicated
+  const xIdxs = [...new Set([
+    0,
+    Math.round(chart.length * 0.25),
+    Math.round(chart.length * 0.5),
+    Math.round(chart.length * 0.75),
+    chart.length - 1,
+  ])].filter(i => i >= 0 && i < chart.length)
+
+  return (
+    <div>
+      {/* Chart area */}
+      <div style={{ position: 'relative', height: CHART_H }}>
+
+        {/* Horizontal grid lines + Y labels */}
+        {ticks.map(t => (
+          <div key={t} style={{
+            position: 'absolute', left: 0, right: 0,
+            bottom: `${t * 100}%`,
+            display: 'flex', alignItems: 'flex-end', gap: 6,
+            pointerEvents: 'none',
+          }}>
+            <span style={{ width: Y_W, fontSize: 8, color: '#cbd5e1', fontWeight: 700, textAlign: 'right', flexShrink: 0, lineHeight: 1, marginBottom: 2 }}>
+              {fmtShort(yMax * t)}
+            </span>
+            <div style={{ flex: 1, height: 1, background: t === 0 ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.05)' }} />
+          </div>
+        ))}
+
+        {/* Bars */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: Y_W + 6, right: 0, top: 0,
+          display: 'flex', alignItems: 'flex-end', gap: GAP,
+        }}>
+          {chart.map((pt) => {
+            const gH = yMax ? ((pt.gave || 0) / yMax) * 100 : 0
+            const rH = yMax ? ((pt.got  || 0) / yMax) * 100 : 0
+            const barGap = chart.length > 20 ? 0 : 1
+            return (
+              <div key={pt.date} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end', gap: barGap }}>
+                {/* Gave */}
+                <div style={{
+                  flex: 1,
+                  height: gH > 0 ? `${Math.max(gH, 3)}%` : 0,
+                  borderRadius: '3px 3px 0 0',
+                  background: 'linear-gradient(180deg,#4ade80 0%,#16a34a 100%)',
+                  transition: 'height .5s cubic-bezier(.25,.8,.25,1)',
+                }} />
+                {/* Got */}
+                <div style={{
+                  flex: 1,
+                  height: rH > 0 ? `${Math.max(rH, 3)}%` : 0,
+                  borderRadius: '3px 3px 0 0',
+                  background: 'linear-gradient(180deg,#f87171 0%,#dc2626 100%)',
+                  transition: 'height .5s cubic-bezier(.25,.8,.25,1)',
+                }} />
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* X-axis */}
+      <div style={{ position: 'relative', height: 18, marginLeft: Y_W + 6 }}>
+        {xIdxs.map((idx) => {
+          const pct = chart.length > 1 ? (idx / (chart.length - 1)) * 100 : 0
+          return (
+            <span key={idx} style={{
+              position: 'absolute',
+              left: `${pct}%`,
+              transform: idx === 0 ? 'none' : idx === chart.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
+              fontSize: 9, color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap',
+            }}>
+              {fmtDay(chart[idx]?.date)}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
