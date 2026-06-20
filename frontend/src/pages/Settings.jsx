@@ -101,23 +101,18 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* MODALS */}
+      {/* MODALS — backdrop is PARENT of sheet so stopPropagation works */}
       {modal && (
-        <>
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+          onTouchStart={() => setModal(null)}
+          onClick={() => setModal(null)}
+        >
           <div
-            onTouchStart={() => setModal(null)}
-            onClick={() => setModal(null)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 998 }}
-          />
-          <div
+            style={{ background: '#fff', borderRadius: '22px 22px 0 0', paddingBottom: 'env(safe-area-inset-bottom, 20px)', maxHeight: '75vh', overflowY: 'auto' }}
             onTouchStart={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
-              background: '#fff', borderRadius: '22px 22px 0 0',
-              paddingBottom: 'env(safe-area-inset-bottom, 20px)',
-              maxHeight: '75vh', overflowY: 'auto',
-            }}>
+          >
             <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 18px' }} />
 
             {modal === 'currency' && (
@@ -127,7 +122,7 @@ export default function Settings() {
                   <button
                     key={c.val}
                     onTouchStart={(e) => { e.stopPropagation(); save('currency', c.val) }}
-                    onClick={() => save('currency', c.val)}
+                    onClick={(e) => { e.stopPropagation(); save('currency', c.val) }}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                       padding: '14px 20px', cursor: 'pointer', border: 'none',
@@ -158,7 +153,7 @@ export default function Settings() {
                   <button
                     key={l.val}
                     onTouchStart={(e) => { e.stopPropagation(); save('language', l.val) }}
-                    onClick={() => save('language', l.val)}
+                    onClick={(e) => { e.stopPropagation(); save('language', l.val) }}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                       padding: '14px 20px', cursor: 'pointer', border: 'none',
@@ -194,20 +189,20 @@ export default function Settings() {
                 </div>
                 <button
                   onTouchStart={(e) => { e.stopPropagation(); setModal(null) }}
-                  onClick={() => setModal(null)}
+                  onClick={(e) => { e.stopPropagation(); setModal(null) }}
                   style={{ width: '100%', padding: '15px', borderRadius: 16, background: '#f3f4f6', color: '#111', fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 10, cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}>
                   Bekor qilish
                 </button>
                 <button
-                  onTouchStart={(e) => { e.stopPropagation(); haptic('heavy'); handleDeleteAll() }}
-                  onClick={() => { haptic('heavy'); handleDeleteAll() }}
+                  onTouchStart={(e) => { e.stopPropagation(); handleDeleteAll() }}
+                  onClick={(e) => { e.stopPropagation(); handleDeleteAll() }}
                   style={{ width: '100%', padding: '15px', borderRadius: 16, background: '#ef4444', color: '#fff', fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}>
-                  {deleting ? 'O\'chirilmoqda...' : "Ha, o'chirish"}
+                  {deleting ? "O'chirilmoqda..." : "Ha, o'chirish"}
                 </button>
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   )
