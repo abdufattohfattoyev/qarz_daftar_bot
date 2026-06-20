@@ -94,3 +94,14 @@ class DebtViewSet(viewsets.ModelViewSet):
         debt = self.get_object()
         payments = debt.payments.all()
         return Response(PaymentSerializer(payments, many=True).data)
+
+    @action(detail=False, methods=['delete'], url_path='delete_all')
+    def delete_all(self, request):
+        """Foydalanuvchining barcha qarz va kontaktlarini o'chirish"""
+        from apps.contacts.models import Contact
+        deleted_debts, _ = Debt.objects.filter(user=request.user).delete()
+        deleted_contacts, _ = Contact.objects.filter(user=request.user).delete()
+        return Response({
+            'deleted_debts': deleted_debts,
+            'deleted_contacts': deleted_contacts,
+        }, status=status.HTTP_200_OK)

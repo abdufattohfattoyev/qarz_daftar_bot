@@ -85,6 +85,7 @@ export const debtsAPI = {
 export const statsAPI = {
   get: (params) => api.get('/stats/', { params }),
   export: () => api.get('/stats/export/', { responseType: 'blob' }),
+  deleteAll: () => api.delete('/debts/delete_all/'),
 }
 
 export default api

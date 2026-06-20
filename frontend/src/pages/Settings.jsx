@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useAuthStore } from '../store'
+import { useAuthStore, useDebtStore, useContactStore } from '../store'
 import { initials, haptic } from '../utils'
 import { statsAPI } from '../api'
 import { CurrencyIcon, GlobeIcon, BellIcon, ExcelIcon, DeleteAllIcon } from '../components/Icons'
@@ -8,6 +8,18 @@ export default function Settings() {
   const { user, updateUser } = useAuthStore()
   const [modal, setModal] = useState(null) // 'currency' | 'language' | 'delete'
   const [deleting, setDeleting] = useState(false)
+
+  const handleDeleteAll = async () => {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      await statsAPI.deleteAll()
+      useDebtStore.setState({ debts: [] })
+      useContactStore.setState({ contacts: [] })
+      haptic('success')
+    } catch { haptic('error') }
+    finally { setDeleting(false); setModal(null) }
+  }
 
   const save = async (key, val) => {
     haptic('light')
@@ -180,18 +192,18 @@ export default function Settings() {
                 <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 24, lineHeight: 1.6 }}>
                   Barcha qarzlar va kontaktlar o'chiriladi. Bu amalni qaytarib bo'lmaydi.
                 </div>
-                <div
-                  onTouchEnd={(e) => { e.preventDefault(); setModal(null) }}
+                <button
+                  onTouchStart={(e) => { e.stopPropagation(); setModal(null) }}
                   onClick={() => setModal(null)}
-                  style={{ padding: '15px', borderRadius: 16, background: '#f3f4f6', color: '#111', fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 10, cursor: 'pointer' }}>
+                  style={{ width: '100%', padding: '15px', borderRadius: 16, background: '#f3f4f6', color: '#111', fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 10, cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}>
                   Bekor qilish
-                </div>
-                <div
-                  onTouchEnd={(e) => { e.preventDefault(); haptic('heavy'); setModal(null) }}
-                  onClick={() => { haptic('heavy'); setModal(null) }}
-                  style={{ padding: '15px', borderRadius: 16, background: '#ef4444', color: '#fff', fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer' }}>
-                  Ha, o'chirish
-                </div>
+                </button>
+                <button
+                  onTouchStart={(e) => { e.stopPropagation(); haptic('heavy'); handleDeleteAll() }}
+                  onClick={() => { haptic('heavy'); handleDeleteAll() }}
+                  style={{ width: '100%', padding: '15px', borderRadius: 16, background: '#ef4444', color: '#fff', fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}>
+                  {deleting ? 'O\'chirilmoqda...' : "Ha, o'chirish"}
+                </button>
               </div>
             )}
           </div>
