@@ -31,5 +31,16 @@ export const avatarColor = (name = '') => {
 }
 
 export const haptic = (type = 'light') => {
-  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred(type)
+  // success/error/warning → notificationOccurred; light/medium/heavy/rigid/soft → impactOccurred.
+  // Noto'g'ri turdan Telegram xato otadi (WebAppHapticImpactStyleInvalid) — shuning uchun
+  // to'g'ri API tanlaymiz va try/catch bilan o'raymiz; haptic ixtiyoriy, oqimni hech qachon buzmasin.
+  try {
+    const hf = window.Telegram?.WebApp?.HapticFeedback
+    if (!hf) return
+    if (type === 'success' || type === 'error' || type === 'warning') {
+      hf.notificationOccurred(type)
+    } else {
+      hf.impactOccurred(type)
+    }
+  } catch { /* haptic muhim emas */ }
 }
