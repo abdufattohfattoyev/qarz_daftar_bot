@@ -21,10 +21,14 @@ export default function Settings() {
     finally { setDeleting(false); setModal(null) }
   }
 
-  const save = async (key, val) => {
+  const save = (key, val) => {
     haptic('light')
-    await updateUser({ [key]: val })
+    // 1. Darhol UI ni yangilaymiz (optimistic) — backend javobini kutmaymiz
+    useAuthStore.setState((s) => ({ user: { ...s.user, [key]: val } }))
+    // 2. Modalni darhol yopamiz
     setModal(null)
+    // 3. Backend bilan fonda sinxronlaymiz (xato bo'lsa ham UI o'zgargan)
+    updateUser({ [key]: val }).catch(() => {})
   }
 
   const exportExcel = async () => {
@@ -83,7 +87,12 @@ export default function Settings() {
           <ToggleRow
             icon={<BellIcon />} label="Eslatmalar"
             checked={user?.notifications_enabled}
-            onChange={async () => { haptic('light'); await updateUser({ notifications_enabled: !user?.notifications_enabled }) }}
+            onChange={() => {
+              haptic('light')
+              const next = !user?.notifications_enabled
+              useAuthStore.setState((s) => ({ user: { ...s.user, notifications_enabled: next } }))
+              updateUser({ notifications_enabled: next }).catch(() => {})
+            }}
           />
         </Card>
 
@@ -219,17 +228,15 @@ function ToggleRow({ icon, label, checked, onChange }) {
 }
 
 // ── BOTTOM SHEET COMPONENTS ─────────────────────────────────────────
-// Uses e.target===e.currentTarget to dismiss — no stopPropagation needed
+// Plain onClick everywhere — reliable in Telegram webview.
+// Backdrop closes only when the tap target IS the backdrop itself.
 function BottomSheet({ onClose, children }) {
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 998, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-      onTouchEnd={(e) => { if (e.target === e.currentTarget) onClose() }}
+      style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      {/* dark overlay — pointer-events:none so touches fall through to parent */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', pointerEvents: 'none' }} />
-      <div style={{ position: 'relative', background: '#fff', borderRadius: '22px 22px 0 0', paddingBottom: 'env(safe-area-inset-bottom, 20px)', maxHeight: '75vh', overflowY: 'auto' }}>
+      <div style={{ background: '#fff', borderRadius: '22px 22px 0 0', paddingBottom: 'env(safe-area-inset-bottom, 20px)', maxHeight: '75vh', overflowY: 'auto' }}>
         <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 18px' }} />
         {children}
       </div>
@@ -244,13 +251,14 @@ function SheetTitle({ children }) {
 function SheetOption({ onSelect, active, children }) {
   return (
     <button
-      onTouchEnd={(e) => { e.preventDefault(); onSelect() }}
+      type="button"
       onClick={onSelect}
       style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 14,
         padding: '14px 20px', cursor: 'pointer', border: 'none',
         borderBottom: '0.5px solid #f3f4f6', fontFamily: 'inherit',
         background: active ? '#f0fdf4' : '#fff', textAlign: 'left',
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       {children}
@@ -266,9 +274,9 @@ function SheetOption({ onSelect, active, children }) {
 function SheetBtn({ onClick, style, children }) {
   return (
     <button
-      onTouchEnd={(e) => { e.preventDefault(); onClick() }}
+      type="button"
       onClick={onClick}
-      style={{ width: '100%', padding: '15px', borderRadius: 16, fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer', border: 'none', fontFamily: 'inherit', display: 'block', ...style }}
+      style={{ width: '100%', padding: '15px', borderRadius: 16, fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer', border: 'none', fontFamily: 'inherit', display: 'block', WebkitTapHighlightColor: 'transparent', ...style }}
     >
       {children}
     </button>
