@@ -48,7 +48,7 @@ def register_user(tg_user):
         r = requests.post(
             f'{BACKEND_URL}/api/auth/bot-register/',
             json={'telegram_id': uid, 'full_name': full_name, 'username': username},
-            headers={'X-Bot-Secret': TOKEN},
+            headers={'X-Bot-Secret': TOKEN, 'Host': 'nasiya-karta.uz'},
             timeout=5
         )
         data = r.json()
