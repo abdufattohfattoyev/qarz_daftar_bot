@@ -101,109 +101,63 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* MODALS — backdrop is PARENT of sheet so stopPropagation works */}
-      {modal && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-          onTouchStart={() => setModal(null)}
-          onClick={() => setModal(null)}
-        >
-          <div
-            style={{ background: '#fff', borderRadius: '22px 22px 0 0', paddingBottom: 'env(safe-area-inset-bottom, 20px)', maxHeight: '75vh', overflowY: 'auto' }}
-            onTouchStart={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 18px' }} />
-
-            {modal === 'currency' && (
-              <>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#111', padding: '0 20px 12px' }}>Valyuta tanlang</div>
-                {currencies.map(c => (
-                  <button
-                    key={c.val}
-                    onTouchStart={(e) => { e.stopPropagation(); save('currency', c.val) }}
-                    onClick={(e) => { e.stopPropagation(); save('currency', c.val) }}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 20px', cursor: 'pointer', border: 'none',
-                      borderBottom: '0.5px solid #f3f4f6', fontFamily: 'inherit',
-                      background: user?.currency === c.val ? '#f0fdf4' : '#fff',
-                      textAlign: 'left',
-                    }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: c.color }}>{c.code}</span>
-                    </div>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{c.label}</span>
-                    <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 600 }}>{c.val}</span>
-                    {user?.currency === c.val && (
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </div>
-                    )}
-                  </button>
-                ))}
-                <div style={{ height: 20 }} />
-              </>
-            )}
-
-            {modal === 'language' && (
-              <>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#111', padding: '0 20px 12px' }}>Til tanlang</div>
-                {languages.map(l => (
-                  <button
-                    key={l.val}
-                    onTouchStart={(e) => { e.stopPropagation(); save('language', l.val) }}
-                    onClick={(e) => { e.stopPropagation(); save('language', l.val) }}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 20px', cursor: 'pointer', border: 'none',
-                      borderBottom: '0.5px solid #f3f4f6', fontFamily: 'inherit',
-                      background: user?.language === l.val ? '#f0fdf4' : '#fff',
-                      textAlign: 'left',
-                    }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: l.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: '#374151' }}>{l.icon}</span>
-                    </div>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{l.label}</span>
-                    {user?.language === l.val && (
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </div>
-                    )}
-                  </button>
-                ))}
-                <div style={{ height: 20 }} />
-              </>
-            )}
-
-            {modal === 'delete' && (
-              <div style={{ padding: '0 18px 20px' }}>
-                <div style={{ width: 56, height: 56, borderRadius: 18, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-                  <DeleteAllIcon />
+      {/* MODALS */}
+      {modal && <BottomSheet onClose={() => setModal(null)}>
+        {modal === 'currency' && (
+          <>
+            <SheetTitle>Valyuta tanlang</SheetTitle>
+            {currencies.map(c => (
+              <SheetOption
+                key={c.val}
+                onSelect={() => save('currency', c.val)}
+                active={user?.currency === c.val}
+              >
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: c.color }}>{c.code}</span>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>
-                  Hammasini o'chirasizmi?
+                <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{c.label}</span>
+                <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 600 }}>{c.val}</span>
+              </SheetOption>
+            ))}
+            <div style={{ height: 20 }} />
+          </>
+        )}
+
+        {modal === 'language' && (
+          <>
+            <SheetTitle>Til tanlang</SheetTitle>
+            {languages.map(l => (
+              <SheetOption
+                key={l.val}
+                onSelect={() => save('language', l.val)}
+                active={user?.language === l.val}
+              >
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: l.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: '#374151' }}>{l.icon}</span>
                 </div>
-                <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 24, lineHeight: 1.6 }}>
-                  Barcha qarzlar va kontaktlar o'chiriladi. Bu amalni qaytarib bo'lmaydi.
-                </div>
-                <button
-                  onTouchStart={(e) => { e.stopPropagation(); setModal(null) }}
-                  onClick={(e) => { e.stopPropagation(); setModal(null) }}
-                  style={{ width: '100%', padding: '15px', borderRadius: 16, background: '#f3f4f6', color: '#111', fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 10, cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}>
-                  Bekor qilish
-                </button>
-                <button
-                  onTouchStart={(e) => { e.stopPropagation(); handleDeleteAll() }}
-                  onClick={(e) => { e.stopPropagation(); handleDeleteAll() }}
-                  style={{ width: '100%', padding: '15px', borderRadius: 16, background: '#ef4444', color: '#fff', fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}>
-                  {deleting ? "O'chirilmoqda..." : "Ha, o'chirish"}
-                </button>
-              </div>
-            )}
+                <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{l.label}</span>
+              </SheetOption>
+            ))}
+            <div style={{ height: 20 }} />
+          </>
+        )}
+
+        {modal === 'delete' && (
+          <div style={{ padding: '0 18px 20px' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 18, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <DeleteAllIcon />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>Hammasini o'chirasizmi?</div>
+            <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 24, lineHeight: 1.6 }}>
+              Barcha qarzlar va kontaktlar o'chiriladi. Bu amalni qaytarib bo'lmaydi.
+            </div>
+            <SheetBtn onClick={() => setModal(null)} style={{ background: '#f3f4f6', color: '#111', marginBottom: 10 }}>Bekor qilish</SheetBtn>
+            <SheetBtn onClick={handleDeleteAll} style={{ background: '#ef4444', color: '#fff' }}>
+              {deleting ? "O'chirilmoqda..." : "Ha, o'chirish"}
+            </SheetBtn>
           </div>
-        </div>
-      )}
+        )}
+      </BottomSheet>}
     </div>
   )
 }
@@ -261,5 +215,62 @@ function ToggleRow({ icon, label, checked, onChange }) {
         }} />
       </button>
     </div>
+  )
+}
+
+// ── BOTTOM SHEET COMPONENTS ─────────────────────────────────────────
+// Uses e.target===e.currentTarget to dismiss — no stopPropagation needed
+function BottomSheet({ onClose, children }) {
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 998, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+      onTouchEnd={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      {/* dark overlay — pointer-events:none so touches fall through to parent */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', background: '#fff', borderRadius: '22px 22px 0 0', paddingBottom: 'env(safe-area-inset-bottom, 20px)', maxHeight: '75vh', overflowY: 'auto' }}>
+        <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 18px' }} />
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function SheetTitle({ children }) {
+  return <div style={{ fontSize: 16, fontWeight: 800, color: '#111', padding: '0 20px 12px' }}>{children}</div>
+}
+
+function SheetOption({ onSelect, active, children }) {
+  return (
+    <button
+      onTouchEnd={(e) => { e.preventDefault(); onSelect() }}
+      onClick={onSelect}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+        padding: '14px 20px', cursor: 'pointer', border: 'none',
+        borderBottom: '0.5px solid #f3f4f6', fontFamily: 'inherit',
+        background: active ? '#f0fdf4' : '#fff', textAlign: 'left',
+      }}
+    >
+      {children}
+      {active && (
+        <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+      )}
+    </button>
+  )
+}
+
+function SheetBtn({ onClick, style, children }) {
+  return (
+    <button
+      onTouchEnd={(e) => { e.preventDefault(); onClick() }}
+      onClick={onClick}
+      style={{ width: '100%', padding: '15px', borderRadius: 16, fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer', border: 'none', fontFamily: 'inherit', display: 'block', ...style }}
+    >
+      {children}
+    </button>
   )
 }
