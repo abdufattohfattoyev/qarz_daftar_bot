@@ -104,17 +104,20 @@ export default function AddDebt() {
         // Yangi kontakt yaratamiz. Backend ba'zan id qaytarmasligi yoki kontakt
         // allaqachon mavjud bo'lishi mumkin — har holatda ro'yxatdan id'ni topamiz.
         let newC = null
+        let createErr = null
         try {
           newC = await addContact({ name: name.trim(), phone: '+' + digits })
-        } catch { /* mavjud bo'lishi mumkin — pastda topamiz */ }
+        } catch (e) { createErr = e }
         contactId = newC?.id
         if (!contactId) {
-          await fetchContacts()
+          await fetchContacts().catch(() => {})
           const found = useContactStore.getState().contacts.find(
             (c) => c.phone && c.phone.replace(/\D/g, '') === digits
           )
           contactId = found?.id
         }
+        // Topilmadi va kontakt yaratishda xato bo'lgan bo'lsa — o'sha aniq xatoni ko'rsatamiz
+        if (!contactId && createErr) throw createErr
         createdContactId.current = contactId
       }
     }
