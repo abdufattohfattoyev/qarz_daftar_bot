@@ -171,11 +171,11 @@ export default function AddDebt() {
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: -0.3 }}>Yangi qarz</div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)' }}>{isGave ? 'Siz berdingiz' : 'Siz oldingiz'}</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)' }}>{isGave ? 'Siz qarz berdingiz' : 'Siz qarz oldingiz'}</div>
         </div>
         {/* active type chip */}
         <div style={{ padding: '4px 10px', background: 'rgba(255,255,255,.2)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#fff' }}>
-          {isGave ? '↗ Berdim' : '↙ Oldim'}
+          {isGave ? '↗ Qarz berdim' : '↙ Qarz oldim'}
         </div>
       </div>
 
@@ -185,8 +185,8 @@ export default function AddDebt() {
         {/* Type toggle — inside scroll so it disappears on scroll */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '12px 14px 4px' }}>
           {[
-            { value: 'gave', title: 'Men berdim',  desc: 'U qaytarishi kerak',   arrow: '↗', green: true },
-            { value: 'got',  title: 'Mendan oldi', desc: 'Men qaytarishim kerak', arrow: '↙', green: false },
+            { value: 'gave', title: 'Qarz berdim', desc: 'U menga qaytarishi kerak',  arrow: '↗', green: true },
+            { value: 'got',  title: 'Qarz oldim',  desc: 'Men qaytarishim kerak',    arrow: '↙', green: false },
           ].map((t) => {
             const active = debtType === t.value
             return (
@@ -348,7 +348,7 @@ export default function AddDebt() {
             boxShadow: canSubmit ? (isGave ? '0 4px 14px rgba(22,163,74,.35)' : '0 4px 14px rgba(239,68,68,.35)') : 'none',
             transition: 'all .2s',
           }}>
-            {loading ? 'Saqlanmoqda...' : isGave ? '+ Saqlash (Berdim)' : '+ Saqlash (Oldim)'}
+            {loading ? 'Saqlanmoqda...' : isGave ? '+ Saqlash (Qarz berdim)' : '+ Saqlash (Qarz oldim)'}
           </button>
         </div>
       </div>
