@@ -1,4 +1,5 @@
 import json
+import logging
 from urllib.parse import unquote
 from django.conf import settings
 from rest_framework import status
@@ -8,6 +9,8 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
 from .serializers import TelegramAuthSerializer, UserSerializer, UserUpdateSerializer
+
+logger = logging.getLogger(__name__)
 
 
 def get_tokens_for_user(user):
@@ -27,6 +30,7 @@ def telegram_auth(request):
     """
     serializer = TelegramAuthSerializer(data=request.data)
     if not serializer.is_valid():
+        logger.error(f'TelegramAuth validation error: {serializer.errors}')
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     parsed = serializer.validated_data['init_data']

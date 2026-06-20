@@ -13,6 +13,14 @@ export const useAuthStore = create((set, get) => ({
       if (tg?.initData) {
         tg.ready()
         tg.expand()
+
+        // Telegram dan darhol user ma'lumotini olamiz (backend javobini kutmasdan)
+        const tgUser = tg.initDataUnsafe?.user
+        if (tgUser) {
+          const display_name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ')
+          set({ user: { display_name, telegram_username: tgUser.username || '', full_name: display_name }, loading: false })
+        }
+
         const { data } = await authAPI.telegramAuth(tg.initData)
         localStorage.setItem('access_token', data.tokens.access)
         localStorage.setItem('refresh_token', data.tokens.refresh)
