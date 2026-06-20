@@ -38,8 +38,8 @@ services:
     env_file:
       - .env
     volumes:
-      - media_files:/app/media
-      - static_files:/app/staticfiles
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
     depends_on:
       db:
         condition: service_healthy
@@ -81,8 +81,6 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  media_files:
-  static_files:
 
 networks:
   internal:
