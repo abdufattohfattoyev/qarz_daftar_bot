@@ -50,6 +50,16 @@ class DebtViewSet(viewsets.ModelViewSet):
         except Exception:
             pass
 
+    def create(self, request, *args, **kwargs):
+        """Yaratgandan keyin TO'LIQ qarz obyektini qaytaramiz (id, created_at,
+        contact_name, remaining_amount...) — frontend uni darhol ishlatadi,
+        aks holda Asosiy sahifa created_at yo'qligidan qulab tushadi."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        full = DebtSerializer(serializer.instance, context={'request': request})
+        return Response(full.data, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
         """Qarzni to'lash yoki qisman to'lash"""

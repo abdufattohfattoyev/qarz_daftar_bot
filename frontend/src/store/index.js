@@ -128,7 +128,8 @@ export const useDebtStore = create((set, get) => ({
     const debts = get().debts
     const groups = {}
     debts.forEach((debt) => {
-      const date = debt.created_at.split('T')[0]
+      // created_at ba'zan bo'lmasligi mumkin (optimistic qo'shilgan) — qulamaslik uchun himoya
+      const date = (debt.created_at || new Date().toISOString()).split('T')[0]
       if (!groups[date]) groups[date] = { date, debts: [], total: 0 }
       const sign = debt.debt_type === 'gave' ? 1 : -1
       groups[date].debts.push(debt)

@@ -127,19 +127,29 @@ export function PayDebt() {
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    debtsAPI.get(id).then(({ data }) => setDebt(data))
+    debtsAPI.get(id).then(({ data }) => setDebt(data)).catch(() => {})
   }, [id])
 
   const handlePay = async () => {
-    setLoading(true)
+    const remaining = parseFloat(debt.remaining_amount || 0)
+    const payAmount = payType === 'full' ? remaining : parseFloat(amount)
+    if (!payAmount || payAmount <= 0) { setError(t('err_amount')); haptic('error'); return }
+    if (payAmount > remaining) { setError(`${t('remaining_debt')}: ${fmt(remaining, debt.currency)}`); haptic('error'); return }
+
+    setLoading(true); setError('')
     try {
-      const payAmount = payType === 'full' ? debt.remaining_amount : amount
       await debtsAPI.pay(id, { amount: payAmount, note })
       haptic('success')
-      navigate(-1)
+      navigate('/')
     } catch (e) {
+      const d = e.response?.data
+      const msg = d?.error || d?.detail
+        || (d && typeof d === 'object' ? Object.values(d).flat().join(' · ') : null)
+        || `[${e.response?.status || 'net'}] ${t('err_generic')}`
+      setError(msg)
       haptic('error')
     } finally {
       setLoading(false)
@@ -196,11 +206,18 @@ export function PayDebt() {
             style={{ width: '100%', padding: '14px 16px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 16, fontSize: 15, color: '#111', background: '#fff', fontFamily: 'inherit', outline: 'none' }} />
         </div>
 
+        {error && (
+          <div style={{ margin: '0 16px 12px', padding: '10px 14px', background: '#fef2f2', borderRadius: 12, border: '1px solid #fecaca', fontSize: 13, color: '#ef4444', lineHeight: 1.4 }}>
+            {error}
+          </div>
+        )}
+
         <button onClick={handlePay} disabled={loading} style={{
           display: 'block', margin: '0 16px', width: 'calc(100% - 32px)',
           padding: 15, border: 'none', borderRadius: 16,
           background: 'linear-gradient(135deg,#22c55e,#16a34a)',
-          fontSize: 15, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit'
+          fontSize: 15, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
+          opacity: loading ? 0.7 : 1
         }}>
           {loading ? t('saving') : t('mark_paid')}
         </button>
