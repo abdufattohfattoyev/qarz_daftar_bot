@@ -21,15 +21,27 @@ api.interceptors.response.use(
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true
       try {
+        // Avval refresh token bilan urinib ko'r
         const refresh = localStorage.getItem('refresh_token')
-        if (!refresh) throw new Error('No refresh token')
-        const { data } = await axios.post('/api/auth/refresh/', { refresh })
-        localStorage.setItem('access_token', data.access)
-        original.headers.Authorization = `Bearer ${data.access}`
-        return api(original)
+        if (refresh) {
+          const { data } = await axios.post('/api/auth/refresh/', { refresh })
+          localStorage.setItem('access_token', data.access)
+          original.headers.Authorization = `Bearer ${data.access}`
+          return api(original)
+        }
+        // Refresh token yo'q — Telegram initData bilan qayta auth
+        const tg = window.Telegram?.WebApp
+        if (tg?.initData) {
+          const { data } = await axios.post('/api/auth/telegram/', { init_data: tg.initData })
+          localStorage.setItem('access_token', data.tokens.access)
+          localStorage.setItem('refresh_token', data.tokens.refresh)
+          original.headers.Authorization = `Bearer ${data.tokens.access}`
+          return api(original)
+        }
+        // Hech narsa yo'q — clear
+        localStorage.clear()
       } catch {
         localStorage.clear()
-        window.location.reload()
       }
     }
     return Promise.reject(err)
