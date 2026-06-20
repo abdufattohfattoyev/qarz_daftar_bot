@@ -20,29 +20,33 @@ api.interceptors.response.use(
     const original = err.config
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true
-      try {
-        // Avval refresh token bilan urinib ko'r
-        const refresh = localStorage.getItem('refresh_token')
-        if (refresh) {
+
+      // 1-urinish: refresh token bilan yangi access olamiz
+      const refresh = localStorage.getItem('refresh_token')
+      if (refresh) {
+        try {
           const { data } = await axios.post('/api/auth/refresh/', { refresh })
           localStorage.setItem('access_token', data.access)
           original.headers.Authorization = `Bearer ${data.access}`
           return api(original)
-        }
-        // Refresh token yo'q — Telegram initData bilan qayta auth
-        const tg = window.Telegram?.WebApp
-        if (tg?.initData) {
+        } catch { /* refresh ishlamadi — pastdagi Telegram auth'ga o'tamiz */ }
+      }
+
+      // 2-urinish: Telegram initData bilan butunlay qayta auth
+      // (refresh muvaffaqiyatsiz bo'lsa ham bu yerga tushadi — avval to'xtab qolardi)
+      const tg = window.Telegram?.WebApp
+      if (tg?.initData) {
+        try {
           const { data } = await axios.post('/api/auth/telegram/', { init_data: tg.initData })
           localStorage.setItem('access_token', data.tokens.access)
           localStorage.setItem('refresh_token', data.tokens.refresh)
           original.headers.Authorization = `Bearer ${data.tokens.access}`
           return api(original)
-        }
-        // Hech narsa yo'q — clear
-        localStorage.clear()
-      } catch {
-        localStorage.clear()
+        } catch { /* bu ham ishlamadi — pastda tozalaymiz */ }
       }
+
+      // Hech narsa ishlamadi — tokenlarni tozalaymiz
+      localStorage.clear()
     }
     return Promise.reject(err)
   }
