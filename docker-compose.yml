@@ -35,7 +35,6 @@ services:
       dockerfile: Dockerfile
     container_name: nasiya_backend
     restart: always
-    environment:
     env_file:
       - .env
     volumes:
