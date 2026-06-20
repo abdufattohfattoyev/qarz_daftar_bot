@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useContactStore, useAuthStore } from '../store'
 import { haptic } from '../utils'
+import { useT } from '../i18n'
 import axios from 'axios'
 
 const CalIcon = () => (
@@ -43,6 +44,7 @@ const formatPhone = (raw) => {
 
 export default function AddDebt() {
   const navigate   = useNavigate()
+  const t = useT()
   const { addDebt }                       = useDebtStore()
   const { contacts, fetchContacts, addContact } = useContactStore()
 
@@ -109,9 +111,9 @@ export default function AddDebt() {
 
   const handleSubmit = async () => {
     const digits = phone.replace(/\D/g, '')
-    if (digits.length < 9)                 return setError("Telefon raqam to'liq kiriting")
-    if (!amount || parseFloat(amount) <= 0) return setError('Miqdor kiriting')
-    if (!foundContact && !name.trim())      return setError('Ism kiriting')
+    if (digits.length < 9)                 return setError(t('err_phone'))
+    if (!amount || parseFloat(amount) <= 0) return setError(t('err_amount'))
+    if (!foundContact && !name.trim())      return setError(t('err_name'))
 
     setLoading(true); setError('')
     try {
@@ -130,14 +132,14 @@ export default function AddDebt() {
         } catch {}
         // Hamma narsa ishlamasa — Telegram WebApp ni qayta ochamiz
         haptic('error')
-        setError("Sessiya yangilanmoqda...")
+        setError(t('session_refresh'))
         setTimeout(() => window.location.reload(), 1200)
         return
       }
       const d = e.response?.data
       const msg = d?.detail
         || (d && typeof d === 'object' ? Object.values(d).flat().join(' · ') : null)
-        || 'Xato yuz berdi'
+        || t('err_generic')
       setError(msg)
       haptic('error')
     } finally { setLoading(false) }
@@ -173,13 +175,13 @@ export default function AddDebt() {
           </svg>
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>Yangi qarz</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{t('new_debt')}</div>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)' }}>
-            {isGave ? 'Siz qarz berdingiz' : 'Siz qarz oldingiz'}
+            {isGave ? t('you_gave') : t('you_got')}
           </div>
         </div>
         <div style={{ padding: '4px 10px', background: 'rgba(255,255,255,.2)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#fff' }}>
-          {isGave ? '↗ Qarz berdim' : '↙ Qarz oldim'}
+          {isGave ? t('gave_chip') : t('got_chip')}
         </div>
       </div>
 
@@ -189,8 +191,8 @@ export default function AddDebt() {
         {/* Type toggle */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '12px 14px 4px' }}>
           {[
-            { value: 'gave', title: 'Qarz berdim', desc: 'U menga qaytarishi kerak',  arrow: '↗', green: true },
-            { value: 'got',  title: 'Qarz oldim',  desc: 'Men qaytarishim kerak',     arrow: '↙', green: false },
+            { value: 'gave', title: t('gave_title'), desc: t('gave_desc'),  arrow: '↗', green: true },
+            { value: 'got',  title: t('got_title'),  desc: t('got_desc'),     arrow: '↙', green: false },
           ].map((t) => {
             const active = debtType === t.value
             return (
@@ -233,7 +235,7 @@ export default function AddDebt() {
         {/* Amount */}
         <div style={{ margin: '0 14px 12px' }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6, display: 'block' }}>
-            Summa
+            {t('amount_label')}
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', background: '#fff', borderRadius: 16, border: `2px solid ${accent}`, boxSizing: 'border-box' }}>
             <span style={{ fontSize: 15, color: accent, fontWeight: 800, flexShrink: 0 }}>{currency === 'USD' ? '$' : 'UZS'}</span>
@@ -248,7 +250,7 @@ export default function AddDebt() {
         {/* Phone */}
         <div style={{ padding: '0 14px', marginBottom: 10 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
-            <PhoneIcon color="#64748b" /> Telefon raqam
+            <PhoneIcon color="#64748b" /> {t('phone_num')}
           </label>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
@@ -276,12 +278,12 @@ export default function AddDebt() {
         {/* Name — always visible */}
         <div style={{ padding: '0 14px', marginBottom: 12 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
-            <PersonIcon /> Ism *
-            {foundContact && <span style={{ marginLeft: 4, fontSize: 11, color: '#22c55e', fontWeight: 700 }}>— topildi ✓</span>}
-            {isNew && digits.length >= 9 && <span style={{ marginLeft: 4, fontSize: 11, color: accent, fontWeight: 700 }}>— yangi kontakt</span>}
+            <PersonIcon /> {t('name_req')}
+            {foundContact && <span style={{ marginLeft: 4, fontSize: 11, color: '#22c55e', fontWeight: 700 }}>{t('found_tag')}</span>}
+            {isNew && digits.length >= 9 && <span style={{ marginLeft: 4, fontSize: 11, color: accent, fontWeight: 700 }}>{t('new_contact_tag')}</span>}
           </label>
           <input
-            type="text" placeholder="Ism Familiya"
+            type="text" placeholder={t('name_ph2')}
             value={name} onChange={(e) => { if (!foundContact) setName(e.target.value) }}
             readOnly={!!foundContact}
             style={{
@@ -298,10 +300,10 @@ export default function AddDebt() {
         {/* Note */}
         <div style={{ padding: '0 14px', marginBottom: 12 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
-            <NoteIcon /> Izoh (ixtiyoriy)
+            <NoteIcon /> {t('note_optional')}
           </label>
           <input
-            type="text" placeholder="Osh uchun, taksi, qarz..."
+            type="text" placeholder={t('note_ph')}
             value={note} onChange={(e) => setNote(e.target.value)}
             style={{ width: '100%', padding: '13px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 14, color: '#111', background: '#fff', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
           />
@@ -310,11 +312,13 @@ export default function AddDebt() {
         {/* Due date */}
         <div style={{ padding: '0 14px', marginBottom: 16 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
-            <CalIcon /> Qaytarish sanasi (ixtiyoriy)
+            <CalIcon /> {t('due_optional')}
           </label>
           <input
             type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-            style={{ width: '100%', padding: '13px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 14, color: dueDate ? '#111' : '#94a3b8', background: '#fff', fontFamily: 'inherit', outline: 'none', appearance: 'none', boxSizing: 'border-box' }}
+            onClick={(e) => { try { e.currentTarget.showPicker?.() } catch {} }}
+            onFocus={(e) => { try { e.currentTarget.showPicker?.() } catch {} }}
+            style={{ width: '100%', padding: '13px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 16, color: dueDate ? '#111' : '#94a3b8', background: '#fff', fontFamily: 'inherit', outline: 'none', WebkitAppearance: 'none', boxSizing: 'border-box', minHeight: 48 }}
           />
         </div>
 
@@ -334,7 +338,7 @@ export default function AddDebt() {
           <button className="pill-btn" onClick={() => navigate('/')} style={{
             padding: '14px 10px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 16,
             background: '#fff', fontSize: 14, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit',
-          }}>Bekor</button>
+          }}>{t('cancel')}</button>
           <button className="pill-btn" onClick={handleSubmit} disabled={loading || !canSubmit} style={{
             padding: 14, border: 'none', borderRadius: 16,
             background: canSubmit
@@ -346,7 +350,7 @@ export default function AddDebt() {
             opacity: loading ? 0.8 : 1,
             boxShadow: canSubmit ? (isGave ? '0 4px 14px rgba(22,163,74,.35)' : '0 4px 14px rgba(239,68,68,.35)') : 'none',
           }}>
-            {loading ? 'Saqlanmoqda...' : isGave ? '+ Saqlash (Qarz berdim)' : '+ Saqlash (Qarz oldim)'}
+            {loading ? t('saving') : isGave ? t('save_gave') : t('save_got')}
           </button>
         </div>
       </div>

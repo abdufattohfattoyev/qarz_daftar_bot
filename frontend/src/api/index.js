@@ -72,7 +72,8 @@ export const debtsAPI = {
   get: (id) => api.get(`/debts/${id}/`),
   create: (data) => {
     const form = new FormData()
-    Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null) form.append(k, v) })
+    // Bo'sh qiymatlarni ('') yubormaymiz — due_date='' backend DateField'ni yiqitadi
+    Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') form.append(k, v) })
     return api.post('/debts/', form, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
   update: (id, data) => api.patch(`/debts/${id}/`, data),

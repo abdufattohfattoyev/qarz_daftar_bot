@@ -1,0 +1,348 @@
+import dayjs from 'dayjs'
+import 'dayjs/locale/uz'
+import 'dayjs/locale/ru'
+import { useAuthStore } from '../store'
+
+// ── Translations ─────────────────────────────────────────────────────
+export const translations = {
+  uz: {
+    // Nav
+    nav_home: 'Asosiy',
+    nav_contacts: 'Qarzdorlar',
+    nav_stats: 'Statistika',
+    nav_settings: 'Sozlamalar',
+
+    // Common
+    cancel: 'Bekor',
+    cancel_full: 'Bekor qilish',
+    saving: 'Saqlanmoqda...',
+    loading: 'Yuklanmoqda...',
+    owes_me: 'Menga qarzdor',
+    i_owe: 'Men qarzdor',
+    gave_label: 'Berdim',
+    got_label: 'Oldim',
+    count_suffix: 'ta',
+    add_debt_btn: "+ Qarz qo'shish",
+
+    // App / loading screens
+    app_name: 'Qarz daftar',
+    dev_hint: 'Ilovadan foydalanish uchun Telegram botni oching va /start yozing',
+    open_bot: 'Botni ochish',
+    dev_login: 'Test sifatida kirish (dev)',
+
+    // Home
+    greeting: 'Salom, {name}',
+    net_balance: 'Sof balans',
+    given: 'Berganim',
+    taken: 'Olganim',
+    recent_ops: 'Oxirgi amallar',
+    no_debts: "Qarzlar yo'q",
+    add_first_debt: "Birinchi qarzni qo'shing",
+    i_gave: 'Men berdim',
+    i_got: 'Men oldim',
+    status: 'Holat',
+    status_active: 'Faol',
+    status_partial: 'Qisman',
+    status_paid: "To'langan",
+    paid_label: "To'langan",
+    remaining_label: 'Qoldi',
+    note_label: 'Izoh',
+    due_label: 'Muddat',
+    pay_btn: "To'lash",
+    delete_btn: "O'chirish",
+
+    // Contacts
+    contacts_title: 'Qarzdorlar',
+    tab_all: 'Barchasi',
+    search_placeholder: 'Ism yoki telefon...',
+    no_debtors: "Qarzdor yo'q",
+    no_owes_me: "Sizga qarzdor yo'q",
+    no_i_owe: 'Siz qarzdor emassiz',
+    not_found: '"{q}" topilmadi',
+    add_new_debt: "Yangi qarz qo'shing",
+    no_phone: "Telefon yo'q",
+    no_balance: 'Balanssiz',
+    new_contact: 'Yangi kontakt',
+    name_req: 'Ism *',
+    name_ph: 'Ism familiya',
+    phone_label: 'Telefon',
+    category: 'Kategoriya',
+    cat_other: 'Boshqa',
+    cat_family: 'Oila',
+    cat_friends: "Do'st",
+    cat_work: 'Ish',
+    add_contact_btn: "+ Kontakt qo'shish",
+
+    // AddDebt
+    new_debt: 'Yangi qarz',
+    you_gave: 'Siz qarz berdingiz',
+    you_got: 'Siz qarz oldingiz',
+    gave_chip: '↗ Qarz berdim',
+    got_chip: '↙ Qarz oldim',
+    gave_title: 'Qarz berdim',
+    gave_desc: 'U menga qaytarishi kerak',
+    got_title: 'Qarz oldim',
+    got_desc: 'Men qaytarishim kerak',
+    amount_label: 'Summa',
+    phone_num: 'Telefon raqam',
+    found_tag: '— topildi ✓',
+    new_contact_tag: '— yangi kontakt',
+    name_ph2: 'Ism Familiya',
+    note_optional: 'Izoh (ixtiyoriy)',
+    note_ph: 'Osh uchun, taksi, qarz...',
+    due_optional: 'Qaytarish sanasi (ixtiyoriy)',
+    err_phone: "Telefon raqam to'liq kiriting",
+    err_amount: 'Miqdor kiriting',
+    err_name: 'Ism kiriting',
+    session_refresh: 'Sessiya yangilanmoqda...',
+    err_generic: 'Xato yuz berdi',
+    save_gave: '+ Saqlash (Qarz berdim)',
+    save_got: '+ Saqlash (Qarz oldim)',
+
+    // Stats
+    stats_title: 'Statistika',
+    export: 'Eksport',
+    period_today: 'Bugun',
+    period_7days: '7 kun',
+    period_month: 'Shu oy',
+    period_last_month: "O'tgan oy",
+    gave_upper: 'BERDIM',
+    got_upper: 'OLDIM',
+    people_count: 'nafar',
+    total_ops: 'Jami amallar',
+    transactions: 'ta tranzaksiya',
+    top_debtors: 'Top qarzdorlar',
+    uzs_owes: 'UZS qarzdor',
+    no_data_period: "{period} uchun ma'lumot yo'q",
+    no_data_desc: "Bu davr uchun hech qanday qarz qayd etilmagan",
+
+    // Settings
+    settings_title: 'Sozlamalar',
+    tg_user: 'Telegram foydalanuvchi',
+    app_settings: 'Ilova sozlamalari',
+    currency: 'Valyuta',
+    language: 'Til',
+    lang_uz_short: "O'zbek",
+    lang_ru_short: 'Русский',
+    notifications: 'Eslatmalar',
+    data: "Ma'lumotlar",
+    excel_export: 'Excel eksport',
+    delete_all: "Hammasini o'chirish",
+    choose_currency: 'Valyuta tanlang',
+    cur_som: "So'm",
+    cur_dollar: 'Dollar',
+    cur_ruble: 'Rubl',
+    choose_lang: 'Til tanlang',
+    delete_confirm_title: "Hammasini o'chirasizmi?",
+    delete_confirm_desc: "Barcha qarzlar va kontaktlar o'chiriladi. Bu amalni qaytarib bo'lmaydi.",
+    yes_delete: "Ha, o'chirish",
+    deleting: "O'chirilmoqda...",
+
+    // DebtDetail / Pay
+    debt_info: "Qarz ma'lumoti",
+    must_give_me: 'Menga berishi kerak',
+    i_must_give: 'Men beraman',
+    pay_status: "To'lov holati",
+    paid_btn: "✓ To'landi",
+    share_btn: '📤 Ulashish',
+    remind_btn: '🔔 Eslatma',
+    delete_act: "🗑 O'chirish",
+    history: 'TARIX',
+    debt_created: 'Qarz yaratildi',
+    payment: "To'lov",
+    awaiting_pay: "To'lov kutilmoqda...",
+    pay_title: "To'lov",
+    for_whom: 'KIM UCHUN',
+    remaining_debt: 'Qolgan qarz',
+    full_pay: "To'liq to'lov",
+    partial: 'Qisman',
+    pay_amount: "💰 To'lov miqdori",
+    date: '📅 Sana',
+    pay_note: '💬 Izoh (ixtiyoriy)',
+    pay_method_ph: "To'lov usuli...",
+    mark_paid: "To'landi deb belgilash",
+  },
+
+  ru: {
+    // Nav
+    nav_home: 'Главная',
+    nav_contacts: 'Должники',
+    nav_stats: 'Статистика',
+    nav_settings: 'Настройки',
+
+    // Common
+    cancel: 'Отмена',
+    cancel_full: 'Отменить',
+    saving: 'Сохранение...',
+    loading: 'Загрузка...',
+    owes_me: 'Должны мне',
+    i_owe: 'Я должен',
+    gave_label: 'Дал',
+    got_label: 'Взял',
+    count_suffix: 'шт',
+    add_debt_btn: '+ Добавить долг',
+
+    // App / loading screens
+    app_name: 'Долговая книга',
+    dev_hint: 'Чтобы пользоваться приложением, откройте Telegram-бота и напишите /start',
+    open_bot: 'Открыть бота',
+    dev_login: 'Войти как тест (dev)',
+
+    // Home
+    greeting: 'Привет, {name}',
+    net_balance: 'Чистый баланс',
+    given: 'Я дал',
+    taken: 'Я взял',
+    recent_ops: 'Последние операции',
+    no_debts: 'Долгов нет',
+    add_first_debt: 'Добавьте первый долг',
+    i_gave: 'Я дал в долг',
+    i_got: 'Я взял в долг',
+    status: 'Статус',
+    status_active: 'Активный',
+    status_partial: 'Частично',
+    status_paid: 'Оплачен',
+    paid_label: 'Оплачено',
+    remaining_label: 'Осталось',
+    note_label: 'Заметка',
+    due_label: 'Срок',
+    pay_btn: 'Оплатить',
+    delete_btn: 'Удалить',
+
+    // Contacts
+    contacts_title: 'Должники',
+    tab_all: 'Все',
+    search_placeholder: 'Имя или телефон...',
+    no_debtors: 'Должников нет',
+    no_owes_me: 'Вам никто не должен',
+    no_i_owe: 'Вы никому не должны',
+    not_found: '"{q}" не найдено',
+    add_new_debt: 'Добавьте новый долг',
+    no_phone: 'Нет телефона',
+    no_balance: 'Без баланса',
+    new_contact: 'Новый контакт',
+    name_req: 'Имя *',
+    name_ph: 'Имя фамилия',
+    phone_label: 'Телефон',
+    category: 'Категория',
+    cat_other: 'Другое',
+    cat_family: 'Семья',
+    cat_friends: 'Друг',
+    cat_work: 'Работа',
+    add_contact_btn: '+ Добавить контакт',
+
+    // AddDebt
+    new_debt: 'Новый долг',
+    you_gave: 'Вы дали в долг',
+    you_got: 'Вы взяли в долг',
+    gave_chip: '↗ Дал в долг',
+    got_chip: '↙ Взял в долг',
+    gave_title: 'Дал в долг',
+    gave_desc: 'Он должен мне вернуть',
+    got_title: 'Взял в долг',
+    got_desc: 'Я должен вернуть',
+    amount_label: 'Сумма',
+    phone_num: 'Номер телефона',
+    found_tag: '— найдено ✓',
+    new_contact_tag: '— новый контакт',
+    name_ph2: 'Имя Фамилия',
+    note_optional: 'Заметка (необязательно)',
+    note_ph: 'За плов, такси, долг...',
+    due_optional: 'Дата возврата (необязательно)',
+    err_phone: 'Введите номер телефона полностью',
+    err_amount: 'Введите сумму',
+    err_name: 'Введите имя',
+    session_refresh: 'Сессия обновляется...',
+    err_generic: 'Произошла ошибка',
+    save_gave: '+ Сохранить (Дал в долг)',
+    save_got: '+ Сохранить (Взял в долг)',
+
+    // Stats
+    stats_title: 'Статистика',
+    export: 'Экспорт',
+    period_today: 'Сегодня',
+    period_7days: '7 дней',
+    period_month: 'Этот месяц',
+    period_last_month: 'Прошлый месяц',
+    gave_upper: 'ДАЛ',
+    got_upper: 'ВЗЯЛ',
+    people_count: 'чел.',
+    total_ops: 'Всего операций',
+    transactions: 'транзакций',
+    top_debtors: 'Топ должников',
+    uzs_owes: 'UZS долг',
+    no_data_period: 'Нет данных за {period}',
+    no_data_desc: 'За этот период долги не зафиксированы',
+
+    // Settings
+    settings_title: 'Настройки',
+    tg_user: 'Пользователь Telegram',
+    app_settings: 'Настройки приложения',
+    currency: 'Валюта',
+    language: 'Язык',
+    lang_uz_short: "O'zbek",
+    lang_ru_short: 'Русский',
+    notifications: 'Уведомления',
+    data: 'Данные',
+    excel_export: 'Экспорт в Excel',
+    delete_all: 'Удалить всё',
+    choose_currency: 'Выберите валюту',
+    cur_som: 'Сум',
+    cur_dollar: 'Доллар',
+    cur_ruble: 'Рубль',
+    choose_lang: 'Выберите язык',
+    delete_confirm_title: 'Удалить всё?',
+    delete_confirm_desc: 'Все долги и контакты будут удалены. Это действие необратимо.',
+    yes_delete: 'Да, удалить',
+    deleting: 'Удаление...',
+
+    // DebtDetail / Pay
+    debt_info: 'Информация о долге',
+    must_give_me: 'Должен мне вернуть',
+    i_must_give: 'Я возвращаю',
+    pay_status: 'Статус оплаты',
+    paid_btn: '✓ Оплачено',
+    share_btn: '📤 Поделиться',
+    remind_btn: '🔔 Напоминание',
+    delete_act: '🗑 Удалить',
+    history: 'ИСТОРИЯ',
+    debt_created: 'Долг создан',
+    payment: 'Оплата',
+    awaiting_pay: 'Ожидается оплата...',
+    pay_title: 'Оплата',
+    for_whom: 'ДЛЯ КОГО',
+    remaining_debt: 'Остаток долга',
+    full_pay: 'Полная оплата',
+    partial: 'Частично',
+    pay_amount: '💰 Сумма оплаты',
+    date: '📅 Дата',
+    pay_note: '💬 Заметка (необязательно)',
+    pay_method_ph: 'Способ оплаты...',
+    mark_paid: 'Отметить оплаченным',
+  },
+}
+
+// ── Locale-aware helpers ──────────────────────────────────────────────
+export const getLang = () => useAuthStore.getState().user?.language || 'uz'
+
+export const tr = (key, vars) => {
+  const lang = getLang()
+  let str = translations[lang]?.[key] ?? translations.uz[key] ?? key
+  if (vars) Object.entries(vars).forEach(([k, v]) => { str = str.replaceAll(`{${k}}`, v) })
+  return str
+}
+
+// React hook — re-renders component when language changes
+export function useT() {
+  const lang = useAuthStore((s) => s.user?.language) || 'uz'
+  // keep dayjs in sync with current language
+  dayjs.locale(lang === 'ru' ? 'ru' : 'uz')
+  return (key, vars) => {
+    let str = translations[lang]?.[key] ?? translations.uz[key] ?? key
+    if (vars) Object.entries(vars).forEach(([k, v]) => { str = str.replaceAll(`{${k}}`, v) })
+    return str
+  }
+}
+
+// current locale string for Intl APIs
+export const localeCode = () => (getLang() === 'ru' ? 'ru-RU' : 'uz-UZ')

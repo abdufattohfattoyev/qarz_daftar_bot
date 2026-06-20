@@ -1,13 +1,14 @@
 import React, { useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { HomeIcon, UsersIcon, ChartIcon, SettingIcon, PlusIcon } from './Icons'
+import { useT } from '../i18n'
 
 const NAV = [
-  { to: '/', Icon: HomeIcon, label: 'Asosiy' },
-  { to: '/contacts', Icon: UsersIcon, label: 'Qarzdorlar' },
-  { to: '/add', Icon: null, label: '' },
-  { to: '/stats', Icon: ChartIcon, label: 'Statistika' },
-  { to: '/settings', Icon: SettingIcon, label: 'Sozlamalar' },
+  { to: '/', Icon: HomeIcon, labelKey: 'nav_home' },
+  { to: '/contacts', Icon: UsersIcon, labelKey: 'nav_contacts' },
+  { to: '/add', Icon: null, labelKey: '' },
+  { to: '/stats', Icon: ChartIcon, labelKey: 'nav_stats' },
+  { to: '/settings', Icon: SettingIcon, labelKey: 'nav_settings' },
 ]
 
 const CSS = `
@@ -58,6 +59,7 @@ const CSS = `
 `
 
 export default function Layout() {
+  const t = useT()
   const location = useLocation()
   const prevPath = useRef(location.pathname)
   const key = location.pathname
@@ -142,7 +144,7 @@ export default function Layout() {
                 color: active ? '#15803d' : '#94a3b8',
                 transition: 'color .2s',
                 letterSpacing: active ? '-.01em' : 0,
-              }}>{item.label}</span>
+              }}>{t(item.labelKey)}</span>
             </NavLink>
           )
         })}

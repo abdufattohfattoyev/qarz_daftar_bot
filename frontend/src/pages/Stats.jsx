@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStatsStore } from '../store'
 import { initials, avatarColor, haptic } from '../utils'
 import { ArrowUpIcon, ArrowDownIcon } from '../components/Icons'
+import { useT } from '../i18n'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(parseFloat(v || 0)))
 
@@ -14,14 +15,16 @@ const ExportIcon = () => (
 )
 
 const PERIODS = [
-  { value: 'today',      label: 'Bugun' },
-  { value: '7days',      label: '7 kun' },
-  { value: 'month',      label: 'Shu oy' },
-  { value: 'last_month', label: "O'tgan oy" },
+  { value: 'today',      labelKey: 'period_today' },
+  { value: '7days',      labelKey: 'period_7days' },
+  { value: 'month',      labelKey: 'period_month' },
+  { value: 'last_month', labelKey: 'period_last_month' },
 ]
 
 export default function Stats() {
   const navigate = useNavigate()
+  const t = useT()
+  const periodLabel = (v) => t(PERIODS.find(p => p.value === v)?.labelKey || 'period_month')
   const { stats, loading, period: storePeriod, currency, fetchStats, exportExcel } = useStatsStore()
   const [activePeriod, setActivePeriod] = useState(storePeriod || 'month')
 
@@ -45,13 +48,13 @@ export default function Stats() {
       {/* ── HEADER ── */}
       <div style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 1px 6px rgba(0,0,0,.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>Statistika</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>{t('stats_title')}</div>
           <button onClick={() => { haptic('light'); exportExcel() }} className="pill-btn" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: 10,
             padding: '7px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#f97316',
           }}>
-            <ExportIcon /> Eksport
+            <ExportIcon /> {t('export')}
           </button>
         </div>
 
@@ -69,7 +72,7 @@ export default function Stats() {
                 cursor: 'pointer', fontFamily: 'inherit',
                 boxShadow: active ? '0 3px 10px rgba(15,23,42,.25)' : 'none',
                 transition: 'all .18s',
-              }}>{p.label}</button>
+              }}>{t(p.labelKey)}</button>
             )
           })}
         </div>
@@ -81,7 +84,7 @@ export default function Stats() {
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0' }}>
             <div style={{ width: 30, height: 30, border: '3px solid #dcfce7', borderTop: '3px solid #16a34a', borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
-            <p style={{ marginTop: 12, fontSize: 13, color: '#94a3b8' }}>Yuklanmoqda...</p>
+            <p style={{ marginTop: 12, fontSize: 13, color: '#94a3b8' }}>{t('loading')}</p>
           </div>
         )}
 
@@ -99,7 +102,7 @@ export default function Stats() {
               <div style={{ position: 'absolute', right: 20, bottom: -40, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,.04)' }} />
 
               <p style={{ margin: '0 0 6px', fontSize: 9, color: 'rgba(255,255,255,.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em' }}>
-                {PERIODS.find(p => p.value === activePeriod)?.label} — Sof balans
+                {periodLabel(activePeriod)} — {t('net_balance')}
               </p>
               <p style={{ margin: '0 0 14px', fontSize: 32, fontWeight: 900, color: '#fff', letterSpacing: -1 }}>
                 {net >= 0 ? '+' : '−'}{n(Math.abs(net))}
@@ -112,7 +115,7 @@ export default function Stats() {
                     <div style={{ width: 18, height: 18, borderRadius: 5, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ArrowUpIcon />
                     </div>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>BERDIM</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>{t('gave_upper')}</span>
                   </div>
                   <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#fff' }}>{n(gave)}</p>
                   <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,.4)' }}>UZS</p>
@@ -123,7 +126,7 @@ export default function Stats() {
                     <div style={{ width: 18, height: 18, borderRadius: 5, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ArrowDownIcon />
                     </div>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>OLDIM</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>{t('got_upper')}</span>
                   </div>
                   <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#fff' }}>{n(got)}</p>
                   <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,.4)' }}>UZS</p>
@@ -134,16 +137,16 @@ export default function Stats() {
             {/* Info cards row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '0 14px 10px' }}>
               <div style={{ background: '#fff', borderRadius: 18, padding: '14px 14px', boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
-                <p style={{ margin: '0 0 8px', fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>Menga qarzdor</p>
+                <p style={{ margin: '0 0 8px', fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('owes_me')}</p>
                 <p style={{ margin: '0 0 2px', fontSize: 20, fontWeight: 900, color: '#16a34a', letterSpacing: -.5 }}>{n(ilent)}</p>
-                <p style={{ margin: 0, fontSize: 10, color: '#94a3b8' }}>{debtors} nafar</p>
+                <p style={{ margin: 0, fontSize: 10, color: '#94a3b8' }}>{debtors} {t('people_count')}</p>
               </div>
               <div style={{ background: '#fff', borderRadius: 18, padding: '14px 14px', boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
-                <p style={{ margin: '0 0 8px', fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>Jami amallar</p>
+                <p style={{ margin: '0 0 8px', fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('total_ops')}</p>
                 <p style={{ margin: '0 0 2px', fontSize: 20, fontWeight: 900, color: '#0f172a', letterSpacing: -.5 }}>
                   {(stats.summary?.total_count || 0)}
                 </p>
-                <p style={{ margin: 0, fontSize: 10, color: '#94a3b8' }}>ta tranzaksiya</p>
+                <p style={{ margin: 0, fontSize: 10, color: '#94a3b8' }}>{t('transactions')}</p>
               </div>
             </div>
 
@@ -151,8 +154,8 @@ export default function Stats() {
             {(gave + got) > 0 && (
               <div style={{ margin: '0 14px 10px', background: '#fff', borderRadius: 18, padding: '14px 14px', boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Berdim</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Oldim</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>{t('gave_label')}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>{t('got_label')}</span>
                 </div>
                 <div style={{ height: 10, borderRadius: 99, background: '#fee2e2', overflow: 'hidden' }}>
                   <div style={{
@@ -173,8 +176,8 @@ export default function Stats() {
             {stats.top_debtors?.length > 0 && (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Top qarzdorlar</span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{stats.top_debtors.length} ta</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{t('top_debtors')}</span>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{stats.top_debtors.length} {t('count_suffix')}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 10, padding: '0 14px 14px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                   {stats.top_debtors.map((debtor, i) => {
@@ -197,7 +200,7 @@ export default function Stats() {
                         <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444', letterSpacing: -.3 }}>
                           {n(debtor.remaining)}
                         </div>
-                        <div style={{ fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>UZS qarzdor</div>
+                        <div style={{ fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>{t('uzs_owes')}</div>
                       </div>
                     )
                   })}
@@ -215,10 +218,10 @@ export default function Stats() {
                   <path d="M26 30h18" stroke="#86efac" strokeWidth="2.5" strokeLinecap="round"/>
                 </svg>
                 <p style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
-                  {PERIODS.find(p => p.value === activePeriod)?.label} uchun ma'lumot yo'q
+                  {t('no_data_period', { period: periodLabel(activePeriod) })}
                 </p>
                 <p style={{ margin: 0, fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>
-                  Bu davr uchun hech qanday qarz qayd etilmagan
+                  {t('no_data_desc')}
                 </p>
               </div>
             )}

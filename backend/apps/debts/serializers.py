@@ -46,6 +46,14 @@ class DebtCreateSerializer(serializers.ModelSerializer):
         model = Debt
         fields = ['contact', 'debt_type', 'amount', 'currency', 'note', 'due_date', 'photo']
 
+    def to_internal_value(self, data):
+        # Bo'sh due_date ('') DateField'ni yiqitadi — uni None'ga aylantiramiz
+        if hasattr(data, 'copy'):
+            data = data.copy()
+        if data.get('due_date') in ('', 'null', None):
+            data.pop('due_date', None)
+        return super().to_internal_value(data)
+
     def validate_contact(self, contact):
         user = self.context['request'].user
         if contact.owner != user:

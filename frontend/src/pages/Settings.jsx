@@ -3,8 +3,10 @@ import { useAuthStore, useDebtStore, useContactStore } from '../store'
 import { initials, haptic } from '../utils'
 import { statsAPI } from '../api'
 import { CurrencyIcon, GlobeIcon, BellIcon, ExcelIcon, DeleteAllIcon } from '../components/Icons'
+import { useT } from '../i18n'
 
 export default function Settings() {
+  const t = useT()
   const { user, updateUser } = useAuthStore()
   const [modal, setModal] = useState(null) // 'currency' | 'language' | 'delete'
   const [deleting, setDeleting] = useState(false)
@@ -45,9 +47,9 @@ export default function Settings() {
   }
 
   const currencies = [
-    { val: 'UZS', label: "So'm", code: 'UZS', bg: '#fef9c3', color: '#92400e' },
-    { val: 'USD', label: 'Dollar', code: '$', bg: '#dcfce7', color: '#166534' },
-    { val: 'RUB', label: 'Rubl', code: '₽', bg: '#dbeafe', color: '#1e40af' },
+    { val: 'UZS', label: t('cur_som'), code: 'UZS', bg: '#fef9c3', color: '#92400e' },
+    { val: 'USD', label: t('cur_dollar'), code: '$', bg: '#dcfce7', color: '#166534' },
+    { val: 'RUB', label: t('cur_ruble'), code: '₽', bg: '#dbeafe', color: '#1e40af' },
   ]
   const languages = [
     { val: 'uz', label: "O'zbek tili", icon: 'UZ', bg: '#fef9c3' },
@@ -57,7 +59,7 @@ export default function Settings() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
       <div style={{ padding: '18px 18px 10px', flexShrink: 0 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>Sozlamalar</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>{t('settings_title')}</div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 100px' }}>
@@ -72,20 +74,20 @@ export default function Settings() {
               {user?.display_name || '—'}
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginTop: 2 }}>
-              {user?.telegram_username ? `@${user.telegram_username}` : 'Telegram foydalanuvchi'}
+              {user?.telegram_username ? `@${user.telegram_username}` : t('tg_user')}
             </div>
           </div>
         </div>
 
         {/* App settings */}
-        <SectionLabel>Ilova sozlamalari</SectionLabel>
+        <SectionLabel>{t('app_settings')}</SectionLabel>
         <Card>
-          <Row icon={<CurrencyIcon />} label="Valyuta" value={user?.currency} onClick={() => { haptic('light'); setModal('currency') }} />
+          <Row icon={<CurrencyIcon />} label={t('currency')} value={user?.currency} onClick={() => { haptic('light'); setModal('currency') }} />
           <Divider />
-          <Row icon={<GlobeIcon />} label="Til" value={user?.language === 'uz' ? "O'zbek" : 'Русский'} onClick={() => { haptic('light'); setModal('language') }} />
+          <Row icon={<GlobeIcon />} label={t('language')} value={user?.language === 'ru' ? t('lang_ru_short') : t('lang_uz_short')} onClick={() => { haptic('light'); setModal('language') }} />
           <Divider />
           <ToggleRow
-            icon={<BellIcon />} label="Eslatmalar"
+            icon={<BellIcon />} label={t('notifications')}
             checked={user?.notifications_enabled}
             onChange={() => {
               haptic('light')
@@ -97,16 +99,16 @@ export default function Settings() {
         </Card>
 
         {/* Data */}
-        <SectionLabel>Ma'lumotlar</SectionLabel>
+        <SectionLabel>{t('data')}</SectionLabel>
         <Card>
-          <Row icon={<ExcelIcon />} label="Excel eksport" value="⬇" onClick={exportExcel} />
+          <Row icon={<ExcelIcon />} label={t('excel_export')} value="⬇" onClick={exportExcel} />
           <Divider />
-          <Row icon={<DeleteAllIcon />} label="Hammasini o'chirish" danger onClick={() => { haptic('medium'); setModal('delete') }} />
+          <Row icon={<DeleteAllIcon />} label={t('delete_all')} danger onClick={() => { haptic('medium'); setModal('delete') }} />
         </Card>
 
         {/* App version */}
         <div style={{ textAlign: 'center', color: '#c0c0c0', fontSize: 12, marginTop: 24 }}>
-          Qarz daftar v1.0
+          {t('app_name')} v1.0
         </div>
       </div>
 
@@ -114,7 +116,7 @@ export default function Settings() {
       {modal && <BottomSheet onClose={() => setModal(null)}>
         {modal === 'currency' && (
           <>
-            <SheetTitle>Valyuta tanlang</SheetTitle>
+            <SheetTitle>{t('choose_currency')}</SheetTitle>
             {currencies.map(c => (
               <SheetOption
                 key={c.val}
@@ -134,7 +136,7 @@ export default function Settings() {
 
         {modal === 'language' && (
           <>
-            <SheetTitle>Til tanlang</SheetTitle>
+            <SheetTitle>{t('choose_lang')}</SheetTitle>
             {languages.map(l => (
               <SheetOption
                 key={l.val}
@@ -156,13 +158,13 @@ export default function Settings() {
             <div style={{ width: 56, height: 56, borderRadius: 18, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
               <DeleteAllIcon />
             </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>Hammasini o'chirasizmi?</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>{t('delete_confirm_title')}</div>
             <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 24, lineHeight: 1.6 }}>
-              Barcha qarzlar va kontaktlar o'chiriladi. Bu amalni qaytarib bo'lmaydi.
+              {t('delete_confirm_desc')}
             </div>
-            <SheetBtn onClick={() => setModal(null)} style={{ background: '#f3f4f6', color: '#111', marginBottom: 10 }}>Bekor qilish</SheetBtn>
+            <SheetBtn onClick={() => setModal(null)} style={{ background: '#f3f4f6', color: '#111', marginBottom: 10 }}>{t('cancel_full')}</SheetBtn>
             <SheetBtn onClick={handleDeleteAll} style={{ background: '#ef4444', color: '#fff' }}>
-              {deleting ? "O'chirilmoqda..." : "Ha, o'chirish"}
+              {deleting ? t('deleting') : t('yes_delete')}
             </SheetBtn>
           </div>
         )}

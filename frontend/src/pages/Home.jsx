@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmtDate, fmtTime, initials, avatarColor, haptic } from '../utils'
 import { ArrowUpIcon, ArrowDownIcon, TrashIcon, PayIcon, ChevronRight } from '../components/Icons'
+import { useT, localeCode } from '../i18n'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(parseFloat(v || 0)))
 
 export default function Home() {
   const navigate = useNavigate()
+  const t = useT()
   const { user } = useAuthStore()
   const { debts, loading, fetchDebts, groupedByDate, deleteDebt } = useDebtStore()
   const [sheet, setSheet] = useState(null)
@@ -19,7 +21,7 @@ export default function Home() {
   const totalGot  = active.filter(d => d.debt_type === 'got').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const net = totalGave - totalGot
   const groups = groupedByDate()
-  const firstName = (user?.display_name || user?.full_name || 'Foydalanuvchi').split(' ')[0]
+  const firstName = (user?.display_name || user?.full_name || 'User').split(' ')[0]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -34,10 +36,10 @@ export default function Home() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div>
             <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,.55)', fontWeight: 500, letterSpacing: '.03em' }}>
-              {new Date().toLocaleDateString('uz-UZ', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {new Date().toLocaleDateString(localeCode(), { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
             <h2 style={{ margin: '1px 0 0', fontSize: 15, fontWeight: 700, color: '#fff' }}>
-              Salom, {firstName} 👋
+              {t('greeting', { name: firstName })} 👋
             </h2>
           </div>
           <div style={{
@@ -60,7 +62,7 @@ export default function Home() {
         }}>
           <div style={{ textAlign: 'center', marginBottom: 10 }}>
             <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,.55)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700 }}>
-              Sof balans
+              {t('net_balance')}
             </p>
             <p style={{ margin: '3px 0 0', fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: -1 }}>
               {net >= 0 ? '+' : '−'}{n(Math.abs(net))}
@@ -69,8 +71,8 @@ export default function Home() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
-              { label: 'Berganim', val: totalGave, Icon: ArrowUpIcon, up: true },
-              { label: 'Olganim',  val: totalGot,  Icon: ArrowDownIcon, up: false },
+              { label: t('given'), val: totalGave, Icon: ArrowUpIcon, up: true },
+              { label: t('taken'), val: totalGot,  Icon: ArrowDownIcon, up: false },
             ].map(({ label, val, Icon, up }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: '8px 10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
@@ -90,9 +92,9 @@ export default function Home() {
       {/* ── SCROLLABLE CONTENT ── */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 6px' }}>
-          <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0f172a' }}>Oxirgi amallar</h3>
+          <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{t('recent_ops')}</h3>
           <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, background: '#fff', padding: '3px 9px', borderRadius: 20 }}>
-            {active.length} ta
+            {active.length} {t('count_suffix')}
           </span>
         </div>
 
@@ -111,14 +113,14 @@ export default function Home() {
               <circle cx="58" cy="58" r="12" fill="#16a34a"/>
               <path d="M54 58h8M58 54v8" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
-            <p style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>Qarzlar yo'q</p>
-            <p style={{ margin: '0 0 18px', fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>Birinchi qarzni qo'shing</p>
+            <p style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{t('no_debts')}</p>
+            <p style={{ margin: '0 0 18px', fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>{t('add_first_debt')}</p>
             <button onClick={() => navigate('/add')} className="pill-btn" style={{
               padding: '11px 26px', borderRadius: 14, border: 'none',
               background: 'linear-gradient(135deg,#22c55e,#16a34a)',
               color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
               boxShadow: '0 5px 16px rgba(22,163,74,.35)',
-            }}>+ Qarz qo'shish</button>
+            }}>{t('add_debt_btn')}</button>
           </div>
         )}
 
@@ -158,7 +160,7 @@ export default function Home() {
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: isGave ? '#f0fdf4' : '#fff1f2', color: isGave ? '#16a34a' : '#ef4444' }}>
-                          {isGave ? 'Berdim' : 'Oldim'}
+                          {isGave ? t('gave_label') : t('got_label')}
                         </span>
                         <span style={{ fontSize: 10, color: '#cbd5e1' }}>{fmtTime(debt.created_at)}</span>
                       </div>
@@ -191,7 +193,7 @@ export default function Home() {
             }}>
               <div style={{ position: 'absolute', right: -20, top: -20, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,.07)' }} />
               <p style={{ margin: '0 0 3px', fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em' }}>
-                {sheet.debt_type === 'gave' ? 'Men berdim' : 'Men oldim'}
+                {sheet.debt_type === 'gave' ? t('i_gave') : t('i_got')}
               </p>
               <p style={{ margin: '0 0 2px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: -1 }}>
                 {n(sheet.amount)} <span style={{ fontSize: 13, fontWeight: 600, opacity: .8 }}>{sheet.currency}</span>
@@ -202,11 +204,11 @@ export default function Home() {
             </div>
             <div style={{ margin: '0 14px 10px', background: '#f8fafc', borderRadius: 14, overflow: 'hidden' }}>
               {[
-                { label: 'Holat', value: { active: '🟡 Faol', partial: '🟠 Qisman', paid: '🟢 To\'langan' }[sheet.status] },
-                parseFloat(sheet.paid_amount) > 0 && { label: "To'langan", value: `${n(sheet.paid_amount)} ${sheet.currency}` },
-                parseFloat(sheet.remaining_amount) !== parseFloat(sheet.amount) && { label: 'Qoldi', value: `${n(sheet.remaining_amount)} ${sheet.currency}` },
-                sheet.note && { label: 'Izoh', value: sheet.note },
-                sheet.due_date && { label: 'Muddat', value: fmtDate(sheet.due_date) },
+                { label: t('status'), value: { active: '🟡 ' + t('status_active'), partial: '🟠 ' + t('status_partial'), paid: '🟢 ' + t('status_paid') }[sheet.status] },
+                parseFloat(sheet.paid_amount) > 0 && { label: t('paid_label'), value: `${n(sheet.paid_amount)} ${sheet.currency}` },
+                parseFloat(sheet.remaining_amount) !== parseFloat(sheet.amount) && { label: t('remaining_label'), value: `${n(sheet.remaining_amount)} ${sheet.currency}` },
+                sheet.note && { label: t('note_label'), value: sheet.note },
+                sheet.due_date && { label: t('due_label'), value: fmtDate(sheet.due_date) },
               ].filter(Boolean).map((row, i, arr) => (
                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                   <span style={{ fontSize: 12, color: '#64748b' }}>{row.label}</span>
@@ -221,14 +223,14 @@ export default function Home() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 boxShadow: '0 3px 10px rgba(22,163,74,.3)',
               }}>
-                <PayIcon /> To'lash
+                <PayIcon /> {t('pay_btn')}
               </button>
               <button onClick={async () => { haptic('heavy'); await deleteDebt(sheet.id); setSheet(null) }} className="pill-btn" style={{
                 padding: 13, borderRadius: 14, border: '1.5px solid #fee2e2', cursor: 'pointer',
                 background: '#fff', color: '#ef4444', fontSize: 13, fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}>
-                <TrashIcon /> O'chirish
+                <TrashIcon /> {t('delete_btn')}
               </button>
             </div>
           </div>

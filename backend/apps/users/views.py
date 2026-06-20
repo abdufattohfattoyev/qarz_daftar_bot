@@ -143,9 +143,9 @@ def bot_register(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def token_refresh_view(request):
-    """Token yangilash"""
+    """Token yangilash — refresh token o'zi yetarli, access token shart emas"""
     refresh_token = request.data.get('refresh')
     if not refresh_token:
         return Response({'error': 'Refresh token kerak'}, status=400)

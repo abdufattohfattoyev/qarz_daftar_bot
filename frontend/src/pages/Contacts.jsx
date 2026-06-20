@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useContactStore } from '../store'
 import { initials, avatarColor, haptic } from '../utils'
 import { SearchIcon, ChevronRight, ArrowUpIcon, ArrowDownIcon } from '../components/Icons'
+import { useT } from '../i18n'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(Math.abs(parseFloat(v || 0))))
 
@@ -13,13 +14,14 @@ const PhoneIcon = () => (
 )
 
 const TABS = [
-  { key: 'all',  label: 'Barchasi' },
-  { key: 'gave', label: 'Menga qarzdor' },
-  { key: 'got',  label: 'Men qarzdor' },
+  { key: 'all',  labelKey: 'tab_all' },
+  { key: 'gave', labelKey: 'owes_me' },
+  { key: 'got',  labelKey: 'i_owe' },
 ]
 
 export default function Contacts() {
   const navigate = useNavigate()
+  const t = useT()
   const { contacts, loading, fetchContacts, addContact } = useContactStore()
   const [search, setSearch] = useState('')
   const [tab, setTab]       = useState('all')
@@ -58,7 +60,7 @@ export default function Contacts() {
       {/* ── HEADER ── */}
       <div style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 1px 8px rgba(0,0,0,.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>Qarzdorlar</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>{t('contacts_title')}</div>
           <button className="pill-btn" onClick={() => { haptic('light'); setShowAdd(true) }} style={{
             width: 34, height: 34, background: '#16a34a', border: 'none',
             borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -77,7 +79,7 @@ export default function Contacts() {
               <ArrowUpIcon />
             </div>
             <div>
-              <p style={{ margin: 0, fontSize: 9, color: '#16a34a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Menga qarzdor</p>
+              <p style={{ margin: 0, fontSize: 9, color: '#16a34a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{t('owes_me')}</p>
               <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 800, color: '#16a34a' }}>{n(totalGave)}</p>
             </div>
           </div>
@@ -86,7 +88,7 @@ export default function Contacts() {
               <ArrowDownIcon />
             </div>
             <div>
-              <p style={{ margin: 0, fontSize: 9, color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Men qarzdor</p>
+              <p style={{ margin: 0, fontSize: 9, color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{t('i_owe')}</p>
               <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 800, color: '#ef4444' }}>{n(totalGot)}</p>
             </div>
           </div>
@@ -96,7 +98,7 @@ export default function Contacts() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 16px 10px', padding: '9px 12px', background: '#f8fafc', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.06)' }}>
           <SearchIcon />
           <input
-            placeholder="Ism yoki telefon..."
+            placeholder={t('search_placeholder')}
             value={search} onChange={e => setSearch(e.target.value)}
             style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#111', fontFamily: 'inherit', outline: 'none', flex: 1 }}
           />
@@ -112,15 +114,15 @@ export default function Contacts() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', padding: '0 16px 12px', gap: 6 }}>
-          {TABS.map(t => (
-            <button key={t.key} className="pill-btn" onClick={() => { haptic('light'); setTab(t.key) }} style={{
-              flex: t.key === 'all' ? 0 : 1, padding: '7px 12px',
+          {TABS.map(tabItem => (
+            <button key={tabItem.key} className="pill-btn" onClick={() => { haptic('light'); setTab(tabItem.key) }} style={{
+              flex: tabItem.key === 'all' ? 0 : 1, padding: '7px 12px',
               borderRadius: 10, border: 'none', fontFamily: 'inherit',
-              background: tab === t.key ? '#0f172a' : '#f1f5f9',
-              color: tab === t.key ? '#fff' : '#64748b',
+              background: tab === tabItem.key ? '#0f172a' : '#f1f5f9',
+              color: tab === tabItem.key ? '#fff' : '#64748b',
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
               whiteSpace: 'nowrap',
-            }}>{t.label}</button>
+            }}>{t(tabItem.labelKey)}</button>
           ))}
         </div>
       </div>
@@ -141,10 +143,10 @@ export default function Contacts() {
               <path d="M14 55c0-11.6 9.4-18 21-18s21 6.4 21 18" stroke="#86efac" strokeWidth="2.5" strokeLinecap="round"/>
             </svg>
             <p style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
-              {tab === 'all' ? 'Qarzdor yo\'q' : tab === 'gave' ? 'Sizga qarzdor yo\'q' : 'Siz qarzdor emassiz'}
+              {tab === 'all' ? t('no_debtors') : tab === 'gave' ? t('no_owes_me') : t('no_i_owe')}
             </p>
             <p style={{ margin: '0 0 20px', fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>
-              {search ? `"${search}" topilmadi` : 'Yangi qarz qo\'shing'}
+              {search ? t('not_found', { q: search }) : t('add_new_debt')}
             </p>
             {!search && (
               <button className="pill-btn" onClick={() => navigate('/add')} style={{
@@ -152,7 +154,7 @@ export default function Contacts() {
                 background: 'linear-gradient(135deg,#22c55e,#16a34a)',
                 color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 boxShadow: '0 5px 16px rgba(22,163,74,.3)',
-              }}>+ Qarz qo'shish</button>
+              }}>{t('add_debt_btn')}</button>
             )}
           </div>
         )}
@@ -209,7 +211,7 @@ export default function Contacts() {
                         <span style={{ fontSize: 11 }}>{contact.phone}</span>
                       </div>
                     ) : (
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>Telefon yo'q</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{t('no_phone')}</span>
                     )}
                   </div>
                 </div>
@@ -217,7 +219,7 @@ export default function Contacts() {
                 {/* balance */}
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   {isZero ? (
-                    <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>Balanssiz</span>
+                    <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>{t('no_balance')}</span>
                   ) : (
                     <>
                       <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3, color: isPos ? '#16a34a' : '#ef4444' }}>
@@ -241,10 +243,10 @@ export default function Contacts() {
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 98, backdropFilter: 'blur(3px)' }} />
           <div className="sheet-anim" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderRadius: '22px 22px 0 0', zIndex: 99, paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
             <div style={{ width: 34, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 16px' }} />
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#111', padding: '0 16px 14px' }}>Yangi kontakt</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#111', padding: '0 16px 14px' }}>{t('new_contact')}</div>
             {[
-              { key: 'name',  label: 'Ism *',    placeholder: 'Ism familiya',    type: 'text' },
-              { key: 'phone', label: 'Telefon',  placeholder: '+998 90 123 45 67', type: 'tel' },
+              { key: 'name',  label: t('name_req'),    placeholder: t('name_ph'),    type: 'text' },
+              { key: 'phone', label: t('phone_label'),  placeholder: '+998 90 123 45 67', type: 'tel' },
             ].map(f => (
               <div key={f.key} style={{ padding: '0 16px', marginBottom: 11 }}>
                 <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 5, display: 'block' }}>{f.label}</label>
@@ -256,9 +258,9 @@ export default function Contacts() {
               </div>
             ))}
             <div style={{ padding: '0 16px', marginBottom: 16 }}>
-              <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 7, display: 'block' }}>Kategoriya</label>
+              <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 7, display: 'block' }}>{t('category')}</label>
               <div style={{ display: 'flex', gap: 7 }}>
-                {[{ v: 'other', l: 'Boshqa' }, { v: 'family', l: 'Oila' }, { v: 'friends', l: "Do'st" }, { v: 'work', l: 'Ish' }].map(c => (
+                {[{ v: 'other', l: t('cat_other') }, { v: 'family', l: t('cat_family') }, { v: 'friends', l: t('cat_friends') }, { v: 'work', l: t('cat_work') }].map(c => (
                   <button key={c.v} className="pill-btn" onClick={() => setForm(x => ({ ...x, category: c.v }))} style={{
                     flex: 1, padding: '8px 4px', borderRadius: 10, border: 'none',
                     background: form.category === c.v ? '#16a34a' : '#f1f5f9',
@@ -269,7 +271,7 @@ export default function Contacts() {
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, margin: '0 16px' }}>
-              <button className="pill-btn" onClick={() => setShowAdd(false)} style={{ padding: 13, border: '1.5px solid #e5e7eb', borderRadius: 14, background: '#fff', fontSize: 13, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>Bekor</button>
+              <button className="pill-btn" onClick={() => setShowAdd(false)} style={{ padding: 13, border: '1.5px solid #e5e7eb', borderRadius: 14, background: '#fff', fontSize: 13, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>{t('cancel')}</button>
               <button className="pill-btn" onClick={handleAdd} disabled={saving || !form.name.trim()} style={{
                 padding: 13, border: 'none', borderRadius: 14,
                 background: form.name.trim() ? 'linear-gradient(135deg,#22c55e,#16a34a)' : '#e5e7eb',
@@ -277,7 +279,7 @@ export default function Contacts() {
                 fontSize: 13, fontWeight: 700, cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
                 boxShadow: form.name.trim() ? '0 4px 14px rgba(22,163,74,.3)' : 'none',
               }}>
-                {saving ? 'Saqlanmoqda...' : '+ Kontakt qo\'shish'}
+                {saving ? t('saving') : t('add_contact_btn')}
               </button>
             </div>
           </div>
