@@ -65,6 +65,17 @@ services:
       - internal
       - nasiya-network
 
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: nasiya_bot
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - internal
+
 volumes:
   postgres_data:
   redis_data:
