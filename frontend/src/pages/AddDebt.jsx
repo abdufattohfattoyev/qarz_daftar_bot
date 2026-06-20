@@ -1,33 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useContactStore } from '../store'
 import { haptic } from '../utils'
-
-const InfoIcon = ({ color }) => (
-  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
-    <circle cx="8" cy="8" r="7" stroke={color} strokeWidth="1.5"/>
-    <path d="M8 7v4M8 5v.5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-  </svg>
-)
+import { contactsAPI } from '../api'
 
 const CalIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
     <rect x="1.5" y="3" width="13" height="11.5" rx="3" stroke="#16a34a" strokeWidth="1.4"/>
     <path d="M5 1.5V4M11 1.5V4M1.5 7h13" stroke="#16a34a" strokeWidth="1.4" strokeLinecap="round"/>
-  </svg>
-)
-
-const CameraIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-    <path d="M6.5 3h5l1.5 2H15a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.5L6 3z" stroke="#16a34a" strokeWidth="1.4"/>
-    <circle cx="9" cy="9.5" r="2.5" stroke="#16a34a" strokeWidth="1.4"/>
-  </svg>
-)
-
-const PersonIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-    <circle cx="8" cy="5" r="3" stroke="#64748b" strokeWidth="1.4"/>
-    <path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round"/>
   </svg>
 )
 
@@ -38,30 +18,120 @@ const NoteIcon = () => (
   </svg>
 )
 
+const PhoneIcon = ({ color = '#16a34a' }) => (
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+    <path d="M14 11.2c-.2-.2-1-.7-1.5-.9-.5-.2-.8-.1-1 .1l-.6.7c-.2.2-.4.2-.6.1-1-.5-2.6-1.9-3.4-3-.2-.3-.1-.5.1-.7l.6-.6c.3-.2.3-.5.1-.9-.2-.5-.7-1.3-1-1.6-.3-.3-.6-.3-.8-.2L5 4.5c-.9.6-1.3 1.6-1 2.7.5 1.4 1.6 2.9 2.9 4.1 1.2 1.2 2.7 2.3 4.1 2.8 1.1.4 2.1 0 2.7-.9l.5-.8c.2-.3.1-.5-.2-.7z" fill={color}/>
+  </svg>
+)
+
+const PersonBadge = ({ name, phone }) => (
+  <div style={{
+    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+    background: '#f0fdf4', borderRadius: 14, border: '2px solid #22c55e',
+  }}>
+    <div style={{ width: 38, height: 38, borderRadius: 12, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="7" r="4" fill="#16a34a"/>
+        <path d="M3 18c0-3.9 3.1-6 7-6s7 2.1 7 6" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round"/>
+      </svg>
+    </div>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: '#15803d' }}>{name}</p>
+      <p style={{ margin: 0, fontSize: 12, color: '#86efac' }}>{phone}</p>
+    </div>
+    <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </div>
+  </div>
+)
+
 export default function AddDebt() {
   const navigate = useNavigate()
   const { addDebt } = useDebtStore()
-  const { contacts, fetchContacts } = useContactStore()
+  const { contacts, fetchContacts, addContact } = useContactStore()
 
-  const [form, setForm] = useState({
-    contact: '', debt_type: 'gave', amount: '',
-    currency: 'UZS', note: '', due_date: '', photo: null,
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [photoName, setPhotoName] = useState('')
-  const [numStr, setNumStr] = useState('')
+  const [debtType, setDebtType] = useState('gave')
+  const [amount, setAmount]     = useState('')
+  const [numStr, setNumStr]     = useState('')
+  const [currency, setCurrency] = useState('UZS')
+  const [note, setNote]         = useState('')
+  const [dueDate, setDueDate]   = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
+
+  // Phone-first contact flow
+  const [phone, setPhone]             = useState('')
+  const [name, setName]               = useState('')
+  const [foundContact, setFoundContact] = useState(null)  // existing contact
+  const [isNew, setIsNew]             = useState(false)   // need to create
+  const phoneRef = useRef(null)
 
   useEffect(() => { fetchContacts() }, [])
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  // Search as user types phone
+  useEffect(() => {
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length < 7) {
+      setFoundContact(null)
+      setIsNew(false)
+      return
+    }
+    const match = contacts.find(c => c.phone && c.phone.replace(/\D/g, '').includes(digits))
+    if (match) {
+      setFoundContact(match)
+      setIsNew(false)
+    } else {
+      setFoundContact(null)
+      setIsNew(true)
+    }
+  }, [phone, contacts])
+
+  const formatPhone = (raw) => {
+    const d = raw.replace(/\D/g, '')
+    if (d.length === 0) return ''
+    if (d.startsWith('998')) {
+      const n = d.slice(3, 12)
+      let r = '+998'
+      if (n.length > 0) r += ' ' + n.slice(0, 2)
+      if (n.length > 2) r += ' ' + n.slice(2, 5)
+      if (n.length > 5) r += ' ' + n.slice(5, 7)
+      if (n.length > 7) r += ' ' + n.slice(7, 9)
+      return r
+    }
+    return '+' + d.slice(0, 12)
+  }
+
+  const handlePhoneChange = (e) => {
+    const raw = e.target.value
+    const digits = raw.replace(/\D/g, '')
+    // auto-prepend 998 if starts with 0
+    const normalized = digits.startsWith('0') ? '998' + digits.slice(1) : digits
+    setPhone(formatPhone(normalized))
+  }
+
+  const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
   const handleSubmit = async () => {
-    if (!form.contact) return setError("Kontakt tanlang")
-    if (!form.amount || parseFloat(form.amount) <= 0) return setError("Miqdor kiriting")
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length < 9) return setError('Telefon raqam kiriting')
+    if (!amount || parseFloat(amount) <= 0) return setError('Miqdor kiriting')
+    if (isNew && !name.trim()) return setError('Ism kiriting')
+
     setLoading(true); setError('')
     try {
-      await addDebt(form)
+      let contactId
+      if (foundContact) {
+        contactId = foundContact.id
+      } else {
+        // Create new contact
+        const cleanPhone = '+' + digits
+        const newC = await addContact({ name: name.trim(), phone: cleanPhone })
+        contactId = newC.id
+      }
+
+      await addDebt({ contact: contactId, debt_type: debtType, amount, currency, note, due_date: dueDate })
       haptic('success')
       navigate('/')
     } catch (e) {
@@ -70,19 +140,15 @@ export default function AddDebt() {
     } finally { setLoading(false) }
   }
 
-  const isGave = form.debt_type === 'gave'
-  const accent = isGave ? '#16a34a' : '#ef4444'
-  const accentLight = isGave ? '#f0fdf4' : '#fef2f2'
-
-  const fmtNum = (s) => {
-    const digits = s.replace(/\D/g, '')
-    return digits ? new Intl.NumberFormat('uz-UZ').format(parseInt(digits)) : ''
-  }
+  const isGave  = debtType === 'gave'
+  const accent  = isGave ? '#16a34a' : '#ef4444'
+  const accentL = isGave ? '#f0fdf4' : '#fef2f2'
+  const canSubmit = phone.replace(/\D/g, '').length >= 9 && parseFloat(amount) > 0 && (!isNew || name.trim())
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
 
-      {/* ── HEADER ── */}
+      {/* HEADER */}
       <div style={{
         flexShrink: 0,
         background: isGave
@@ -112,25 +178,23 @@ export default function AddDebt() {
         {/* Type toggle */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {[
-            { value: 'gave', title: 'Men berdim',   desc: 'U qaytarishi kerak',  arrow: '↗' },
-            { value: 'got',  title: 'Mendan oldi',  desc: 'Men qaytarishim kerak', arrow: '↙' },
+            { value: 'gave', title: 'Men berdim',  desc: 'U qaytarishi kerak',   arrow: '↗' },
+            { value: 'got',  title: 'Mendan oldi', desc: 'Men qaytarishim kerak', arrow: '↙' },
           ].map((t) => {
-            const active = form.debt_type === t.value
+            const active = debtType === t.value
             const green  = t.value === 'gave'
             return (
-              <button key={t.value} className="pill-btn" onClick={() => { haptic('light'); set('debt_type', t.value) }} style={{
+              <button key={t.value} className="pill-btn" onClick={() => { haptic('light'); setDebtType(t.value) }} style={{
                 padding: '12px 12px', border: 'none', borderRadius: 16,
                 background: active ? '#fff' : 'rgba(255,255,255,.15)',
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                gap: 4, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                position: 'relative', overflow: 'hidden',
+                gap: 4, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', position: 'relative',
               }}>
                 <div style={{
-                  width: 30, height: 30, borderRadius: 9, marginBottom: 2,
+                  width: 28, height: 28, borderRadius: 8, marginBottom: 2,
                   background: active ? (green ? '#dcfce7' : '#fee2e2') : 'rgba(255,255,255,.2)',
                   color: active ? (green ? '#16a34a' : '#ef4444') : '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 16, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700,
                 }}>{t.arrow}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: active ? (green ? '#16a34a' : '#ef4444') : 'rgba(255,255,255,.9)' }}>
                   {t.title}
@@ -138,9 +202,7 @@ export default function AddDebt() {
                 <div style={{ fontSize: 10, color: active ? '#94a3b8' : 'rgba(255,255,255,.55)', lineHeight: 1.3 }}>{t.desc}</div>
                 {active && (
                   <div style={{ position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: '50%', background: green ? '#16a34a' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M1.5 5l2.5 2.5 4.5-4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </div>
                 )}
               </button>
@@ -149,150 +211,128 @@ export default function AddDebt() {
         </div>
       </div>
 
-      {/* ── SCROLL BODY ── */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+      {/* SCROLL BODY */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24 }}>
 
-        {/* Hint */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: '12px 14px 10px', padding: '10px 12px', borderRadius: 13, background: accentLight }}>
-          <InfoIcon color={accent} />
-          <span style={{ fontSize: 12, color: accent, lineHeight: 1.5 }}>
-            {isGave
-              ? "Siz berdingiz — u sizga qaytarishi kerak. Balansda + ko'rinadi."
-              : "Siz oldingiz — siz qaytarishingiz kerak. Balansda − ko'rinadi."}
-          </span>
+        {/* Currency */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#e8eaf0', borderRadius: 14, padding: 3, gap: 3, margin: '12px 14px 12px' }}>
+          {['UZS', 'USD'].map((c) => (
+            <button key={c} className="pill-btn" onClick={() => { haptic('light'); setCurrency(c) }} style={{
+              padding: '10px', border: currency === c ? `1.5px solid ${accent}30` : 'none',
+              borderRadius: 12, background: currency === c ? '#fff' : 'transparent',
+              fontSize: 14, fontWeight: currency === c ? 700 : 500,
+              color: currency === c ? accent : '#94a3b8', cursor: 'pointer', fontFamily: 'inherit',
+            }}>{c}</button>
+          ))}
         </div>
 
-        {/* Currency tabs */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#e8eaf0', borderRadius: 14, padding: 3, gap: 3, margin: '0 14px 12px' }}>
-          {['UZS', 'USD'].map((c) => {
-            const active = form.currency === c
-            return (
-              <button key={c} className="pill-btn" onClick={() => { haptic('light'); set('currency', c) }} style={{
-                padding: '10px', border: active ? `1.5px solid ${accent}20` : 'none',
-                borderRadius: 12, background: active ? '#fff' : 'transparent',
-                fontSize: 14, fontWeight: active ? 700 : 500,
-                color: active ? accent : '#94a3b8', cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'all .2s',
-              }}>{c}</button>
-            )
-          })}
-        </div>
-
-        {/* Amount big input */}
+        {/* Amount */}
         <div style={{ margin: '0 14px 12px' }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6, display: 'block' }}>
-            Summa
-          </label>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '0 14px', background: '#fff', borderRadius: 16,
-            border: `2px solid ${accent}`, boxSizing: 'border-box',
-          }}>
-            <span style={{ fontSize: 16, color: accent, fontWeight: 800 }}>{form.currency === 'USD' ? '$' : 'UZS'}</span>
+          <label style={{ fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6, display: 'block' }}>Summa</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', background: '#fff', borderRadius: 16, border: `2px solid ${accent}`, boxSizing: 'border-box' }}>
+            <span style={{ fontSize: 16, color: accent, fontWeight: 800 }}>{currency === 'USD' ? '$' : 'UZS'}</span>
             <input
               type="text" inputMode="numeric" placeholder="0"
               value={numStr}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, '')
                 setNumStr(fmtNum(raw))
-                set('amount', raw)
+                setAmount(raw)
               }}
-              style={{
-                flex: 1, padding: '16px 0', border: 'none',
-                fontSize: 26, fontWeight: 800, color: '#0f172a',
-                background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: -0.5,
-                boxSizing: 'border-box', width: '100%',
-              }}
+              style={{ flex: 1, padding: '16px 0', border: 'none', fontSize: 26, fontWeight: 800, color: '#0f172a', background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: -0.5, width: '100%', boxSizing: 'border-box' }}
             />
           </div>
         </div>
 
-        {/* Contact select */}
-        <Field label="Kim bilan" Icon={PersonIcon}>
-          <div style={{ position: 'relative' }}>
-            <select
-              value={form.contact}
-              onChange={(e) => set('contact', e.target.value)}
-              style={{
-                width: '100%', padding: '13px 40px 13px 14px',
-                border: form.contact ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
-                borderRadius: 14, fontSize: 14, color: form.contact ? '#0f172a' : '#94a3b8',
-                background: '#fff', fontFamily: 'inherit', outline: 'none', appearance: 'none', cursor: 'pointer',
-                boxSizing: 'border-box',
-              }}>
-              <option value="">Kontakt tanlang...</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}{c.phone ? ` (${c.phone})` : ''}</option>
-              ))}
-            </select>
-            <div style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M3 5l4 4 4-4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-          </div>
-        </Field>
-
-        {/* Note */}
-        <Field label="Izoh (ixtiyoriy)" Icon={NoteIcon}>
-          <input
-            type="text" placeholder="Osh uchun, taksi, qarz..."
-            value={form.note} onChange={(e) => set('note', e.target.value)}
-            style={{
-              width: '100%', padding: '13px 14px',
-              border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14,
-              fontSize: 14, color: '#111', background: '#fff',
-              fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-        </Field>
-
-        {/* Due date */}
-        <Field label="Qaytarish sanasi (ixtiyoriy)" Icon={CalIcon}>
-          <div style={{ position: 'relative' }}>
+        {/* ─── PHONE FIRST ─── */}
+        <div style={{ padding: '0 14px', marginBottom: 10 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
+            <PhoneIcon color="#64748b" /> Telefon raqam
+          </label>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px',
+            background: '#fff', borderRadius: 14,
+            border: foundContact ? '2px solid #22c55e' : isNew ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
+            boxSizing: 'border-box',
+          }}>
+            <PhoneIcon color={foundContact ? '#22c55e' : accent} />
             <input
-              type="date" value={form.due_date} onChange={(e) => set('due_date', e.target.value)}
-              style={{
-                width: '100%', padding: '13px 14px',
-                border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14,
-                fontSize: 14, color: form.due_date ? '#111' : '#94a3b8', background: '#fff',
-                fontFamily: 'inherit', outline: 'none', appearance: 'none', boxSizing: 'border-box',
-              }}
+              ref={phoneRef}
+              type="tel" inputMode="numeric"
+              placeholder="+998 90 123 45 67"
+              value={phone}
+              onChange={handlePhoneChange}
+              style={{ flex: 1, padding: '13px 0', border: 'none', fontSize: 16, fontWeight: 600, color: '#0f172a', background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: .3 }}
+            />
+            {phone && (
+              <button onClick={() => { setPhone(''); setFoundContact(null); setIsNew(false); setName('') }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" fill="#e5e7eb"/>
+                  <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#9ca3af" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Found existing contact */}
+        {foundContact && (
+          <div style={{ padding: '0 14px', marginBottom: 12, animation: 'fadeUp .2s both' }}>
+            <PersonBadge name={foundContact.name} phone={foundContact.phone} />
+          </div>
+        )}
+
+        {/* New contact — ask for name */}
+        {isNew && !foundContact && phone.replace(/\D/g, '').length >= 9 && (
+          <div style={{ padding: '0 14px', marginBottom: 12, animation: 'fadeUp .2s both' }}>
+            <div style={{ padding: '12px 14px', background: accentL, borderRadius: 14, marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                <circle cx="8" cy="8" r="7" stroke={accent} strokeWidth="1.4"/>
+                <path d="M8 7v4M8 5v.5" stroke={accent} strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+              <span style={{ fontSize: 12, color: accent, lineHeight: 1.5 }}>
+                Bu raqam yangi. Ism kiriting — kontakt bazaga qo'shiladi.
+              </span>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.5" stroke="#64748b" strokeWidth="1.4"/><path d="M2 14c0-3.5 2.7-5.5 6-5.5s6 2 6 5.5" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round"/></svg>
+              Ism *
+            </label>
+            <input
+              type="text" placeholder="Ism Familiya"
+              value={name} onChange={(e) => setName(e.target.value)}
+              autoFocus
+              style={{ width: '100%', padding: '13px 14px', border: name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 15, fontWeight: 600, color: '#111', background: '#fff', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
-        </Field>
+        )}
 
-        {/* Photo */}
-        <div style={{ padding: '0 14px', marginBottom: 14 }}>
-          <label style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '12px 14px', background: '#fff', borderRadius: 14,
-            border: photoName ? `2px solid ${accent}` : '1.5px dashed rgba(0,0,0,0.13)',
-            cursor: 'pointer',
-          }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <CameraIcon />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>Foto qo'shish</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {photoName || 'Chek, hujjat, rasm...'}
-              </div>
-            </div>
-            {photoName && (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="7" fill="#16a34a"/>
-                <path d="M4.5 8l2.5 2.5 4-4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
-            <input type="file" accept="image/*" style={{ display: 'none' }}
-              onChange={(e) => { set('photo', e.target.files[0]); setPhotoName(e.target.files[0]?.name || '') }} />
+        {/* Note */}
+        <div style={{ padding: '0 14px', marginBottom: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
+            <NoteIcon /> Izoh (ixtiyoriy)
           </label>
+          <input
+            type="text" placeholder="Osh uchun, taksi, qarz..."
+            value={note} onChange={(e) => setNote(e.target.value)}
+            style={{ width: '100%', padding: '13px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 14, color: '#111', background: '#fff', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+
+        {/* Due date */}
+        <div style={{ padding: '0 14px', marginBottom: 16 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
+            <CalIcon /> Qaytarish sanasi (ixtiyoriy)
+          </label>
+          <input
+            type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
+            style={{ width: '100%', padding: '13px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 14, color: dueDate ? '#111' : '#94a3b8', background: '#fff', fontFamily: 'inherit', outline: 'none', appearance: 'none', boxSizing: 'border-box' }}
+          />
         </div>
 
         {/* Error */}
         {error && (
-          <div style={{ margin: '0 14px 10px', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fef2f2', borderRadius: 12 }}>
+          <div style={{ margin: '0 14px 12px', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fef2f2', borderRadius: 12 }}>
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#ef4444" strokeWidth="1.5"/><path d="M8 5v3.5M8 10.5v.5" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round"/></svg>
             <span style={{ fontSize: 13, color: '#ef4444' }}>{error}</span>
           </div>
@@ -304,31 +344,21 @@ export default function AddDebt() {
             padding: '14px 10px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 16,
             background: '#fff', fontSize: 14, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit',
           }}>Bekor</button>
-          <button className="pill-btn" onClick={handleSubmit} disabled={loading} style={{
+          <button className="pill-btn" onClick={handleSubmit} disabled={loading || !canSubmit} style={{
             padding: 14, border: 'none', borderRadius: 16,
-            background: isGave
-              ? 'linear-gradient(135deg,#22c55e,#16a34a)'
-              : 'linear-gradient(135deg,#f87171,#ef4444)',
-            fontSize: 14, fontWeight: 700, color: '#fff', cursor: loading ? 'default' : 'pointer', fontFamily: 'inherit',
-            opacity: loading ? 0.75 : 1,
-            boxShadow: isGave ? '0 4px 14px rgba(22,163,74,.35)' : '0 4px 14px rgba(239,68,68,.35)',
+            background: canSubmit
+              ? isGave ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'linear-gradient(135deg,#f87171,#ef4444)'
+              : '#e2e8f0',
+            fontSize: 14, fontWeight: 700,
+            color: canSubmit ? '#fff' : '#94a3b8',
+            cursor: canSubmit && !loading ? 'pointer' : 'default', fontFamily: 'inherit',
+            boxShadow: canSubmit ? (isGave ? '0 4px 14px rgba(22,163,74,.35)' : '0 4px 14px rgba(239,68,68,.35)') : 'none',
+            transition: 'all .2s',
           }}>
             {loading ? 'Saqlanmoqda...' : isGave ? '+ Saqlash (Berdim)' : '+ Saqlash (Oldim)'}
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function Field({ label, Icon, children }) {
-  return (
-    <div style={{ padding: '0 14px', marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-        <Icon />
-        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>{label}</label>
-      </div>
-      {children}
     </div>
   )
 }
