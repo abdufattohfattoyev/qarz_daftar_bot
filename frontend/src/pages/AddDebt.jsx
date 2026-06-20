@@ -69,12 +69,15 @@ export default function AddDebt() {
 
   useEffect(() => {
     const digits = phone.replace(/\D/g, '')
-    if (digits.length < 7) {
+    // Faqat raqam TO'LIQ yozilganda (998 + 9 = 12 raqam) kontaktni qidiramiz —
+    // qisman yozayotganda ism maydoniga erta moslik chiqmasligi uchun
+    if (digits.length < 12) {
       setFoundContact(null); setIsNew(false)
       createdContactId.current = null
       return
     }
-    const match = contacts.find(c => c.phone && c.phone.replace(/\D/g, '').includes(digits))
+    // Aniq moslik (includes emas) — butun raqam bir xil bo'lsa
+    const match = contacts.find(c => c.phone && c.phone.replace(/\D/g, '') === digits)
     if (match) {
       setFoundContact(match); setIsNew(false)
       setName(match.name)
@@ -138,7 +141,7 @@ export default function AddDebt() {
 
   const handleSubmit = async () => {
     const digits = phone.replace(/\D/g, '')
-    if (digits.length < 9)                 return setError(t('err_phone'))
+    if (digits.length < 12)                return setError(t('err_phone'))
     if (!amount || parseFloat(amount) <= 0) return setError(t('err_amount'))
     if (!foundContact && !name.trim())      return setError(t('err_name'))
 
@@ -170,7 +173,7 @@ export default function AddDebt() {
   const isGave     = debtType === 'gave'
   const accent     = isGave ? '#16a34a' : '#ef4444'
   const digits     = phone.replace(/\D/g, '')
-  const canSubmit  = digits.length >= 9
+  const canSubmit  = digits.length >= 12
     && parseFloat(amount) > 0
     && (foundContact || name.trim())
 
@@ -302,7 +305,7 @@ export default function AddDebt() {
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
             <PersonIcon /> {t('name_req')}
             {foundContact && <span style={{ marginLeft: 4, fontSize: 11, color: '#22c55e', fontWeight: 700 }}>{t('found_tag')}</span>}
-            {isNew && digits.length >= 9 && <span style={{ marginLeft: 4, fontSize: 11, color: accent, fontWeight: 700 }}>{t('new_contact_tag')}</span>}
+            {isNew && digits.length >= 12 && <span style={{ marginLeft: 4, fontSize: 11, color: accent, fontWeight: 700 }}>{t('new_contact_tag')}</span>}
           </label>
           <input
             type="text" placeholder={t('name_ph2')}
