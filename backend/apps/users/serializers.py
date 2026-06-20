@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import time
+from urllib.parse import parse_qsl
 from django.conf import settings
 from rest_framework import serializers
 from .models import User
@@ -12,22 +13,20 @@ class TelegramAuthSerializer(serializers.Serializer):
 
     def validate_init_data(self, value):
         try:
-            parsed = {}
-            for part in value.split('&'):
-                if '=' in part:
-                    k, v = part.split('=', 1)
-                    parsed[k] = v
+            # parse_qsl qiymatlarni URL-decode qiladi — Telegram hash'ni aynan
+            # decode qilingan qiymatlar ustidan hisoblaydi (avval decode qilinmasdi → "Yaroqsiz imzo")
+            parsed = dict(parse_qsl(value, keep_blank_values=True))
 
             received_hash = parsed.pop('hash', None)
             if not received_hash:
                 raise serializers.ValidationError("Hash topilmadi")
 
-            # auth_date tekshiruvi (5 daqiqa)
+            # auth_date tekshiruvi (24 soat)
             auth_date = int(parsed.get('auth_date', 0))
             if time.time() - auth_date > 86400:  # 24 soat
                 raise serializers.ValidationError("initData muddati o'tgan")
 
-            # HMAC tekshiruvi
+            # HMAC tekshiruvi — decode qilingan qiymatlar bilan
             data_check_string = '\n'.join(
                 f'{k}={v}' for k, v in sorted(parsed.items())
             )

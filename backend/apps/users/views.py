@@ -1,6 +1,5 @@
 import json
 import logging
-from urllib.parse import unquote
 from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -35,8 +34,8 @@ def telegram_auth(request):
 
     parsed = serializer.validated_data['init_data']
 
-    # user ma'lumotlarini olish
-    user_data_str = unquote(parsed.get('user', '{}'))
+    # user ma'lumotlarini olish (parse_qsl allaqachon URL-decode qilgan)
+    user_data_str = parsed.get('user', '{}')
     try:
         tg_user = json.loads(user_data_str)
     except Exception:
