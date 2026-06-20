@@ -1,6 +1,19 @@
 import { create } from 'zustand'
 import { authAPI, debtsAPI, contactsAPI, statsAPI } from '../api'
 
+// ── Lokal sozlama (pref) saqlash ──────────────────────────────────────
+// Til/valyuta/eslatma tanlovi backendga yozilmasa ham refreshdan keyin
+// yo'qolmasligi uchun localStorage'da ham saqlaymiz.
+const PREF_KEYS = ['currency', 'language', 'notifications_enabled']
+const loadPrefs = () => {
+  try { return JSON.parse(localStorage.getItem('prefs') || '{}') } catch { return {} }
+}
+const savePrefs = (updates) => {
+  const prefs = loadPrefs()
+  PREF_KEYS.forEach((k) => { if (k in updates) prefs[k] = updates[k] })
+  localStorage.setItem('prefs', JSON.stringify(prefs))
+}
+
 // Auth store
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -18,13 +31,14 @@ export const useAuthStore = create((set, get) => ({
         const tgUser = tg.initDataUnsafe?.user
         if (tgUser) {
           const display_name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ')
-          set({ user: { display_name, telegram_username: tgUser.username || '', full_name: display_name }, loading: false })
+          set({ user: { display_name, telegram_username: tgUser.username || '', full_name: display_name, ...loadPrefs() }, loading: false })
         }
 
         const { data } = await authAPI.telegramAuth(tg.initData)
         localStorage.setItem('access_token', data.tokens.access)
         localStorage.setItem('refresh_token', data.tokens.refresh)
-        set({ user: data.user, loading: false })
+        // Lokal tanlovni server qiymati ustiga qo'yamiz (server saqlamagan bo'lsa ham qoladi)
+        set({ user: { ...data.user, ...loadPrefs() }, loading: false })
         return
       }
 
@@ -33,7 +47,7 @@ export const useAuthStore = create((set, get) => ({
       if (saved) {
         try {
           const { data } = await authAPI.me()
-          set({ user: data, loading: false })
+          set({ user: { ...data, ...loadPrefs() }, loading: false })
           return
         } catch {
           localStorage.clear()
@@ -56,8 +70,15 @@ export const useAuthStore = create((set, get) => ({
   },
 
   updateUser: async (updates) => {
-    const { data } = await authAPI.updateMe(updates)
-    set({ user: data })
+    // 1. Lokal saqlaymiz — refreshdan keyin ham qoladi (backendga bog'liq emas)
+    savePrefs(updates)
+    // 2. UI ni darhol yangilaymiz (optimistic)
+    set((s) => ({ user: { ...s.user, ...updates } }))
+    // 3. Backend bilan sinxron — ishlamasa ham UI o'zgargan, lokal saqlangan
+    try {
+      const { data } = await authAPI.updateMe(updates)
+      set((s) => ({ user: { ...data, ...loadPrefs() } }))
+    } catch { /* server yangilanmadi — lokal qiymat qoladi */ }
   },
 }))
 

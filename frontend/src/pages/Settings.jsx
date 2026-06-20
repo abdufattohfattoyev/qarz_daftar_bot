@@ -25,11 +25,8 @@ export default function Settings() {
 
   const save = (key, val) => {
     haptic('light')
-    // 1. Darhol UI ni yangilaymiz (optimistic) — backend javobini kutmaymiz
-    useAuthStore.setState((s) => ({ user: { ...s.user, [key]: val } }))
-    // 2. Modalni darhol yopamiz
     setModal(null)
-    // 3. Backend bilan fonda sinxronlaymiz (xato bo'lsa ham UI o'zgargan)
+    // updateUser: lokal saqlash + optimistic UI + best-effort backend sync
     updateUser({ [key]: val }).catch(() => {})
   }
 
@@ -91,9 +88,7 @@ export default function Settings() {
             checked={user?.notifications_enabled}
             onChange={() => {
               haptic('light')
-              const next = !user?.notifications_enabled
-              useAuthStore.setState((s) => ({ user: { ...s.user, notifications_enabled: next } }))
-              updateUser({ notifications_enabled: next }).catch(() => {})
+              updateUser({ notifications_enabled: !user?.notifications_enabled }).catch(() => {})
             }}
           />
         </Card>
