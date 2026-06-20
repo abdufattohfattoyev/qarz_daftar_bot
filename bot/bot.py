@@ -8,6 +8,7 @@ log = logging.getLogger(__name__)
 
 TOKEN = os.environ.get('BOT_TOKEN', '')
 WEBAPP_URL = os.environ.get('WEBAPP_URL', 'https://nasiya-karta.uz')
+BACKEND_URL = os.environ.get('BACKEND_INTERNAL_URL', 'http://nasiya_backend:8000')
 API = f'https://api.telegram.org/bot{TOKEN}'
 
 
@@ -23,6 +24,22 @@ def get_updates(offset=None):
         log.error(f'getUpdates xato: {e}')
         time.sleep(5)
         return []
+
+
+def register_user(tg_user):
+    try:
+        uid = tg_user.get('id')
+        full_name = f"{tg_user.get('first_name', '')} {tg_user.get('last_name', '')}".strip()
+        username = tg_user.get('username', '')
+        requests.post(
+            f'{BACKEND_URL}/api/auth/bot-register/',
+            json={'telegram_id': uid, 'full_name': full_name, 'username': username},
+            headers={'X-Bot-Secret': TOKEN},
+            timeout=5
+        )
+        log.info(f'User saqlandi: {uid} {full_name}')
+    except Exception as e:
+        log.error(f'register_user xato: {e}')
 
 
 def send_start(chat_id):
@@ -65,6 +82,7 @@ def main():
 
             if text.startswith('/start'):
                 log.info(f'/start → chat_id={chat_id}')
+                register_user(msg.get('from', {}))
                 send_start(chat_id)
 
 

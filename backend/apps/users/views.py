@@ -105,6 +105,40 @@ def dev_login(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+def bot_register(request):
+    """Bot /start bosganida userni bazaga saqlash (ichki ishlatish uchun)"""
+    secret = request.headers.get('X-Bot-Secret', '')
+    if secret != settings.BOT_TOKEN:
+        return Response({'error': 'Ruxsat yo\'q'}, status=403)
+
+    telegram_id = request.data.get('telegram_id')
+    if not telegram_id:
+        return Response({'error': 'telegram_id kerak'}, status=400)
+
+    user, created = User.objects.get_or_create(
+        telegram_id=telegram_id,
+        defaults={
+            'username': f'tg_{telegram_id}',
+            'full_name': request.data.get('full_name', ''),
+            'telegram_username': request.data.get('username', ''),
+        }
+    )
+    if not created:
+        changed = False
+        if request.data.get('full_name') and not user.full_name:
+            user.full_name = request.data.get('full_name')
+            changed = True
+        if request.data.get('username'):
+            user.telegram_username = request.data.get('username')
+            changed = True
+        if changed:
+            user.save()
+
+    return Response({'ok': True, 'created': created, 'user_id': user.id})
+
+
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def token_refresh_view(request):
     """Token yangilash"""
