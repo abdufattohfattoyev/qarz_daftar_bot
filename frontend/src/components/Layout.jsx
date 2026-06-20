@@ -4,7 +4,7 @@ import { HomeIcon, UsersIcon, ChartIcon, SettingIcon, PlusIcon } from './Icons'
 
 const NAV = [
   { to: '/', Icon: HomeIcon, label: 'Asosiy' },
-  { to: '/contacts', Icon: UsersIcon, label: 'Mijozlar' },
+  { to: '/contacts', Icon: UsersIcon, label: 'Qarzdorlar' },
   { to: '/add', Icon: null, label: '' },
   { to: '/stats', Icon: ChartIcon, label: 'Statistika' },
   { to: '/settings', Icon: SettingIcon, label: 'Sozlamalar' },
