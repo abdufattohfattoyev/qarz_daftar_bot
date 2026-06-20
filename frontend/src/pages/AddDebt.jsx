@@ -62,7 +62,7 @@ export default function AddDebt() {
   const [error, setError]       = useState('')
 
   // Phone-first contact flow
-  const [phone, setPhone]             = useState('')
+  const [phone, setPhone]             = useState('+998 ')
   const [name, setName]               = useState('')
   const [foundContact, setFoundContact] = useState(null)  // existing contact
   const [isNew, setIsNew]             = useState(false)   // need to create
@@ -265,7 +265,7 @@ export default function AddDebt() {
               style={{ flex: 1, padding: '13px 0', border: 'none', fontSize: 16, fontWeight: 600, color: '#0f172a', background: 'transparent', fontFamily: 'inherit', outline: 'none', letterSpacing: .3 }}
             />
             {phone && (
-              <button onClick={() => { setPhone(''); setFoundContact(null); setIsNew(false); setName('') }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => { setPhone('+998 '); setFoundContact(null); setIsNew(false); setName('') }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <circle cx="8" cy="8" r="7" fill="#e5e7eb"/>
                   <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#9ca3af" strokeWidth="1.4" strokeLinecap="round"/>
