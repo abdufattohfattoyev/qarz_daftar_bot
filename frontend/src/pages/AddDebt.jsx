@@ -101,11 +101,24 @@ export default function AddDebt() {
       if (foundContact) {
         contactId = foundContact.id
       } else {
-        const newC = await addContact({ name: name.trim(), phone: '+' + digits })
-        contactId = newC.id
+        // Yangi kontakt yaratamiz. Backend ba'zan id qaytarmasligi yoki kontakt
+        // allaqachon mavjud bo'lishi mumkin — har holatda ro'yxatdan id'ni topamiz.
+        let newC = null
+        try {
+          newC = await addContact({ name: name.trim(), phone: '+' + digits })
+        } catch { /* mavjud bo'lishi mumkin — pastda topamiz */ }
+        contactId = newC?.id
+        if (!contactId) {
+          await fetchContacts()
+          const found = useContactStore.getState().contacts.find(
+            (c) => c.phone && c.phone.replace(/\D/g, '') === digits
+          )
+          contactId = found?.id
+        }
         createdContactId.current = contactId
       }
     }
+    if (!contactId) throw new Error('Kontakt yaratilmadi')
     await addDebt({ contact: contactId, debt_type: debtType, amount, currency, note, due_date: dueDate })
   }
 
@@ -122,19 +135,23 @@ export default function AddDebt() {
       navigate('/')
     } catch (e) {
       if (e.response?.status === 401) {
-        // Token eskirgan → auth store init() orqali qayta auth
+        // Token eskirgan → auth store init() orqali qayta auth qilib, bir marta qayta urinamiz
         try {
           await useAuthStore.getState().init()
           await doSave()
           haptic('success')
           navigate('/')
           return
-        } catch {}
-        // Hamma narsa ishlamasa — Telegram WebApp ni qayta ochamiz
-        haptic('error')
-        setError(t('session_refresh'))
-        setTimeout(() => window.location.reload(), 1200)
-        return
+        } catch (e2) {
+          // Sahifani reload qilmaymiz (forma yo'qoladi) — aniq xatoni ko'rsatamiz
+          const d2 = e2.response?.data
+          const msg2 = d2?.detail
+            || (d2 && typeof d2 === 'object' ? Object.values(d2).flat().join(' · ') : null)
+            || t('session_refresh')
+          setError(msg2)
+          haptic('error')
+          return
+        }
       }
       const d = e.response?.data
       const msg = d?.detail

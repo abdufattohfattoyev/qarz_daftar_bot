@@ -20,8 +20,13 @@ class ContactSerializer(serializers.ModelSerializer):
 class ContactCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
-        fields = ['name', 'phone', 'telegram_id', 'telegram_username',
-                  'photo', 'category', 'note']
+        # 'id' va 'balance_uzs' javobga kiritiladi — frontend yangi kontakt id'sini
+        # darhol ishlatadi (qarz yaratish uchun shart)
+        fields = ['id', 'name', 'phone', 'telegram_id', 'telegram_username',
+                  'photo', 'category', 'note', 'balance_uzs']
+        read_only_fields = ['id', 'balance_uzs']
+
+    balance_uzs = serializers.ReadOnlyField()
 
     def validate_phone(self, value):
         if value:
