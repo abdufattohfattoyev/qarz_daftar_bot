@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDebtStore, useContactStore } from '../store'
+import { useDebtStore, useContactStore, useAuthStore } from '../store'
 import { haptic } from '../utils'
 import axios from 'axios'
 
@@ -91,16 +91,6 @@ export default function AddDebt() {
 
   const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
-  // Re-auth via Telegram
-  const reAuth = async () => {
-    const tg = window.Telegram?.WebApp
-    if (!tg?.initData) return false
-    const { data } = await axios.post('/api/auth/telegram/', { init_data: tg.initData })
-    localStorage.setItem('access_token', data.tokens.access)
-    localStorage.setItem('refresh_token', data.tokens.refresh)
-    return true
-  }
-
   // Core save — idempotent (tracks contactId to avoid duplicate on retry)
   const doSave = async () => {
     const digits = phone.replace(/\D/g, '')
@@ -119,9 +109,9 @@ export default function AddDebt() {
 
   const handleSubmit = async () => {
     const digits = phone.replace(/\D/g, '')
-    if (digits.length < 9)                      return setError('Telefon raqam to\'liq kiriting')
-    if (!amount || parseFloat(amount) <= 0)      return setError('Miqdor kiriting')
-    if (!foundContact && !name.trim())           return setError('Ism kiriting')
+    if (digits.length < 9)                 return setError("Telefon raqam to'liq kiriting")
+    if (!amount || parseFloat(amount) <= 0) return setError('Miqdor kiriting')
+    if (!foundContact && !name.trim())      return setError('Ism kiriting')
 
     setLoading(true); setError('')
     try {
@@ -130,18 +120,25 @@ export default function AddDebt() {
       navigate('/')
     } catch (e) {
       if (e.response?.status === 401) {
+        // Token eskirgan → auth store init() orqali qayta auth
         try {
-          const ok = await reAuth()
-          if (ok) { await doSave(); haptic('success'); navigate('/'); return }
+          await useAuthStore.getState().init()
+          await doSave()
+          haptic('success')
+          navigate('/')
+          return
         } catch {}
-        setError('Sessiya tugadi. Botdan qayta kiring.')
-      } else {
-        const d = e.response?.data
-        const msg = d?.detail
-          || (d && typeof d === 'object' ? Object.values(d).flat().join(' · ') : null)
-          || 'Xato yuz berdi'
-        setError(msg)
+        // Hamma narsa ishlamasa — Telegram WebApp ni qayta ochamiz
+        haptic('error')
+        setError("Sessiya yangilanmoqda...")
+        setTimeout(() => window.location.reload(), 1200)
+        return
       }
+      const d = e.response?.data
+      const msg = d?.detail
+        || (d && typeof d === 'object' ? Object.values(d).flat().join(' · ') : null)
+        || 'Xato yuz berdi'
+      setError(msg)
       haptic('error')
     } finally { setLoading(false) }
   }
