@@ -148,60 +148,64 @@ export default function AddDebt() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
 
-      {/* HEADER */}
+      {/* HEADER — compact sticky bar only */}
       <div style={{
         flexShrink: 0,
         background: isGave
-          ? 'linear-gradient(145deg,#0a4d26,#16a34a 60%,#22c55e)'
-          : 'linear-gradient(145deg,#7f1d1d,#dc2626 60%,#f87171)',
-        padding: '14px 16px 16px',
+          ? 'linear-gradient(135deg,#0a4d26,#16a34a)'
+          : 'linear-gradient(135deg,#7f1d1d,#dc2626)',
+        padding: '12px 16px 12px',
+        display: 'flex', alignItems: 'center', gap: 10,
         transition: 'background .3s',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <button onClick={() => navigate('/')} className="nav-btn" style={{
-            width: 34, height: 34, borderRadius: 10, border: 'none',
-            background: 'rgba(255,255,255,.18)', color: '#fff', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M10 13L5 8l5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: -0.4 }}>Yangi qarz</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', marginTop: 1 }}>
-              {isGave ? 'Siz berdingiz' : 'Siz oldingiz'}
-            </div>
-          </div>
+        <button onClick={() => navigate('/')} className="nav-btn" style={{
+          width: 32, height: 32, borderRadius: 9, border: 'none',
+          background: 'rgba(255,255,255,.18)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+            <path d="M10 13L5 8l5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: -0.3 }}>Yangi qarz</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)' }}>{isGave ? 'Siz berdingiz' : 'Siz oldingiz'}</div>
         </div>
+        {/* active type chip */}
+        <div style={{ padding: '4px 10px', background: 'rgba(255,255,255,.2)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#fff' }}>
+          {isGave ? '↗ Berdim' : '↙ Oldim'}
+        </div>
+      </div>
 
-        {/* Type toggle */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      {/* SCROLL BODY */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24 }}>
+
+        {/* Type toggle — inside scroll so it disappears on scroll */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '12px 14px 4px' }}>
           {[
-            { value: 'gave', title: 'Men berdim',  desc: 'U qaytarishi kerak',   arrow: '↗' },
-            { value: 'got',  title: 'Mendan oldi', desc: 'Men qaytarishim kerak', arrow: '↙' },
+            { value: 'gave', title: 'Men berdim',  desc: 'U qaytarishi kerak',   arrow: '↗', green: true },
+            { value: 'got',  title: 'Mendan oldi', desc: 'Men qaytarishim kerak', arrow: '↙', green: false },
           ].map((t) => {
             const active = debtType === t.value
-            const green  = t.value === 'gave'
             return (
               <button key={t.value} className="pill-btn" onClick={() => { haptic('light'); setDebtType(t.value) }} style={{
-                padding: '12px 12px', border: 'none', borderRadius: 16,
-                background: active ? '#fff' : 'rgba(255,255,255,.15)',
+                padding: '12px 12px', borderRadius: 16, fontFamily: 'inherit', cursor: 'pointer',
+                border: `2px solid ${active ? (t.green ? '#16a34a' : '#ef4444') : 'rgba(0,0,0,0.07)'}`,
+                background: active ? (t.green ? '#f0fdf4' : '#fef2f2') : '#fff',
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                gap: 4, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', position: 'relative',
+                gap: 4, textAlign: 'left', position: 'relative',
+                boxShadow: active ? (t.green ? '0 3px 12px rgba(22,163,74,.2)' : '0 3px 12px rgba(239,68,68,.2)') : '0 1px 4px rgba(0,0,0,.05)',
               }}>
                 <div style={{
-                  width: 28, height: 28, borderRadius: 8, marginBottom: 2,
-                  background: active ? (green ? '#dcfce7' : '#fee2e2') : 'rgba(255,255,255,.2)',
-                  color: active ? (green ? '#16a34a' : '#ef4444') : '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700,
+                  width: 30, height: 30, borderRadius: 9,
+                  background: t.green ? '#dcfce7' : '#fee2e2',
+                  color: t.green ? '#16a34a' : '#ef4444',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, marginBottom: 2,
                 }}>{t.arrow}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: active ? (green ? '#16a34a' : '#ef4444') : 'rgba(255,255,255,.9)' }}>
-                  {t.title}
-                </div>
-                <div style={{ fontSize: 10, color: active ? '#94a3b8' : 'rgba(255,255,255,.55)', lineHeight: 1.3 }}>{t.desc}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: active ? (t.green ? '#16a34a' : '#ef4444') : '#374151' }}>{t.title}</div>
+                <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.3 }}>{t.desc}</div>
                 {active && (
-                  <div style={{ position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: '50%', background: green ? '#16a34a' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: t.green ? '#16a34a' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </div>
                 )}
@@ -209,10 +213,6 @@ export default function AddDebt() {
             )
           })}
         </div>
-      </div>
-
-      {/* SCROLL BODY */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24 }}>
 
         {/* Currency */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#e8eaf0', borderRadius: 14, padding: 3, gap: 3, margin: '12px 14px 12px' }}>
