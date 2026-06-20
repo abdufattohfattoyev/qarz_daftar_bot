@@ -29,13 +29,13 @@ export default function Settings() {
   }
 
   const currencies = [
-    { val: 'UZS', label: "So'm", flag: '🇺🇿' },
-    { val: 'USD', label: 'Dollar', flag: '🇺🇸' },
-    { val: 'RUB', label: 'Rubl', flag: '🇷🇺' },
+    { val: 'UZS', label: "So'm", code: 'UZS', bg: '#fef9c3', color: '#92400e' },
+    { val: 'USD', label: 'Dollar', code: '$', bg: '#dcfce7', color: '#166534' },
+    { val: 'RUB', label: 'Rubl', code: '₽', bg: '#dbeafe', color: '#1e40af' },
   ]
   const languages = [
-    { val: 'uz', label: "O'zbek tili", flag: '🇺🇿' },
-    { val: 'ru', label: 'Русский язык', flag: '🇷🇺' },
+    { val: 'uz', label: "O'zbek tili", icon: 'UZ', bg: '#fef9c3' },
+    { val: 'ru', label: 'Русский язык', icon: 'RU', bg: '#fee2e2' },
   ]
 
   return (
@@ -91,77 +91,106 @@ export default function Settings() {
 
       {/* MODALS */}
       {modal && (
-        <div onClick={() => setModal(null)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
-          display: 'flex', alignItems: 'flex-end', zIndex: 999, backdropFilter: 'blur(4px)'
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            width: '100%', background: '#fff', borderRadius: '24px 24px 0 0',
-            padding: '8px 0 40px', maxHeight: '80vh', overflowY: 'auto'
+        <>
+          <div
+            onTouchEnd={() => setModal(null)}
+            onClick={() => setModal(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 998 }}
+          />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999,
+            background: '#fff', borderRadius: '22px 22px 0 0',
+            paddingBottom: 'env(safe-area-inset-bottom, 20px)',
+            maxHeight: '75vh', overflowY: 'auto',
           }}>
-            {/* Handle */}
-            <div style={{ width: 40, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '10px auto 20px' }} />
+            <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 18px' }} />
 
             {modal === 'currency' && (
               <>
-                <div style={{ fontSize: 17, fontWeight: 800, color: '#111', padding: '0 20px 16px' }}>Valyuta tanlang</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#111', padding: '0 20px 12px' }}>Valyuta tanlang</div>
                 {currencies.map(c => (
-                  <button key={c.val} onClick={() => save('currency', c.val)} style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer',
-                    borderBottom: '0.5px solid #f3f4f6'
-                  }}>
-                    <span style={{ fontSize: 26 }}>{c.flag}</span>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: '#111', flex: 1, textAlign: 'left' }}>{c.label}</span>
-                    <span style={{ fontSize: 14, color: '#6b7280', fontWeight: 500 }}>{c.val}</span>
-                    {user?.currency === c.val && <span style={{ color: '#22c55e', fontSize: 18 }}>✓</span>}
-                  </button>
+                  <div
+                    key={c.val}
+                    onTouchEnd={(e) => { e.preventDefault(); save('currency', c.val) }}
+                    onClick={() => save('currency', c.val)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 20px', cursor: 'pointer',
+                      borderBottom: '0.5px solid #f3f4f6',
+                      background: user?.currency === c.val ? '#f0fdf4' : '#fff',
+                    }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: c.color }}>{c.code}</span>
+                    </div>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{c.label}</span>
+                    <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 600 }}>{c.val}</span>
+                    {user?.currency === c.val && (
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    )}
+                  </div>
                 ))}
+                <div style={{ height: 20 }} />
               </>
             )}
 
             {modal === 'language' && (
               <>
-                <div style={{ fontSize: 17, fontWeight: 800, color: '#111', padding: '0 20px 16px' }}>Til tanlang</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#111', padding: '0 20px 12px' }}>Til tanlang</div>
                 {languages.map(l => (
-                  <button key={l.val} onClick={() => save('language', l.val)} style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer',
-                    borderBottom: '0.5px solid #f3f4f6'
-                  }}>
-                    <span style={{ fontSize: 26 }}>{l.flag}</span>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: '#111', flex: 1, textAlign: 'left' }}>{l.label}</span>
-                    {user?.language === l.val && <span style={{ color: '#22c55e', fontSize: 18 }}>✓</span>}
-                  </button>
+                  <div
+                    key={l.val}
+                    onTouchEnd={(e) => { e.preventDefault(); save('language', l.val) }}
+                    onClick={() => save('language', l.val)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 20px', cursor: 'pointer',
+                      borderBottom: '0.5px solid #f3f4f6',
+                      background: user?.language === l.val ? '#f0fdf4' : '#fff',
+                    }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: l.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 18 }}>{l.icon}</span>
+                    </div>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{l.label}</span>
+                    {user?.language === l.val && (
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    )}
+                  </div>
                 ))}
+                <div style={{ height: 20 }} />
               </>
             )}
 
             {modal === 'delete' && (
-              <div style={{ padding: '0 20px' }}>
-                <div style={{ fontSize: 40, textAlign: 'center', marginBottom: 12 }}>⚠️</div>
+              <div style={{ padding: '0 18px 20px' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 18, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <DeleteAllIcon />
+                </div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>
                   Hammasini o'chirasizmi?
                 </div>
-                <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 24, lineHeight: 1.6 }}>
                   Barcha qarzlar va kontaktlar o'chiriladi. Bu amalni qaytarib bo'lmaydi.
                 </div>
-                <button onClick={() => setModal(null)} style={{
-                  width: '100%', padding: '15px', borderRadius: 16, border: 'none',
-                  background: '#f3f4f6', color: '#111', fontSize: 16, fontWeight: 700, marginBottom: 10, cursor: 'pointer'
-                }}>
+                <div
+                  onTouchEnd={(e) => { e.preventDefault(); setModal(null) }}
+                  onClick={() => setModal(null)}
+                  style={{ padding: '15px', borderRadius: 16, background: '#f3f4f6', color: '#111', fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 10, cursor: 'pointer' }}>
                   Bekor qilish
-                </button>
-                <button onClick={() => { haptic('heavy'); setModal(null) }} style={{
-                  width: '100%', padding: '15px', borderRadius: 16, border: 'none',
-                  background: '#ef4444', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer'
-                }}>
+                </div>
+                <div
+                  onTouchEnd={(e) => { e.preventDefault(); haptic('heavy'); setModal(null) }}
+                  onClick={() => { haptic('heavy'); setModal(null) }}
+                  style={{ padding: '15px', borderRadius: 16, background: '#ef4444', color: '#fff', fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer' }}>
                   Ha, o'chirish
-                </button>
+                </div>
               </div>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   )
