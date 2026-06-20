@@ -45,8 +45,9 @@ api.interceptors.response.use(
         } catch { /* bu ham ishlamadi — pastda tozalaymiz */ }
       }
 
-      // Hech narsa ishlamadi — tokenlarni tozalaymiz
-      localStorage.clear()
+      // Hech narsa ishlamadi — FAQAT tokenlarni o'chiramiz (prefs/til tegmaydi!)
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
     }
     return Promise.reject(err)
   }

@@ -50,7 +50,9 @@ export const useAuthStore = create((set, get) => ({
           set({ user: { ...data, ...loadPrefs() }, loading: false })
           return
         } catch {
-          localStorage.clear()
+          // FAQAT tokenlarni o'chiramiz — til/valyuta prefs saqlanib qoladi
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
         }
       }
 
