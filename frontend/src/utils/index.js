@@ -1,15 +1,24 @@
 import dayjs from 'dayjs'
 import 'dayjs/locale/uz'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+dayjs.extend(utc)
+dayjs.extend(timezone)
 dayjs.locale('uz')
+
+// Barcha sana/vaqt O'zbekiston vaqtida ko'rsatiladi (qurilma vaqt zonasidan qat'i nazar)
+const TZ = 'Asia/Tashkent'
 
 export const fmt = (amount, currency = 'UZS') => {
   const num = parseFloat(amount || 0)
   return new Intl.NumberFormat('uz-UZ').format(Math.abs(num)) + ' ' + currency
 }
 
-export const fmtDate = (date) => dayjs(date).format('D MMMM YYYY')
-export const fmtTime = (date) => dayjs(date).format('HH:mm')
-export const fmtShort = (date) => dayjs(date).format('D MMM')
+export const fmtDate = (date) => dayjs(date).tz(TZ).format('D MMMM YYYY')
+export const fmtTime = (date) => dayjs(date).tz(TZ).format('HH:mm')
+export const fmtDateTime = (date) => dayjs(date).tz(TZ).format('D MMMM YYYY, HH:mm')
+export const fmtShort = (date) => dayjs(date).tz(TZ).format('D MMM')
+export const nowTashkent = () => dayjs().tz(TZ).format('D MMMM YYYY, HH:mm')
 
 export const initials = (name = '') => {
   const parts = name.trim().split(' ')

@@ -50,6 +50,9 @@ export const translations = {
     due_label: 'Muddat',
     pay_btn: "To'lash",
     delete_btn: "O'chirish",
+    delete_debt_q: "Qarzni o'chirasizmi?",
+    delete_debt_desc: "Bu qarz va uning to'lov tarixi butunlay o'chiriladi.",
+    auto_now: 'avtomatik',
 
     // Contacts
     contacts_title: 'Qarzdorlar',

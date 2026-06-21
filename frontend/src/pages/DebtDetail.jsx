@@ -2,19 +2,36 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { debtsAPI } from '../api'
-import { fmt, fmtDate, fmtTime, initials, avatarColor, haptic } from '../utils'
+import { useDebtStore } from '../store'
+import { fmt, fmtDate, fmtDateTime, nowTashkent, initials, avatarColor, haptic } from '../utils'
 import { useT } from '../i18n'
 
 export function DebtDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const t = useT()
+  const { deleteDebt } = useDebtStore()
   const [debt, setDebt] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [confirmDel, setConfirmDel] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     debtsAPI.get(id).then(({ data }) => { setDebt(data); setLoading(false) })
   }, [id])
+
+  const handleDelete = async () => {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      await deleteDebt(id)
+      haptic('success')
+      navigate('/')
+    } catch {
+      haptic('error')
+      setDeleting(false)
+    }
+  }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 60, color: '#aaa' }}>{t('loading')}</div>
   if (!debt) return null
@@ -67,22 +84,31 @@ export function DebtDetail() {
         )}
 
         {/* Actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, margin: '0 16px 14px' }}>
-          {[
-            { label: t('paid_btn'), action: () => { haptic(); navigate(`/debt/${id}/pay`) }, primary: true },
-            { label: t('share_btn'), action: () => haptic() },
-            { label: t('remind_btn'), action: () => haptic() },
-            { label: t('delete_act'), action: () => { haptic('heavy'); navigate(-1) }, danger: true },
-          ].map((btn) => (
-            <button key={btn.label} onClick={btn.action} style={{
-              padding: '12px 10px', borderRadius: 14, border: btn.primary ? 'none' : btn.danger ? '0.5px solid rgba(239,68,68,0.2)' : '1.5px solid rgba(0,0,0,0.08)',
-              background: btn.primary ? 'linear-gradient(135deg,#22c55e,#16a34a)' : '#fff',
-              fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              color: btn.primary ? '#fff' : btn.danger ? '#ef4444' : '#111',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-            }}>{btn.label}</button>
-          ))}
-        </div>
+        {debt.status !== 'paid' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8, margin: '0 16px 14px' }}>
+            <button onClick={() => { haptic(); navigate(`/debt/${id}/pay`) }} style={{
+              padding: '14px 10px', borderRadius: 14, border: 'none',
+              background: 'linear-gradient(135deg,#22c55e,#16a34a)',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 4px 14px rgba(22,163,74,.3)',
+            }}>{t('paid_btn')}</button>
+            <button onClick={() => { haptic('medium'); setConfirmDel(true) }} style={{
+              padding: '14px 10px', borderRadius: 14, border: '1.5px solid #fee2e2',
+              background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>{t('delete_btn')}</button>
+          </div>
+        )}
+        {debt.status === 'paid' && (
+          <div style={{ margin: '0 16px 14px' }}>
+            <button onClick={() => { haptic('medium'); setConfirmDel(true) }} style={{
+              width: '100%', padding: '14px 10px', borderRadius: 14, border: '1.5px solid #fee2e2',
+              background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              color: '#ef4444',
+            }}>{t('delete_btn')}</button>
+          </div>
+        )}
 
         {/* History */}
         <div style={{ margin: '0 16px', background: '#fff', borderRadius: 18, overflow: 'hidden', border: '0.5px solid rgba(0,0,0,0.06)' }}>
@@ -92,7 +118,7 @@ export function DebtDetail() {
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, color: '#111' }}>{t('debt_created')}</div>
-                <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{fmtDate(debt.created_at)}</div>
+                <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{fmtDateTime(debt.created_at)}</div>
               </div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{fmt(debt.amount, debt.currency)}</div>
             </div>
@@ -101,7 +127,7 @@ export function DebtDetail() {
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a', flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, color: '#111' }}>{t('payment')} {p.note || ''}</div>
-                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{fmtDate(p.paid_at)}</div>
+                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{fmtDateTime(p.paid_at)}</div>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{fmt(p.amount, debt.currency)}</div>
               </div>
@@ -112,6 +138,22 @@ export function DebtDetail() {
           </div>
         </div>
       </div>
+
+      {/* Delete confirm */}
+      {confirmDel && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setConfirmDel(false) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'flex-end' }}>
+          <div className="sheet-anim" style={{ background: '#fff', borderRadius: '22px 22px 0 0', width: '100%', padding: '20px 18px', paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 18, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 26 }}>🗑</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>{t('delete_debt_q')}</div>
+            <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 22, lineHeight: 1.6 }}>{t('delete_debt_desc')}</div>
+            <button onClick={() => setConfirmDel(false)} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#f3f4f6', color: '#111', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>{t('cancel_full')}</button>
+            <button onClick={handleDelete} disabled={deleting} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {deleting ? t('deleting') : t('yes_delete')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -194,10 +236,10 @@ export function PayDebt() {
 
         <div style={{ padding: '0 16px', marginBottom: 12 }}>
           <div style={{ fontSize: 12, color: '#666', marginBottom: 7, fontWeight: 500 }}>{t('date')}</div>
-          <input type="date"
-            onClick={(e) => { try { e.currentTarget.showPicker?.() } catch {} }}
-            onFocus={(e) => { try { e.currentTarget.showPicker?.() } catch {} }}
-            style={{ width: '100%', padding: '14px 16px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 16, fontSize: 16, color: '#111', background: '#fff', fontFamily: 'inherit', outline: 'none', WebkitAppearance: 'none', minHeight: 48, boxSizing: 'border-box' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px', border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 16, background: '#f8fafc' }}>
+            <span style={{ fontSize: 15, color: '#111', fontWeight: 600 }}>{nowTashkent()}</span>
+            <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, marginLeft: 'auto' }}>{t('auto_now')}</span>
+          </div>
         </div>
 
         <div style={{ padding: '0 16px', marginBottom: 16 }}>

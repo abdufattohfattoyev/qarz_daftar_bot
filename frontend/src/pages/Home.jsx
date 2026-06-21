@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmtDate, fmtTime, initials, avatarColor, haptic } from '../utils'
-import { ArrowUpIcon, ArrowDownIcon, TrashIcon, PayIcon, ChevronRight } from '../components/Icons'
+import { ArrowUpIcon, ArrowDownIcon, ChevronRight } from '../components/Icons'
 import { useT, localeCode } from '../i18n'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(parseFloat(v || 0)))
@@ -11,8 +11,7 @@ export default function Home() {
   const navigate = useNavigate()
   const t = useT()
   const { user } = useAuthStore()
-  const { debts, loading, fetchDebts, groupedByDate, deleteDebt } = useDebtStore()
-  const [sheet, setSheet] = useState(null)
+  const { debts, loading, fetchDebts, groupedByDate } = useDebtStore()
 
   useEffect(() => { fetchDebts() }, [])
 
@@ -137,7 +136,7 @@ export default function Home() {
                 const isGave = debt.debt_type === 'gave'
                 const av = avatarColor(debt.contact_name)
                 return (
-                  <div key={debt.id} onClick={() => { haptic('light'); setSheet(debt) }} className="list-item" style={{
+                  <div key={debt.id} onClick={() => { haptic('light'); navigate(`/debt/${debt.id}`) }} className="list-item" style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer',
                     borderBottom: idx < group.debts.length - 1 ? '1px solid #f8fafc' : 'none',
                   }}>
@@ -179,63 +178,6 @@ export default function Home() {
           </div>
         ))}
       </div>
-
-      {/* ── BOTTOM SHEET ── */}
-      {sheet && (
-        <>
-          <div onClick={() => setSheet(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.5)', zIndex: 100, backdropFilter: 'blur(3px)' }} />
-          <div className="sheet-anim" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderRadius: '22px 22px 0 0', zIndex: 101, paddingBottom: 28 }}>
-            <div style={{ width: 34, height: 4, background: '#e2e8f0', borderRadius: 2, margin: '10px auto 0' }} />
-            <div style={{
-              margin: '12px 14px 10px', borderRadius: 18,
-              background: sheet.debt_type === 'gave' ? 'linear-gradient(135deg,#22c55e,#15803d)' : 'linear-gradient(135deg,#f87171,#dc2626)',
-              padding: '16px 16px', position: 'relative', overflow: 'hidden',
-            }}>
-              <div style={{ position: 'absolute', right: -20, top: -20, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,.07)' }} />
-              <p style={{ margin: '0 0 3px', fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em' }}>
-                {sheet.debt_type === 'gave' ? t('i_gave') : t('i_got')}
-              </p>
-              <p style={{ margin: '0 0 2px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: -1 }}>
-                {n(sheet.amount)} <span style={{ fontSize: 13, fontWeight: 600, opacity: .8 }}>{sheet.currency}</span>
-              </p>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>
-                {sheet.contact_name} · {fmtDate(sheet.created_at)}
-              </p>
-            </div>
-            <div style={{ margin: '0 14px 10px', background: '#f8fafc', borderRadius: 14, overflow: 'hidden' }}>
-              {[
-                { label: t('status'), value: { active: '🟡 ' + t('status_active'), partial: '🟠 ' + t('status_partial'), paid: '🟢 ' + t('status_paid') }[sheet.status] },
-                parseFloat(sheet.paid_amount) > 0 && { label: t('paid_label'), value: `${n(sheet.paid_amount)} ${sheet.currency}` },
-                parseFloat(sheet.remaining_amount) !== parseFloat(sheet.amount) && { label: t('remaining_label'), value: `${n(sheet.remaining_amount)} ${sheet.currency}` },
-                sheet.note && { label: t('note_label'), value: sheet.note },
-                sheet.due_date && { label: t('due_label'), value: fmtDate(sheet.due_date) },
-              ].filter(Boolean).map((row, i, arr) => (
-                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>{row.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{row.value}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '0 14px' }}>
-              <button onClick={() => { setSheet(null); navigate(`/debt/${sheet.id}/pay`) }} className="pill-btn" style={{
-                padding: 13, borderRadius: 14, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg,#22c55e,#15803d)', color: '#fff', fontSize: 13, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                boxShadow: '0 3px 10px rgba(22,163,74,.3)',
-              }}>
-                <PayIcon /> {t('pay_btn')}
-              </button>
-              <button onClick={async () => { haptic('heavy'); await deleteDebt(sheet.id); setSheet(null) }} className="pill-btn" style={{
-                padding: 13, borderRadius: 14, border: '1.5px solid #fee2e2', cursor: 'pointer',
-                background: '#fff', color: '#ef4444', fontSize: 13, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}>
-                <TrashIcon /> {t('delete_btn')}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   )
 }
