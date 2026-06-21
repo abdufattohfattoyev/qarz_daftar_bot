@@ -186,6 +186,42 @@ def bot_toggle_notif(request):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_pin(request):
+    """PIN o'rnatish/o'zgartirish (4-6 raqam)."""
+    from django.contrib.auth.hashers import make_password
+    pin = str(request.data.get('pin', '')).strip()
+    if not (pin.isdigit() and 4 <= len(pin) <= 6):
+        return Response({'error': "PIN 4-6 ta raqamdan iborat bo'lishi kerak"}, status=400)
+    request.user.pin_code = make_password(pin)
+    request.user.save(update_fields=['pin_code'])
+    return Response({'ok': True, 'has_pin': True})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_pin(request):
+    """Kiritilgan PIN to'g'riligini tekshirish."""
+    from django.contrib.auth.hashers import check_password
+    pin = str(request.data.get('pin', '')).strip()
+    ok = bool(request.user.pin_code) and check_password(pin, request.user.pin_code)
+    return Response({'ok': ok})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def disable_pin(request):
+    """PIN o'chirish — joriy PINni tasdiqlab."""
+    from django.contrib.auth.hashers import check_password
+    pin = str(request.data.get('pin', '')).strip()
+    if request.user.pin_code and not check_password(pin, request.user.pin_code):
+        return Response({'error': "PIN noto'g'ri"}, status=400)
+    request.user.pin_code = ''
+    request.user.save(update_fields=['pin_code'])
+    return Response({'ok': True, 'has_pin': False})
+
+
+@api_view(['POST'])
 @permission_classes([AllowAny])
 def token_refresh_view(request):
     """Token yangilash — refresh token o'zi yetarli, access token shart emas"""

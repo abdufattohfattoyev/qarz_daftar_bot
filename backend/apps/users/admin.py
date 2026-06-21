@@ -16,6 +16,12 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = ['telegram_id', 'created_at', 'updated_at', 'last_login', 'date_joined']
     list_per_page = 30
     date_hierarchy = 'created_at'
+    actions = ['reset_pin']
+
+    @admin.action(description="PIN kodni tiklash (o'chirish)")
+    def reset_pin(self, request, queryset):
+        n = queryset.update(pin_code='')
+        self.message_user(request, f"{n} ta foydalanuvchi PIN kodi tiklandi")
 
     fieldsets = (
         ('Telegram', {'fields': ('telegram_id', 'telegram_username', 'full_name', 'photo_url')}),

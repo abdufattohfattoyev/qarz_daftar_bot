@@ -59,6 +59,9 @@ export const authAPI = {
   devLogin: () => api.post('/auth/dev-login/', {}),
   me: () => api.get('/auth/me/'),
   updateMe: (data) => api.patch('/auth/me/', data),
+  setPin: (pin) => api.post('/auth/pin/set/', { pin }),
+  verifyPin: (pin) => api.post('/auth/pin/verify/', { pin }),
+  disablePin: (pin) => api.post('/auth/pin/disable/', { pin }),
 }
 
 // Contacts

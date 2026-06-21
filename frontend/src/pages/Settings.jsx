@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { useAuthStore, useDebtStore, useContactStore } from '../store'
 import { initials, haptic } from '../utils'
-import { statsAPI } from '../api'
+import { statsAPI, authAPI } from '../api'
 import { CurrencyIcon, GlobeIcon, BellIcon, ExcelIcon, DeleteAllIcon } from '../components/Icons'
+import PinPad from '../components/PinPad'
 import { useT } from '../i18n'
 
 export default function Settings() {
@@ -12,6 +13,51 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false)
   const [sending, setSending] = useState('')   // '' | 'excel' | 'image'
   const [toast, setToast] = useState('')
+  const [pinMode, setPinMode] = useState(null)  // null | 'set' | 'confirm' | 'disable'
+  const [newPin, setNewPin] = useState('')
+  const [pinErr, setPinErr] = useState('')
+  const [pinBusy, setPinBusy] = useState(false)
+
+  const closePin = () => { setPinMode(null); setNewPin(''); setPinErr(''); setPinBusy(false) }
+
+  const handlePinToggle = () => {
+    haptic('light')
+    setPinErr('')
+    if (user?.has_pin) setPinMode('disable')
+    else setPinMode('set')
+  }
+
+  const onPinEntered = async (pin) => {
+    setPinErr('')
+    if (pinMode === 'set') {
+      setNewPin(pin)
+      setPinMode('confirm')
+      return
+    }
+    if (pinMode === 'confirm') {
+      if (pin !== newPin) { setPinErr(t('pin_mismatch')); return }
+      setPinBusy(true)
+      try {
+        await authAPI.setPin(pin)
+        useAuthStore.setState({ user: { ...user, has_pin: true } })
+        haptic('success'); setToast(t('pin_on')); closePin()
+        setTimeout(() => setToast(''), 2500)
+      } catch (e) { setPinErr(e.response?.data?.error || t('err_generic')); setPinBusy(false) }
+      return
+    }
+    if (pinMode === 'disable') {
+      setPinBusy(true)
+      try {
+        const { data } = await authAPI.disablePin(pin)
+        if (data.ok) {
+          useAuthStore.setState({ user: { ...user, has_pin: false } })
+          sessionStorage.removeItem('pin_ok')
+          haptic('success'); setToast(t('pin_off')); closePin()
+          setTimeout(() => setToast(''), 2500)
+        } else { setPinErr(t('pin_wrong')); setPinBusy(false) }
+      } catch (e) { setPinErr(e.response?.data?.error || t('pin_wrong')); setPinBusy(false) }
+    }
+  }
 
   const sendReport = async (format) => {
     if (sending) return
@@ -137,6 +183,12 @@ export default function Settings() {
               updateUser({ notifications_enabled: !user?.notifications_enabled }).catch(() => {})
             }}
           />
+          <Divider />
+          <ToggleRow
+            icon={<LockIcon />} label={t('pin_lock')}
+            checked={!!user?.has_pin}
+            onChange={handlePinToggle}
+          />
         </Card>
 
         {/* Data */}
@@ -173,6 +225,21 @@ export default function Settings() {
           fontSize: 13, fontWeight: 600, zIndex: 999, boxShadow: '0 6px 20px rgba(0,0,0,.3)',
           maxWidth: '85%', textAlign: 'center',
         }}>{toast}</div>
+      )}
+
+      {/* PIN MODAL */}
+      {pinMode && (
+        <BottomSheet onClose={closePin}>
+          <div style={{ padding: '4px 18px 24px' }}>
+            <PinPad
+              title={pinMode === 'set' ? t('pin_new') : pinMode === 'confirm' ? t('pin_confirm') : t('pin_current')}
+              sub={pinMode === 'disable' ? t('pin_disable_sub') : t('pin_set_sub')}
+              error={pinErr}
+              busy={pinBusy}
+              onComplete={onPinEntered}
+            />
+          </div>
+        </BottomSheet>
       )}
 
       {/* MODALS */}
@@ -233,6 +300,16 @@ export default function Settings() {
         )}
       </BottomSheet>}
     </div>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <rect x="4" y="9" width="12" height="8" rx="2.5" stroke="#16a34a" strokeWidth="1.5"/>
+      <path d="M6.5 9V6.5a3.5 3.5 0 017 0V9" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="10" cy="13" r="1.2" fill="#16a34a"/>
+    </svg>
   )
 }
 

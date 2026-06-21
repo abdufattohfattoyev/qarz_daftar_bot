@@ -53,6 +53,7 @@ class TelegramAuthSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     display_name = serializers.ReadOnlyField()
+    has_pin = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -60,9 +61,12 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'telegram_id', 'telegram_username',
             'full_name', 'display_name', 'phone',
             'photo_url', 'currency', 'language',
-            'notifications_enabled', 'created_at'
+            'notifications_enabled', 'has_pin', 'created_at'
         ]
         read_only_fields = ['id', 'telegram_id', 'created_at']
+
+    def get_has_pin(self, obj):
+        return bool(obj.pin_code)
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):

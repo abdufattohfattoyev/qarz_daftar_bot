@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmtDate, fmtTime, initials, avatarColor, haptic } from '../utils'
@@ -12,6 +12,7 @@ export default function Home() {
   const t = useT()
   const { user } = useAuthStore()
   const { debts, loading, fetchDebts, groupedByDate } = useDebtStore()
+  const [search, setSearch] = useState('')
 
   useEffect(() => { fetchDebts() }, [])
 
@@ -20,7 +21,10 @@ export default function Home() {
   const totalGave = active.filter(d => d.debt_type === 'gave').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const totalGot  = active.filter(d => d.debt_type === 'got').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const net = totalGave - totalGot
+  const q = search.trim().toLowerCase()
   const groups = groupedByDate()
+    .map((g) => ({ ...g, debts: g.debts.filter((d) => !q || (d.contact_name || '').toLowerCase().includes(q)) }))
+    .filter((g) => g.debts.length > 0)
   const firstName = (user?.display_name || user?.full_name || 'User').split(' ')[0]
   // Katta raqamlar chiqib ketmasligi uchun shrift o'lchamini moslaymiz (responsive)
   const netStr = n(Math.abs(net))
@@ -101,13 +105,42 @@ export default function Home() {
           </span>
         </div>
 
+        {/* Qidiruv — faqat qarzlar bo'lsa */}
+        {debts.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '4px 16px 8px', padding: '9px 12px', background: '#fff', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.06)' }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <circle cx="7" cy="7" r="5" stroke="#94a3b8" strokeWidth="1.5"/>
+              <path d="M11 11l3 3" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <input
+              placeholder={t('search_placeholder')}
+              value={search} onChange={(e) => setSearch(e.target.value)}
+              style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#111', fontFamily: 'inherit', outline: 'none', flex: 1, minWidth: 0 }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2 }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="7" r="6" fill="#e5e7eb"/>
+                  <path d="M4.5 4.5l5 5M9.5 4.5l-5 5" stroke="#9ca3af" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
             <div style={{ width: 30, height: 30, border: '3px solid #dcfce7', borderTop: '3px solid #16a34a', borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
           </div>
         )}
 
-        {!loading && groups.length === 0 && (
+        {!loading && groups.length === 0 && q && (
+          <div style={{ textAlign: 'center', padding: '40px 24px', fontSize: 13, color: '#94a3b8' }}>
+            {t('not_found', { q: search })}
+          </div>
+        )}
+
+        {!loading && groups.length === 0 && !q && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '36px 24px' }}>
             <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
               <circle cx="40" cy="40" r="38" fill="#f0fdf4" stroke="#bbf7d0" strokeWidth="2"/>

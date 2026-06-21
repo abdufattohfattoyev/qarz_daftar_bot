@@ -20,6 +20,7 @@ class User(AbstractUser):
         default='uz'
     )
     notifications_enabled = models.BooleanField(default=True)
+    pin_code = models.CharField(max_length=128, blank=True, verbose_name='PIN (hash)')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

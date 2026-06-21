@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store'
+import { authAPI } from './api'
+import PinPad from './components/PinPad'
 import { useT } from './i18n'
 import Home from './pages/Home'
 import Contacts from './pages/Contacts'
@@ -16,8 +18,33 @@ import Layout from './components/Layout'
 export default function App() {
   const { init, loading, user, needDevLogin, devLogin } = useAuthStore()
   const t = useT()
+  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('pin_ok') === '1')
+  const [pinErr, setPinErr] = useState('')
+  const [pinBusy, setPinBusy] = useState(false)
 
   useEffect(() => { init() }, [])
+
+  const tryUnlock = async (pin) => {
+    setPinBusy(true); setPinErr('')
+    try {
+      const { data } = await authAPI.verifyPin(pin)
+      if (data.ok) {
+        sessionStorage.setItem('pin_ok', '1')
+        setUnlocked(true)
+      } else {
+        setPinErr(t('pin_wrong'))
+      }
+    } catch {
+      setPinErr(t('err_generic'))
+    } finally { setPinBusy(false) }
+  }
+
+  const forgotPin = () => {
+    const url = 'https://t.me/fattoyev_a'
+    const tg = window.Telegram?.WebApp
+    if (tg?.openTelegramLink) tg.openTelegramLink(url)
+    else window.open(url, '_blank')
+  }
 
   if (loading) return (
     <div style={{
@@ -65,6 +92,20 @@ export default function App() {
           {t('dev_login')}
         </button>
       )}
+    </div>
+  )
+
+  // ── PIN qulf ──
+  if (user?.has_pin && !unlocked) return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F0F2F5', padding: '0 24px' }}>
+      <PinPad
+        title={t('pin_enter')}
+        sub={t('pin_enter_sub')}
+        error={pinErr}
+        busy={pinBusy}
+        onComplete={tryUnlock}
+        onForgot={forgotPin}
+      />
     </div>
   )
 
