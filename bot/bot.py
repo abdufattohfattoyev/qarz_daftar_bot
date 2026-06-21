@@ -127,8 +127,10 @@ def register_user(tg_user):
         log.info(f'User saqlandi: {uid} {full_name} (yangi={data.get("created")})')
         if data.get('created'):
             uname = f'@{username}' if username else 'username yo\'q'
+            total = data.get('total')
+            tail = f'\n\n👥 Jami: <b>{total}-foydalanuvchi</b>' if total else ''
             notify_admin(f'🆕 <b>Yangi foydalanuvchi!</b>\n\n'
-                         f'👤 {full_name or "—"}\n🔗 {uname}\n🆔 <code>{uid}</code>')
+                         f'👤 {full_name or "—"}\n🔗 {uname}\n🆔 <code>{uid}</code>{tail}')
     except Exception as e:
         log.error(f'register_user xato: {e}')
 

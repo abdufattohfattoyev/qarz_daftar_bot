@@ -138,7 +138,10 @@ def bot_register(request):
         if changed:
             user.save()
 
-    return Response({'ok': True, 'created': created, 'user_id': user.id})
+    return Response({
+        'ok': True, 'created': created, 'user_id': user.id,
+        'total': User.objects.count(),               # jami foydalanuvchilar soni
+    })
 
 
 @api_view(['POST'])
