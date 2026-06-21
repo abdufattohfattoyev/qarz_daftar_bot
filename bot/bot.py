@@ -47,7 +47,7 @@ def tg(method, payload):
         log.error(f'{method} xato: {e}')
 
 
-INTRO_GIF = os.path.join(os.path.dirname(__file__), 'assets', 'intro.gif')
+INTRO_GIF = os.path.join(os.path.dirname(__file__), 'assets', 'intro.mp4')
 _intro_file_id = None
 
 
