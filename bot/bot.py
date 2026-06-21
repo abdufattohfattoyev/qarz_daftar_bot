@@ -13,6 +13,29 @@ ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '')
 API = f'https://api.telegram.org/bot{TOKEN}'
 HDRS = {'X-Bot-Secret': TOKEN, 'Host': 'nasiya-karta.uz'}
 
+# ── Premium (custom) emoji ──────────────────────────────────────────────────────
+# custom_emoji_id ni @userinfobot yoki @stickerdownloadbot dan oling va shu yerga
+# yozing. Bo'sh ('') qoldirilsa — oddiy emoji ishlatiladi (fallback). Premium emoji
+# faqat bot egasi Telegram Premium bo'lsa animatsiyali ko'rinadi, aks holda oddiy.
+# Eslatma: <tg-emoji> faqat XABAR MATNIDA ishlaydi, tugma yozuvida emas.
+PREMIUM_EMOJI_IDS = {
+    'book':  '',   # 📒
+    'wave':  '',   # 👋
+    'chart': '',   # 📊
+    'up':    '',   # ↗
+    'down':  '',   # ↙
+    'money': '',   # 💰
+    'bell':  '',   # 🔔
+    'help':  '',   # ❓
+}
+
+
+def emoji(name, fallback):
+    eid = PREMIUM_EMOJI_IDS.get(name, '')
+    if eid:
+        return f'<tg-emoji emoji-id="{eid}">{fallback}</tg-emoji>'
+    return fallback
+
 
 # ── Telegram API ─────────────────────────────────────────────────────────────
 
@@ -103,25 +126,27 @@ def start_text(state):
     name = state.get('name', 'Foydalanuvchi')
     bal = state.get('balance_text', '')
     if bal:
-        return f"👋 Xush kelibsiz, <b>{name}</b>!\n\n📊 <b>Joriy holat:</b>\n\n{bal}"
-    return f"👋 Xush kelibsiz, <b>{name}</b>!\n\nHozircha faol qarzlar yo'q."
+        return (f"{emoji('wave', '👋')} Xush kelibsiz, <b>{name}</b>!\n\n"
+                f"{emoji('chart', '📊')} <b>Joriy holat:</b>\n\n{bal}")
+    return f"{emoji('wave', '👋')} Xush kelibsiz, <b>{name}</b>!\n\nHozircha faol qarzlar yo'q."
 
 
 def stats_text(state):
     bal = state.get('balance_text', '')
     cnt = state.get('active_count', 0)
     if bal:
-        return f"📊 <b>Statistika</b>\n\n{bal}📋 Jami faol qarzlar: <b>{cnt} ta</b>"
-    return "📊 <b>Statistika</b>\n\nHozircha faol qarzlar yo'q."
+        return f"{emoji('chart', '📊')} <b>Statistika</b>\n\n{bal}📋 Jami faol qarzlar: <b>{cnt} ta</b>"
+    return f"{emoji('chart', '📊')} <b>Statistika</b>\n\nHozircha faol qarzlar yo'q."
 
 
-HELP_TEXT = (
-    "❓ <b>Yordam</b>\n\n"
-    "📒 <b>Ilovani ochish</b> — qarz kiritish va boshqarish\n"
-    "📊 <b>Statistika</b> — joriy balans va qarzlar\n"
-    "🔔 <b>Eslatma</b> — bildirishnomalarni yoqish/o'chirish\n\n"
-    "Qarz kiritish, to'lov qilish uchun ilovani oching."
-)
+def help_text():
+    return (
+        f"{emoji('help', '❓')} <b>Yordam</b>\n\n"
+        f"{emoji('book', '📒')} <b>Ilovani ochish</b> — qarz kiritish va boshqarish\n"
+        f"{emoji('chart', '📊')} <b>Statistika</b> — joriy balans va qarzlar\n"
+        f"{emoji('bell', '🔔')} <b>Eslatma</b> — bildirishnomalarni yoqish/o'chirish\n\n"
+        "Qarz kiritish, to'lov qilish uchun ilovani oching."
+    )
 
 
 # ── Handlers ─────────────────────────────────────────────────────────────────
@@ -155,7 +180,7 @@ def handle_callback(cb):
 
     elif action == 'help':
         tg('answerCallbackQuery', {'callback_query_id': cb_id})
-        edit(HELP_TEXT, back_menu())
+        edit(help_text(), back_menu())
 
     elif action == 'toggle':
         enabled = toggle_notif(chat_id)
