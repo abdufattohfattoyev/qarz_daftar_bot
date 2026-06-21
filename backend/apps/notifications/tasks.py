@@ -9,8 +9,17 @@ logger = logging.getLogger(__name__)
 
 
 def _run_bg(fn, *args):
-    """Funksiyani daemon thread'da ishga tushirish (fire-and-forget)."""
-    threading.Thread(target=fn, args=args, daemon=True).start()
+    """Funksiyani daemon thread'da ishga tushirish (fire-and-forget).
+    Thread Django ORM ishlatadi — tugagach DB ulanishini yopamiz, aks holda
+    ulanishlar to'planib backend vaqti-vaqti bilan ishlamay qoladi."""
+    def runner():
+        from django.db import close_old_connections
+        close_old_connections()
+        try:
+            fn(*args)
+        finally:
+            close_old_connections()
+    threading.Thread(target=runner, daemon=True).start()
 
 
 # ── Public API (views shulardan chaqiradi) ──────────────────────────────────────

@@ -23,7 +23,8 @@ export default function Settings() {
       setToast(t('sent_to_tg'))
     } catch (e) {
       haptic('error')
-      setToast(e.response?.data?.error || t('err_generic'))
+      const d = e.response?.data
+      setToast(d?.error || `[${e.response?.status || 'net'}] ${t('err_generic')}`)
     } finally {
       setSending('')
       setTimeout(() => setToast(''), 2500)
