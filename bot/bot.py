@@ -19,14 +19,14 @@ HDRS = {'X-Bot-Secret': TOKEN, 'Host': 'nasiya-karta.uz'}
 # faqat bot egasi Telegram Premium bo'lsa animatsiyali ko'rinadi, aks holda oddiy.
 # Eslatma: <tg-emoji> faqat XABAR MATNIDA ishlaydi, tugma yozuvida emas.
 PREMIUM_EMOJI_IDS = {
-    'book':  '',   # 📒
-    'wave':  '',   # 👋
-    'chart': '',   # 📊
-    'up':    '',   # ↗
-    'down':  '',   # ↙
-    'money': '',   # 💰
-    'bell':  '',   # 🔔
-    'help':  '',   # ❓
+    'book':  '5226512880362332956',   # 📖
+    'wave':  '5472055112702629499',   # 👋
+    'chart': '',                      # 📊
+    'up':    '',                      # ↗
+    'down':  '',                      # ↙
+    'money': '',                      # 💰
+    'bell':  '5458603043203327669',   # 🔔
+    'help':  '',                      # ❓
 }
 
 
