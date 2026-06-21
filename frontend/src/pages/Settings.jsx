@@ -154,12 +154,14 @@ export default function Settings() {
         {/* Support */}
         <SectionLabel>{t('support')}</SectionLabel>
         <Card>
-          <Row icon={<SupportIcon />} label={t('support_label')} value="@fattoyev_a" onClick={openSupport} />
+          <Row icon={<SupportIcon />} label={t('support_label')} value="" onClick={openSupport} />
         </Card>
 
         {/* App version */}
-        <div style={{ textAlign: 'center', color: '#c0c0c0', fontSize: 12, marginTop: 24 }}>
-          {t('app_name')} v1.0
+        <div style={{ textAlign: 'center', marginTop: 18 }}>
+          <div style={{ fontSize: 26, marginBottom: 4 }}>📒</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>{t('app_name')}</div>
+          <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 2 }}>v1.0</div>
         </div>
       </div>
 
