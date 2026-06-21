@@ -72,6 +72,10 @@ export const translations = {
     cat_friends: "Do'st",
     cat_work: 'Ish',
     add_contact_btn: "+ Kontakt qo'shish",
+    contact_debts: 'Qarzlar tarixi',
+    add_debt_for: '+ Qarz',
+    delete_contact: 'Kontaktni o\'chirish',
+    delete_contact_confirm: 'Bu kontakt va uning barcha qarzlari o\'chiriladi. Davom etasizmi?',
 
     // AddDebt
     new_debt: 'Yangi qarz',

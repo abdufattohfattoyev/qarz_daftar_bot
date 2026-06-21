@@ -9,6 +9,7 @@ import AddDebt from './pages/AddDebt'
 import Settings from './pages/Settings'
 import DebtDetail from './pages/DebtDetail'
 import PayDebt from './pages/PayDebt'
+import ContactDetail from './pages/ContactDetail'
 import Layout from './components/Layout'
 
 export default function App() {
@@ -72,6 +73,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/contacts" element={<Contacts />} />
+          <Route path="/contacts/:id" element={<ContactDetail />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/add" element={<AddDebt />} />
           <Route path="/settings" element={<Settings />} />
