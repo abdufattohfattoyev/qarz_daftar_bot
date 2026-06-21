@@ -93,7 +93,7 @@ export default function Home() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 6px' }}>
           <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{t('recent_ops')}</h3>
           <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, background: '#fff', padding: '3px 9px', borderRadius: 20 }}>
-            {active.length} {t('count_suffix')}
+            {debts.length} {t('count_suffix')}
           </span>
         </div>
 
@@ -134,11 +134,13 @@ export default function Home() {
             <div style={{ margin: '0 12px', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 8px rgba(0,0,0,.05)' }}>
               {group.debts.map((debt, idx) => {
                 const isGave = debt.debt_type === 'gave'
+                const isPaid = debt.status === 'paid'
                 const av = avatarColor(debt.contact_name)
                 return (
                   <div key={debt.id} onClick={() => { haptic('light'); navigate(`/debt/${debt.id}`) }} className="list-item" style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer',
                     borderBottom: idx < group.debts.length - 1 ? '1px solid #f8fafc' : 'none',
+                    opacity: isPaid ? 0.65 : 1,
                   }}>
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <div style={{ width: 40, height: 40, borderRadius: 13, background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>
@@ -146,11 +148,13 @@ export default function Home() {
                       </div>
                       <div style={{
                         position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%',
-                        background: isGave ? '#16a34a' : '#ef4444',
+                        background: isPaid ? '#94a3b8' : isGave ? '#16a34a' : '#ef4444',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         border: '2px solid #fff', color: '#fff',
                       }}>
-                        {isGave ? <ArrowUpIcon /> : <ArrowDownIcon />}
+                        {isPaid
+                          ? <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          : isGave ? <ArrowUpIcon /> : <ArrowDownIcon />}
                       </div>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -158,15 +162,23 @@ export default function Home() {
                         {debt.contact_name}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: isGave ? '#f0fdf4' : '#fff1f2', color: isGave ? '#16a34a' : '#ef4444' }}>
-                          {isGave ? t('gave_label') : t('got_label')}
-                        </span>
+                        {isPaid ? (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#f0fdf4', color: '#16a34a' }}>
+                            ✓ {t('status_paid')}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: isGave ? '#f0fdf4' : '#fff1f2', color: isGave ? '#16a34a' : '#ef4444' }}>
+                            {isGave ? t('gave_label') : t('got_label')}
+                          </span>
+                        )}
                         <span style={{ fontSize: 10, color: '#cbd5e1' }}>{fmtTime(debt.created_at)}</span>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3, color: isGave ? '#16a34a' : '#ef4444' }}>
-                        {isGave ? '+' : '−'}{n(debt.remaining_amount)}
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3,
+                        color: isPaid ? '#94a3b8' : isGave ? '#16a34a' : '#ef4444',
+                        textDecoration: isPaid ? 'line-through' : 'none' }}>
+                        {isGave ? '+' : '−'}{n(isPaid ? debt.amount : debt.remaining_amount)}
                       </p>
                       <p style={{ margin: '1px 0 0', fontSize: 9, color: '#cbd5e1' }}>{debt.currency}</p>
                     </div>

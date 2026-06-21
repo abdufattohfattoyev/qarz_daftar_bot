@@ -129,9 +129,10 @@ export const useDebtStore = create((set, get) => ({
     set((s) => ({ filters: { ...s.filters, [key]: value } }))
   },
 
-  // Sana bo'yicha guruhlab qaytarish — to'liq to'langanlar ro'yxatda ko'rinmaydi
+  // Sana bo'yicha guruhlab qaytarish (to'langanlar ham ko'rinadi, lekin
+  // guruh summasiga faqat to'lanmaganlar qo'shiladi)
   groupedByDate: () => {
-    const debts = get().debts.filter((d) => d.status !== 'paid')
+    const debts = get().debts
     const groups = {}
     debts.forEach((debt) => {
       // created_at ba'zan bo'lmasligi mumkin (optimistic qo'shilgan) — qulamaslik uchun himoya
