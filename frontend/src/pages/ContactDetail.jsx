@@ -26,11 +26,16 @@ export default function ContactDetail() {
     Promise.all([contactsAPI.get(id), contactsAPI.debts(id)])
       .then(([c, d]) => {
         if (!alive) return
+        // Bitta qarz bo'lsa — to'g'ridan-to'g'ri qarz sahifasiga (oraliq ro'yxat keraksiz)
+        if (d.data.length === 1) {
+          navigate(`/debt/${d.data[0].id}`, { replace: true })
+          return
+        }
         setContact(c.data)
         setDebts(d.data)
+        setLoading(false)
       })
-      .catch(() => {})
-      .finally(() => { if (alive) setLoading(false) })
+      .catch(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [id])
 
