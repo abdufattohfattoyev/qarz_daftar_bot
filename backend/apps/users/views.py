@@ -143,6 +143,50 @@ def bot_register(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+def bot_state(request):
+    """Bot menyusi uchun foydalanuvchi holati (balans + eslatma)."""
+    if request.headers.get('X-Bot-Secret', '') != settings.BOT_TOKEN:
+        return Response({'error': 'Ruxsat yo\'q'}, status=403)
+
+    telegram_id = request.data.get('telegram_id')
+    try:
+        user = User.objects.get(telegram_id=telegram_id)
+    except User.DoesNotExist:
+        return Response({'exists': False})
+
+    from apps.notifications.bot import _balance_text
+    from apps.debts.models import Debt
+    active = Debt.objects.filter(user=user, status__in=['active', 'partial']).count()
+
+    return Response({
+        'exists': True,
+        'name': user.full_name or user.telegram_username or 'Foydalanuvchi',
+        'notifications_enabled': user.notifications_enabled,
+        'balance_text': _balance_text(user) or '',
+        'active_count': active,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def bot_toggle_notif(request):
+    """Bot 'Eslatma' tugmasi — bildirishnomalarni yoqish/o'chirish."""
+    if request.headers.get('X-Bot-Secret', '') != settings.BOT_TOKEN:
+        return Response({'error': 'Ruxsat yo\'q'}, status=403)
+
+    telegram_id = request.data.get('telegram_id')
+    try:
+        user = User.objects.get(telegram_id=telegram_id)
+    except User.DoesNotExist:
+        return Response({'exists': False}, status=404)
+
+    user.notifications_enabled = not user.notifications_enabled
+    user.save(update_fields=['notifications_enabled'])
+    return Response({'notifications_enabled': user.notifications_enabled})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def token_refresh_view(request):
     """Token yangilash — refresh token o'zi yetarli, access token shart emas"""
     refresh_token = request.data.get('refresh')
