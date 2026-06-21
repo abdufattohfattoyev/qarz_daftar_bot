@@ -10,6 +10,7 @@ import Settings from './pages/Settings'
 import DebtDetail from './pages/DebtDetail'
 import PayDebt from './pages/PayDebt'
 import ContactDetail from './pages/ContactDetail'
+import EditDebt from './pages/EditDebt'
 import Layout from './components/Layout'
 
 export default function App() {
@@ -78,6 +79,7 @@ export default function App() {
           <Route path="/add" element={<AddDebt />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/debt/:id" element={<DebtDetail />} />
+          <Route path="/debt/:id/edit" element={<EditDebt />} />
           <Route path="/debt/:id/pay" element={<PayDebt />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

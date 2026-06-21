@@ -53,6 +53,11 @@ export const translations = {
     delete_debt_q: "Qarzni o'chirasizmi?",
     delete_debt_desc: "Bu qarz va uning to'lov tarixi butunlay o'chiriladi.",
     auto_now: 'avtomatik',
+    edit_btn: 'Tahrirlash',
+    edit_debt: 'Qarzni tahrirlash',
+    save_changes: "O'zgarishni saqlash",
+    already_paid: "To'langan",
+    err_amount_lt_paid: "Miqdor to'langandan kam bo'lmasin",
 
     // Contacts
     contacts_title: 'Qarzdorlar',

@@ -43,7 +43,16 @@ export function DebtDetail() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', padding: '14px 18px 8px', gap: 12, flexShrink: 0 }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#16a34a', cursor: 'pointer' }}>‹</button>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#111' }}>{t('debt_info')}</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#111', flex: 1 }}>{t('debt_info')}</div>
+        <button onClick={() => { haptic('light'); navigate(`/debt/${id}/edit`) }} style={{
+          display: 'flex', alignItems: 'center', gap: 5, background: '#f0fdf4', border: '1px solid #bbf7d0',
+          borderRadius: 10, padding: '7px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M11.5 2.5l2 2L6 12l-2.5.5L4 10l7.5-7.5z" stroke="#16a34a" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {t('edit_btn')}
+        </button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>

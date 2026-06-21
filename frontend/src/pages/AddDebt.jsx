@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useDebtStore, useContactStore, useAuthStore } from '../store'
 import { haptic } from '../utils'
 import { useT } from '../i18n'
@@ -29,6 +29,10 @@ export default function AddDebt() {
   const { addDebt } = useDebtStore()
   const { addContact } = useContactStore()
 
+  const [params] = useSearchParams()
+  const lockedContactId = params.get('contact')        // mavjud kontaktga qarz qo'shish
+  const lockedName = params.get('name') || ''
+
   const [debtType,  setDebtType]  = useState('gave')
   const [amount,    setAmount]    = useState('')
   const [numStr,    setNumStr]    = useState('')
@@ -37,9 +41,10 @@ export default function AddDebt() {
   const [dueDate,   setDueDate]   = useState('')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
-  const [name, setName] = useState('')
+  const [name, setName] = useState(lockedName)
 
-  const createdContactId = useRef(null)
+  // Mavjud kontakt bo'lsa — uning id'sini darhol ishlatamiz (yangi kontakt yaratilmaydi)
+  const createdContactId = useRef(lockedContactId || null)
 
   const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
@@ -77,7 +82,7 @@ export default function AddDebt() {
     try {
       await doSave()
       haptic('success')
-      navigate('/')
+      navigate(lockedContactId ? `/contacts/${lockedContactId}` : '/')
     } catch (e) {
       if (e.response?.status === 401) {
         try {
@@ -114,7 +119,7 @@ export default function AddDebt() {
         display: 'flex', alignItems: 'center', gap: 10,
         transition: 'background .3s',
       }}>
-        <button onClick={() => navigate('/')} className="nav-btn" style={{
+        <button onClick={() => navigate(lockedContactId ? `/contacts/${lockedContactId}` : '/')} className="nav-btn" style={{
           width: 32, height: 32, borderRadius: 9, border: 'none',
           background: 'rgba(255,255,255,.18)', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -203,11 +208,14 @@ export default function AddDebt() {
           </label>
           <input
             type="text" placeholder={t('name_ph2')}
-            value={name} onChange={(e) => setName(e.target.value)}
+            value={name} onChange={(e) => { if (!lockedContactId) setName(e.target.value) }}
+            readOnly={!!lockedContactId}
             style={{
               width: '100%', padding: '13px 14px', borderRadius: 14, boxSizing: 'border-box',
               border: name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
-              fontSize: 15, fontWeight: 600, color: '#111', background: '#fff',
+              fontSize: 15, fontWeight: 600,
+              color: lockedContactId ? '#15803d' : '#111',
+              background: lockedContactId ? '#f0fdf4' : '#fff',
               fontFamily: 'inherit', outline: 'none',
             }}
           />
@@ -299,7 +307,7 @@ export default function AddDebt() {
 
         {/* Buttons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, margin: '0 14px' }}>
-          <button className="pill-btn" onClick={() => navigate('/')} style={{
+          <button className="pill-btn" onClick={() => navigate(lockedContactId ? `/contacts/${lockedContactId}` : '/')} style={{
             padding: '14px 10px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 16,
             background: '#fff', fontSize: 14, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit',
           }}>{t('cancel')}</button>

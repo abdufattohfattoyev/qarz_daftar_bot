@@ -114,6 +114,12 @@ export const useDebtStore = create((set, get) => ({
     return data
   },
 
+  updateDebt: async (id, data) => {
+    const { data: updated } = await debtsAPI.update(id, data)
+    set((s) => ({ debts: s.debts.map((d) => (d.id === id ? updated : d)) }))
+    return updated
+  },
+
   deleteDebt: async (id) => {
     await debtsAPI.delete(id)
     set((s) => ({ debts: s.debts.filter((d) => d.id !== id) }))
