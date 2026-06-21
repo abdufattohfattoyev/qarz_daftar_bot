@@ -156,15 +156,22 @@ def export_excel(request):
 @permission_classes([IsAuthenticated])
 def send_report(request):
     """Hisobotni Telegram bot orqali yuborish. format: 'excel' | 'image'."""
+    import logging, traceback
+    logger = logging.getLogger(__name__)
+
     user = request.user
     if not user.telegram_id:
-        return Response({'error': 'Telegram ulanmagan'}, status=400)
-
-    fmt = request.data.get('format', 'excel')
-    from apps.notifications import bot
-    from .reports import build_excel, build_image
+        return Response({'error': 'Telegram ulanmagan. Ilovani bot orqali oching.'}, status=400)
 
     try:
+        fmt = request.data.get('format', 'excel')
+        from django.conf import settings
+        from apps.notifications import bot
+        from .reports import build_excel, build_image
+
+        if not settings.BOT_TOKEN:
+            return Response({'error': 'BOT_TOKEN sozlanmagan'}, status=500)
+
         if fmt == 'image':
             img = build_image(user)
             ok = bot.send_photo(user.telegram_id, img, 'qarz_hisobot.png',
@@ -173,9 +180,10 @@ def send_report(request):
             xlsx = build_excel(user)
             ok = bot.send_document(user.telegram_id, xlsx, 'qarz_daftar.xlsx',
                                    caption='📒 <b>Qarz daftar hisoboti</b>')
-    except Exception as e:
-        return Response({'error': str(e)}, status=500)
 
-    if not ok:
-        return Response({'error': 'Yuborishda xato'}, status=500)
-    return Response({'ok': True})
+        if not ok:
+            return Response({'error': 'Telegramga yuborilmadi (bot xabarni jo\'nata olmadi)'}, status=502)
+        return Response({'ok': True})
+    except Exception as e:
+        logger.error('send_report failed: %s\n%s', e, traceback.format_exc())
+        return Response({'error': f'{type(e).__name__}: {e}'}, status=500)
