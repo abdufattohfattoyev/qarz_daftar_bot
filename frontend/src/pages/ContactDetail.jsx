@@ -188,16 +188,23 @@ export default function ContactDetail() {
                         <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: isGave ? '#f0fdf4' : '#fff1f2', color: isGave ? '#16a34a' : '#ef4444' }}>
                           {isGave ? t('gave_label') : t('got_label')}
                         </span>
-                        {isPaid && <span style={{ fontSize: 9, fontWeight: 700, color: '#16a34a' }}>🟢 {t('status_paid')}</span>}
-                        {debt.status === 'partial' && <span style={{ fontSize: 9, fontWeight: 700, color: '#f97316' }}>🟠 {t('status_partial')}</span>}
+                        {isPaid && (
+                          <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 8px', borderRadius: 20, background: '#16a34a', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            {t('status_paid')}
+                          </span>
+                        )}
+                        {debt.status === 'partial' && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 8px', borderRadius: 20, background: '#fff7ed', color: '#f97316' }}>🟠 {t('status_partial')}</span>}
                       </div>
                       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
                         {fmtDate(debt.created_at)} · {fmtTime(debt.created_at)}{debt.note ? ` · ${debt.note}` : ''}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3, color: isGave ? '#16a34a' : '#ef4444' }}>
-                        {isGave ? '+' : '−'}{n(debt.remaining_amount)}
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3,
+                        color: isPaid ? '#94a3b8' : isGave ? '#16a34a' : '#ef4444',
+                        textDecoration: isPaid ? 'line-through' : 'none' }}>
+                        {isGave ? '+' : '−'}{n(isPaid ? debt.amount : debt.remaining_amount)}
                       </p>
                       <p style={{ margin: '1px 0 0', fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>{debt.currency}</p>
                     </div>

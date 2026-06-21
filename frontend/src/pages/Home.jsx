@@ -16,11 +16,15 @@ export default function Home() {
   useEffect(() => { fetchDebts() }, [])
 
   const active = debts.filter(d => d.status !== 'paid')
+  const paidCount = debts.length - active.length
   const totalGave = active.filter(d => d.debt_type === 'gave').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const totalGot  = active.filter(d => d.debt_type === 'got').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const net = totalGave - totalGot
   const groups = groupedByDate()
   const firstName = (user?.display_name || user?.full_name || 'User').split(' ')[0]
+  // Katta raqamlar chiqib ketmasligi uchun shrift o'lchamini moslaymiz (responsive)
+  const netStr = n(Math.abs(net))
+  const netFont = netStr.length > 12 ? 20 : netStr.length > 9 ? 24 : 28
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -63,24 +67,24 @@ export default function Home() {
             <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,.55)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700 }}>
               {t('net_balance')}
             </p>
-            <p style={{ margin: '3px 0 0', fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: -1 }}>
-              {net >= 0 ? '+' : '−'}{n(Math.abs(net))}
+            <p style={{ margin: '3px 0 0', fontSize: netFont, fontWeight: 900, color: '#fff', letterSpacing: -1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {net >= 0 ? '+' : '−'}{netStr}
               <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, opacity: .65 }}>UZS</span>
             </p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
-              { label: t('given'), val: totalGave, Icon: ArrowUpIcon, up: true },
-              { label: t('taken'), val: totalGot,  Icon: ArrowDownIcon, up: false },
-            ].map(({ label, val, Icon, up }) => (
-              <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: '8px 10px' }}>
+              { label: t('given'), val: totalGave, Icon: ArrowUpIcon },
+              { label: t('taken'), val: totalGot,  Icon: ArrowDownIcon },
+            ].map(({ label, val, Icon }) => (
+              <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: '8px 10px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                  <div style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                     <Icon />
                   </div>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 600 }}>{label}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
                 </div>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#fff' }}>{n(val)}</p>
+                <p style={{ margin: 0, fontSize: n(val).length > 9 ? 13 : 15, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
                 <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,.45)' }}>UZS</p>
               </div>
             ))}
@@ -93,7 +97,7 @@ export default function Home() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 6px' }}>
           <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{t('recent_ops')}</h3>
           <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, background: '#fff', padding: '3px 9px', borderRadius: 20 }}>
-            {debts.length} {t('count_suffix')}
+            {active.length} {t('count_suffix')}{paidCount > 0 ? ` · ${paidCount} ✓` : ''}
           </span>
         </div>
 
@@ -140,7 +144,7 @@ export default function Home() {
                   <div key={debt.id} onClick={() => { haptic('light'); navigate(`/debt/${debt.id}`) }} className="list-item" style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer',
                     borderBottom: idx < group.debts.length - 1 ? '1px solid #f8fafc' : 'none',
-                    opacity: isPaid ? 0.65 : 1,
+                    background: isPaid ? '#fafafa' : 'transparent',
                   }}>
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <div style={{ width: 40, height: 40, borderRadius: 13, background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>
@@ -163,8 +167,9 @@ export default function Home() {
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         {isPaid ? (
-                          <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#f0fdf4', color: '#16a34a' }}>
-                            ✓ {t('status_paid')}
+                          <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 8px', borderRadius: 20, background: '#16a34a', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            {t('status_paid')}
                           </span>
                         ) : (
                           <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: isGave ? '#f0fdf4' : '#fff1f2', color: isGave ? '#16a34a' : '#ef4444' }}>
