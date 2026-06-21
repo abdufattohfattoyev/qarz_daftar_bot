@@ -121,6 +121,13 @@ def build_excel(user):
                 cell.fill = PatternFill('solid', fgColor='F8FAFC')
         r += 1
 
+    # ── Brend (pastki qator) ──
+    brand_row = r + 1
+    ws.merge_cells(start_row=brand_row, start_column=1, end_row=brand_row, end_column=11)
+    bc = ws.cell(brand_row, 1, '📒 Qarz Daftar — @Qarz_Yordamchi_Bot')
+    bc.font = Font(bold=True, color=GREEN, size=11)
+    bc.alignment = Alignment(horizontal='center')
+
     # ── Ustun kengligi ──
     widths = [17, 20, 16, 12, 13, 13, 13, 9, 11, 24, 12]
     for i, w in enumerate(widths, 1):
@@ -151,7 +158,7 @@ def build_image(user):
     name = user.full_name or user.telegram_username or 'Foydalanuvchi'
 
     W = 800
-    H = 280 + len(balances) * 150
+    H = 280 + len(balances) * 150 + 40   # +40 — pastki brend qatori uchun
     img = Image.new('RGB', (W, H), '#F0F2F5')
     d = ImageDraw.Draw(img)
 
@@ -180,6 +187,12 @@ def build_image(user):
         d.text((560, y + 80), f'{"+" if net >= 0 else "-"}{abs(net):,.0f}',
                font=font(26, True), fill='#16a34a' if net >= 0 else '#ef4444')
         y += 150
+
+    # ── Brend (pastda, markazda) ──
+    brand = 'Qarz Daftar  -  @Qarz_Yordamchi_Bot'
+    bf = font(17, True)
+    bw = d.textbbox((0, 0), brand, font=bf)[2]
+    d.text(((W - bw) // 2, H - 32), brand, font=bf, fill='#16a34a')
 
     buf = BytesIO()
     img.save(buf, format='PNG')

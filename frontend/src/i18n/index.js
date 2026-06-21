@@ -24,6 +24,17 @@ export const translations = {
     count_suffix: 'ta',
     add_debt_btn: "+ Qarz qo'shish",
 
+    // Onboarding
+    ob1_title: 'Qarz kiriting',
+    ob1_sub: 'Ism va summani yozing — bo\'ldi. Bir necha soniyada qarz saqlanadi.',
+    ob2_title: 'Eslatib turadi',
+    ob2_sub: 'Muddati yaqinlashsa, bot o\'zi eslatadi. Endi hech narsa esdan chiqmaydi.',
+    ob3_title: 'Hech narsa yo\'qolmaydi',
+    ob3_sub: 'Daftar emas — hammasi xavfsiz saqlanadi va PIN kod bilan himoyalanadi.',
+    ob_skip: 'O\'tkazib yuborish',
+    ob_next: 'Keyingi',
+    ob_start: 'Boshlash',
+
     // App / loading screens
     app_name: 'Qarz daftar',
     dev_hint: 'Ilovadan foydalanish uchun Telegram botni oching va /start yozing',
