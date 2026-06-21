@@ -1,8 +1,36 @@
+"""
+Bildirishnoma dispatcher — barcha Telegram xabarlari fonda (thread) yuboriladi,
+shu sababli HTTP so'rovni hech qachon bloklamaydi va xato bo'lsa ham qulatmaydi.
+"""
 import logging
+import threading
+
 logger = logging.getLogger(__name__)
 
 
+def _run_bg(fn, *args):
+    """Funksiyani daemon thread'da ishga tushirish (fire-and-forget)."""
+    threading.Thread(target=fn, args=args, daemon=True).start()
+
+
+# ── Public API (views shulardan chaqiradi) ──────────────────────────────────────
+
 def notify_debt_created(debt_id: int):
+    _run_bg(_notify_debt_created, debt_id)
+
+
+def notify_payment_made(payment_id: int):
+    _run_bg(_notify_payment_made, payment_id)
+
+
+def send_overdue_reminders():
+    # Bu cron/management command'dan chaqiriladi — sinxron bo'lgani ma'qul
+    _send_overdue_reminders()
+
+
+# ── Inner workers (thread ichida ishlaydi) ──────────────────────────────────────
+
+def _notify_debt_created(debt_id: int):
     try:
         from apps.debts.models import Debt
         from apps.notifications import bot
@@ -12,7 +40,7 @@ def notify_debt_created(debt_id: int):
         logger.error('notify_debt_created: %s', e)
 
 
-def notify_payment_made(payment_id: int):
+def _notify_payment_made(payment_id: int):
     try:
         from apps.debts.models import Payment
         from apps.notifications import bot
@@ -22,7 +50,7 @@ def notify_payment_made(payment_id: int):
         logger.error('notify_payment_made: %s', e)
 
 
-def send_overdue_reminders():
+def _send_overdue_reminders():
     try:
         from django.utils import timezone
         from apps.debts.models import Debt
@@ -32,10 +60,17 @@ def send_overdue_reminders():
             status__in=['active', 'partial'],
             due_date__lt=timezone.now().date(),
             user__notifications_enabled=True,
+            user__telegram_id__isnull=False,
         ).select_related('user', 'contact')
 
+        sent = 0
         for debt in overdue:
-            bot.notify_overdue(debt)
+            try:
+                bot.notify_overdue(debt)
+                sent += 1
+            except Exception as e:
+                logger.error('overdue (debt=%s): %s', debt.id, e)
+        logger.info('Overdue reminders sent: %s', sent)
     except Exception as e:
         logger.error('send_overdue_reminders: %s', e)
 

@@ -92,6 +92,13 @@ class DebtViewSet(viewsets.ModelViewSet):
             created_by=request.user
         )
 
+        # Telegram bildirishnoma (fonda, so'rovni bloklamaydi)
+        try:
+            from apps.notifications.tasks import notify_payment_made
+            notify_payment_made(payment.id)
+        except Exception:
+            pass
+
         debt.refresh_from_db()
         return Response({
             'payment': PaymentSerializer(payment).data,

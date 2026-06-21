@@ -200,7 +200,9 @@ def notify_payment_made(payment):
         return
 
     pct = int((debt.paid_amount / debt.amount) * 100) if debt.amount else 0
-    bar = '█' * (pct // 10) + '░' * (10 - pct // 10)
+    pct = max(0, min(100, pct))
+    filled = pct // 10
+    bar = '█' * filled + '░' * (10 - filled)
 
     lines = [f"✅ <b>To'lov qabul qilindi</b>\n",
              f"👤 <b>{debt.contact.name}</b>",
