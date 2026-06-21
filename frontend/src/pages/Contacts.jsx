@@ -22,25 +22,11 @@ const TABS = [
 export default function Contacts() {
   const navigate = useNavigate()
   const t = useT()
-  const { contacts, loading, fetchContacts, addContact } = useContactStore()
+  const { contacts, loading, fetchContacts } = useContactStore()
   const [search, setSearch] = useState('')
   const [tab, setTab]       = useState('all')
-  const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({ name: '', phone: '', category: 'other' })
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => { fetchContacts() }, [])
-
-  const handleAdd = async () => {
-    if (!form.name.trim()) return
-    setSaving(true)
-    try {
-      await addContact(form)
-      haptic('success')
-      setShowAdd(false)
-      setForm({ name: '', phone: '', category: 'other' })
-    } finally { setSaving(false) }
-  }
 
   const filtered = contacts.filter(c => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search)
@@ -61,15 +47,6 @@ export default function Contacts() {
       <div style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 1px 8px rgba(0,0,0,.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>{t('contacts_title')}</div>
-          <button className="pill-btn" onClick={() => { haptic('light'); setShowAdd(true) }} style={{
-            width: 34, height: 34, background: '#16a34a', border: 'none',
-            borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', boxShadow: '0 3px 10px rgba(22,163,74,.3)',
-          }}>
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-              <path d="M9 3.5v11M3.5 9h11" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
-            </svg>
-          </button>
         </div>
 
         {/* Summary strip */}
@@ -236,55 +213,6 @@ export default function Contacts() {
         </div>
       </div>
 
-      {/* ── ADD SHEET ── */}
-      {showAdd && (
-        <>
-          <div onClick={() => setShowAdd(false)} onTouchEnd={() => setShowAdd(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 98, backdropFilter: 'blur(3px)' }} />
-          <div className="sheet-anim" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderRadius: '22px 22px 0 0', zIndex: 99, paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
-            <div style={{ width: 34, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 16px' }} />
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#111', padding: '0 16px 14px' }}>{t('new_contact')}</div>
-            {[
-              { key: 'name',  label: t('name_req'),    placeholder: t('name_ph'),    type: 'text' },
-              { key: 'phone', label: t('phone_label'),  placeholder: '+998 90 123 45 67', type: 'tel' },
-            ].map(f => (
-              <div key={f.key} style={{ padding: '0 16px', marginBottom: 11 }}>
-                <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 5, display: 'block' }}>{f.label}</label>
-                <input
-                  type={f.type} placeholder={f.placeholder}
-                  value={form[f.key]} onChange={e => setForm(x => ({ ...x, [f.key]: e.target.value }))}
-                  style={{ width: '100%', padding: '12px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 13, fontSize: 14, color: '#111', background: '#fafafa', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-            ))}
-            <div style={{ padding: '0 16px', marginBottom: 16 }}>
-              <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 7, display: 'block' }}>{t('category')}</label>
-              <div style={{ display: 'flex', gap: 7 }}>
-                {[{ v: 'other', l: t('cat_other') }, { v: 'family', l: t('cat_family') }, { v: 'friends', l: t('cat_friends') }, { v: 'work', l: t('cat_work') }].map(c => (
-                  <button key={c.v} className="pill-btn" onClick={() => setForm(x => ({ ...x, category: c.v }))} style={{
-                    flex: 1, padding: '8px 4px', borderRadius: 10, border: 'none',
-                    background: form.category === c.v ? '#16a34a' : '#f1f5f9',
-                    color: form.category === c.v ? '#fff' : '#64748b',
-                    fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                  }}>{c.l}</button>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, margin: '0 16px' }}>
-              <button className="pill-btn" onClick={() => setShowAdd(false)} style={{ padding: 13, border: '1.5px solid #e5e7eb', borderRadius: 14, background: '#fff', fontSize: 13, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>{t('cancel')}</button>
-              <button className="pill-btn" onClick={handleAdd} disabled={saving || !form.name.trim()} style={{
-                padding: 13, border: 'none', borderRadius: 14,
-                background: form.name.trim() ? 'linear-gradient(135deg,#22c55e,#16a34a)' : '#e5e7eb',
-                color: form.name.trim() ? '#fff' : '#9ca3af',
-                fontSize: 13, fontWeight: 700, cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
-                boxShadow: form.name.trim() ? '0 4px 14px rgba(22,163,74,.3)' : 'none',
-              }}>
-                {saving ? t('saving') : t('add_contact_btn')}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   )
 }
