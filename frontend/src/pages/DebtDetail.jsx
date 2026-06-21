@@ -44,15 +44,6 @@ export function DebtDetail() {
       <div style={{ display: 'flex', alignItems: 'center', padding: '14px 18px 8px', gap: 12, flexShrink: 0 }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#16a34a', cursor: 'pointer' }}>‹</button>
         <div style={{ fontSize: 17, fontWeight: 700, color: '#111', flex: 1 }}>{t('debt_info')}</div>
-        <button onClick={() => { haptic('light'); navigate(`/debt/${id}/edit`) }} style={{
-          display: 'flex', alignItems: 'center', gap: 5, background: '#f0fdf4', border: '1px solid #bbf7d0',
-          borderRadius: 10, padding: '7px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'inherit',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-            <path d="M11.5 2.5l2 2L6 12l-2.5.5L4 10l7.5-7.5z" stroke="#16a34a" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          {t('edit_btn')}
-        </button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
@@ -93,31 +84,42 @@ export function DebtDetail() {
         )}
 
         {/* Actions */}
-        {debt.status !== 'paid' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8, margin: '0 16px 14px' }}>
+        <div style={{ margin: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* To'lash — asosiy amal */}
+          {debt.status !== 'paid' && (
             <button onClick={() => { haptic(); navigate(`/debt/${id}/pay`) }} style={{
-              padding: '14px 10px', borderRadius: 14, border: 'none',
+              width: '100%', padding: '15px 10px', borderRadius: 14, border: 'none',
               background: 'linear-gradient(135deg,#22c55e,#16a34a)',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
               boxShadow: '0 4px 14px rgba(22,163,74,.3)',
-            }}>{t('paid_btn')}</button>
-            <button onClick={() => { haptic('medium'); setConfirmDel(true) }} style={{
-              padding: '14px 10px', borderRadius: 14, border: '1.5px solid #fee2e2',
-              background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>{t('delete_btn')}</button>
+            }}>
+              <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              {t('pay_btn')}
+            </button>
+          )}
+          {/* Yana qarz + Tahrirlash + O'chirish */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <ActionBtn
+              onClick={() => { haptic('light'); navigate(`/add?contact=${debt.contact}&name=${encodeURIComponent(debt.contact_name)}`) }}
+              color="#16a34a" bg="#f0fdf4" border="#bbf7d0"
+              icon={<path d="M9 4v10M4 9h10" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round"/>}
+              label={t('add_short')}
+            />
+            <ActionBtn
+              onClick={() => { haptic('light'); navigate(`/debt/${id}/edit`) }}
+              color="#2563eb" bg="#eff6ff" border="#bfdbfe"
+              icon={<path d="M12 3l3 3-8 8-3.5.5L5 11l7-8z" stroke="#2563eb" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>}
+              label={t('edit_btn')}
+            />
+            <ActionBtn
+              onClick={() => { haptic('medium'); setConfirmDel(true) }}
+              color="#ef4444" bg="#fef2f2" border="#fecaca"
+              icon={<path d="M4 5h10M7.5 5V3.5h3V5M5.5 5l.5 9h6l.5-9" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>}
+              label={t('delete_btn')}
+            />
           </div>
-        )}
-        {debt.status === 'paid' && (
-          <div style={{ margin: '0 16px 14px' }}>
-            <button onClick={() => { haptic('medium'); setConfirmDel(true) }} style={{
-              width: '100%', padding: '14px 10px', borderRadius: 14, border: '1.5px solid #fee2e2',
-              background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              color: '#ef4444',
-            }}>{t('delete_btn')}</button>
-          </div>
-        )}
+        </div>
 
         {/* History */}
         <div style={{ margin: '0 16px', background: '#fff', borderRadius: 18, overflow: 'hidden', border: '0.5px solid rgba(0,0,0,0.06)' }}>
@@ -164,6 +166,19 @@ export function DebtDetail() {
         </div>
       )}
     </div>
+  )
+}
+
+function ActionBtn({ onClick, color, bg, border, icon, label }) {
+  return (
+    <button onClick={onClick} className="pill-btn" style={{
+      padding: '11px 4px', borderRadius: 14, border: `1.5px solid ${border}`,
+      background: bg, cursor: 'pointer', fontFamily: 'inherit',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+    }}>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">{icon}</svg>
+      <span style={{ fontSize: 12, fontWeight: 700, color }}>{label}</span>
+    </button>
   )
 }
 

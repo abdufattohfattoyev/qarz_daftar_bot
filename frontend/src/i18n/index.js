@@ -54,6 +54,7 @@ export const translations = {
     delete_debt_desc: "Bu qarz va uning to'lov tarixi butunlay o'chiriladi.",
     auto_now: 'avtomatik',
     edit_btn: 'Tahrirlash',
+    add_short: 'Qarz',
     edit_debt: 'Qarzni tahrirlash',
     save_changes: "O'zgarishni saqlash",
     already_paid: "To'langan",
