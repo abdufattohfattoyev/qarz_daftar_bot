@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import requests
 import logging
@@ -44,6 +45,38 @@ def tg(method, payload):
         requests.post(f'{API}/{method}', json=payload, timeout=10)
     except Exception as e:
         log.error(f'{method} xato: {e}')
+
+
+INTRO_GIF = os.path.join(os.path.dirname(__file__), 'assets', 'intro.gif')
+_intro_file_id = None
+
+
+def send_intro(chat_id, caption, reply_markup):
+    """Brendli GIF + caption + tugmalar. Birinchi yuborishda fayl yuklanadi,
+    keyin file_id qayta ishlatiladi (tezroq)."""
+    global _intro_file_id
+    base = {'chat_id': chat_id, 'caption': caption, 'parse_mode': 'HTML',
+            'reply_markup': json.dumps(reply_markup)}
+    try:
+        if _intro_file_id:
+            r = requests.post(f'{API}/sendAnimation', data={**base, 'animation': _intro_file_id}, timeout=20)
+            if r.json().get('ok'):
+                return
+        if os.path.exists(INTRO_GIF):
+            with open(INTRO_GIF, 'rb') as f:
+                r = requests.post(f'{API}/sendAnimation', data=base, files={'animation': f}, timeout=60)
+            j = r.json()
+            if j.get('ok'):
+                anim = j['result'].get('animation') or j['result'].get('document')
+                if anim:
+                    _intro_file_id = anim.get('file_id')
+                return
+        # GIF yo'q yoki yuborilmadi — oddiy matnga qaytamiz
+        tg('sendMessage', base)
+    except Exception as e:
+        log.error('send_intro: %s', e)
+        tg('sendMessage', {'chat_id': chat_id, 'text': caption, 'parse_mode': 'HTML',
+                           'reply_markup': reply_markup})
 
 
 def get_updates(offset=None):
@@ -155,13 +188,13 @@ def handle_start(chat_id, from_user):
     register_user(from_user)
     state = get_state(chat_id)
     if state.get('exists'):
-        tg('sendMessage', {'chat_id': chat_id, 'text': start_text(state), 'parse_mode': 'HTML',
-                           'reply_markup': main_menu(state.get('notifications_enabled', True))})
+        caption = start_text(state)
+        markup = main_menu(state.get('notifications_enabled', True))
     else:
-        text = ("👋 <b>Qarz Daftar</b>ga xush kelibsiz!\n\n"
-                "Qarzlaringizni boshqarish uchun ilovani oching.")
-        tg('sendMessage', {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML',
-                           'reply_markup': main_menu(True)})
+        caption = (f"{emoji('wave', '👋')} <b>Qarz Daftar</b>ga xush kelibsiz!\n\n"
+                   "Qarzlaringizni boshqarish uchun ilovani oching.")
+        markup = main_menu(True)
+    send_intro(chat_id, caption, markup)
 
 
 def handle_callback(cb):
