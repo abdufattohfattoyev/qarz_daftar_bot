@@ -62,14 +62,11 @@ class DebtViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
-        """Qarzni to'lash yoki qisman to'lash"""
-        debt = self.get_object()
+        """Qarzni to'lash yoki qisman to'lash.
 
-        if debt.status == 'paid':
-            return Response(
-                {'error': 'Bu qarz allaqachon to\'liq to\'langan'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        Tranzaksiya + select_for_update — bir vaqtda ikki marta bosilsa ham
+        ortiqcha to'lov o'tmaydi (qator qulflanadi, qoldiq qaytadan o'qiladi)."""
+        from django.db import transaction
 
         serializer = PayDebtSerializer(data=request.data)
         if not serializer.is_valid():
@@ -78,19 +75,23 @@ class DebtViewSet(viewsets.ModelViewSet):
         amount = serializer.validated_data['amount']
         note = serializer.validated_data.get('note', '')
 
-        # To'lov miqdori qoldiqdan oshmasligi kerak
-        if amount > debt.remaining_amount:
-            return Response(
-                {'error': f'To\'lov miqdori qoldiqdan ({debt.remaining_amount}) oshib ketdi'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        try:
+            with transaction.atomic():
+                debt = Debt.objects.select_for_update().get(pk=pk, user=request.user)
 
-        payment = Payment.objects.create(
-            debt=debt,
-            amount=amount,
-            note=note,
-            created_by=request.user
-        )
+                if debt.status == 'paid':
+                    return Response({'error': 'Bu qarz allaqachon to\'liq to\'langan'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+                if amount > debt.remaining_amount:
+                    return Response(
+                        {'error': f'To\'lov miqdori qoldiqdan ({debt.remaining_amount}) oshib ketdi'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+                payment = Payment.objects.create(
+                    debt=debt, amount=amount, note=note, created_by=request.user)
+        except Debt.DoesNotExist:
+            return Response({'error': 'Qarz topilmadi'}, status=status.HTTP_404_NOT_FOUND)
 
         # Telegram bildirishnoma (fonda, so'rovni bloklamaydi)
         try:
