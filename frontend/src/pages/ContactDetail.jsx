@@ -188,7 +188,7 @@ export default function ContactDetail() {
       </div>
 
       {/* ── ADD DEBT FAB ── */}
-      <button onClick={() => { haptic('light'); navigate('/add') }} className="pill-btn" style={{
+      <button onClick={() => { haptic('light'); navigate(`/add?contact=${contact.id}&name=${encodeURIComponent(contact.name)}`) }} className="pill-btn" style={{
         position: 'absolute', right: 18, bottom: 80, zIndex: 10,
         padding: '13px 20px', borderRadius: 16, border: 'none',
         background: 'linear-gradient(135deg,#22c55e,#16a34a)',

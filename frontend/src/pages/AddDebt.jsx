@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useDebtStore, useContactStore, useAuthStore } from '../store'
 import { haptic } from '../utils'
 import { useT } from '../i18n'
@@ -29,6 +29,10 @@ export default function AddDebt() {
   const { addDebt } = useDebtStore()
   const { addContact } = useContactStore()
 
+  const [params] = useSearchParams()
+  const existingContactId = params.get('contact')   // mavjud kontaktga qarz qo'shish — ism so'ralmaydi
+  const existingName = params.get('name') || ''
+
   const [debtType,  setDebtType]  = useState('gave')
   const [amount,    setAmount]    = useState('')
   const [numStr,    setNumStr]    = useState('')
@@ -39,15 +43,16 @@ export default function AddDebt() {
   const [error,     setError]     = useState('')
   const [name, setName] = useState('')
 
-  // Qayta urinishda dublikat bo'lmasligi uchun yaratilgan kontakt id'sini eslab qolamiz
-  const createdContactId = useRef(null)
+  // Mavjud kontakt bo'lsa — uning id'sidan boshlaymiz; aks holda qayta urinishda
+  // dublikat bo'lmasligi uchun yaratilgan kontakt id'sini eslab qolamiz
+  const createdContactId = useRef(existingContactId || null)
 
   const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
   const doSave = async () => {
-    // Har bir qarz uchun ALOHIDA kontakt yaratiladi — bir xil ism bo'lsa ham
     let contactId = createdContactId.current
     if (!contactId) {
+      // Yangi qarz — alohida kontakt yaratiladi (bir xil ism bo'lsa ham)
       let newC = null
       let createErr = null
       try {
@@ -72,21 +77,21 @@ export default function AddDebt() {
   }
 
   const handleSubmit = async () => {
-    if (!name.trim())                        return setError(t('err_name'))
+    if (!existingContactId && !name.trim())  return setError(t('err_name'))
     if (!amount || parseFloat(amount) <= 0)  return setError(t('err_amount'))
 
     setLoading(true); setError('')
     try {
       await doSave()
       haptic('success')
-      navigate('/')
+      navigate(existingContactId ? `/contacts/${existingContactId}` : '/')
     } catch (e) {
       if (e.response?.status === 401) {
         try {
           await useAuthStore.getState().init()
           await doSave()
           haptic('success')
-          navigate('/')
+          navigate(existingContactId ? `/contacts/${existingContactId}` : '/')
           return
         } catch (e2) {
           setError(describeError(e2))
@@ -101,7 +106,8 @@ export default function AddDebt() {
 
   const isGave    = debtType === 'gave'
   const accent    = isGave ? '#16a34a' : '#ef4444'
-  const canSubmit = name.trim() && parseFloat(amount) > 0
+  const goBack    = () => navigate(existingContactId ? `/contacts/${existingContactId}` : '/')
+  const canSubmit = (existingContactId || name.trim()) && parseFloat(amount) > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -116,7 +122,7 @@ export default function AddDebt() {
         display: 'flex', alignItems: 'center', gap: 10,
         transition: 'background .3s',
       }}>
-        <button onClick={() => navigate('/')} className="nav-btn" style={{
+        <button onClick={goBack} className="nav-btn" style={{
           width: 32, height: 32, borderRadius: 9, border: 'none',
           background: 'rgba(255,255,255,.18)', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -128,7 +134,7 @@ export default function AddDebt() {
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{t('new_debt')}</div>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)' }}>
-            {isGave ? t('you_gave') : t('you_got')}
+            {existingName ? existingName : (isGave ? t('you_gave') : t('you_got'))}
           </div>
         </div>
         <div style={{ padding: '4px 10px', background: 'rgba(255,255,255,.2)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#fff' }}>
@@ -198,22 +204,32 @@ export default function AddDebt() {
           </div>
         </div>
 
-        {/* Name */}
-        <div style={{ padding: '0 14px', marginBottom: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
-            <PersonIcon /> {t('name_req')}
-          </label>
-          <input
-            type="text" placeholder={t('name_ph2')}
-            value={name} onChange={(e) => setName(e.target.value)}
-            style={{
-              width: '100%', padding: '13px 14px', borderRadius: 14, boxSizing: 'border-box',
-              border: name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
-              fontSize: 15, fontWeight: 600, color: '#111', background: '#fff',
-              fontFamily: 'inherit', outline: 'none',
-            }}
-          />
-        </div>
+        {/* Name — faqat yangi qarzda. Mavjud kontaktga qo'shilsa ism so'ralmaydi */}
+        {existingContactId ? (
+          <div style={{ padding: '0 14px', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderRadius: 14, background: '#f0fdf4', border: '1.5px solid #bbf7d0' }}>
+              <PersonIcon />
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#15803d' }}>{existingName || t('name_req')}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: '#16a34a', fontWeight: 700 }}>✓</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '0 14px', marginBottom: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
+              <PersonIcon /> {t('name_req')}
+            </label>
+            <input
+              type="text" placeholder={t('name_ph2')}
+              value={name} onChange={(e) => setName(e.target.value)}
+              style={{
+                width: '100%', padding: '13px 14px', borderRadius: 14, boxSizing: 'border-box',
+                border: name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
+                fontSize: 15, fontWeight: 600, color: '#111', background: '#fff',
+                fontFamily: 'inherit', outline: 'none',
+              }}
+            />
+          </div>
+        )}
 
         {/* Note */}
         <div style={{ padding: '0 14px', marginBottom: 12 }}>
@@ -301,7 +317,7 @@ export default function AddDebt() {
 
         {/* Buttons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, margin: '0 14px' }}>
-          <button className="pill-btn" onClick={() => navigate('/')} style={{
+          <button className="pill-btn" onClick={goBack} style={{
             padding: '14px 10px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 16,
             background: '#fff', fontSize: 14, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit',
           }}>{t('cancel')}</button>
