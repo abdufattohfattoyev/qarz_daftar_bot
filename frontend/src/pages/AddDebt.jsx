@@ -43,25 +43,29 @@ export default function AddDebt() {
   const [error,     setError]     = useState('')
   const [name, setName] = useState(lockedName)
 
-  // Mavjud kontakt bo'lsa — uning id'sini darhol ishlatamiz (yangi kontakt yaratilmaydi)
-  const createdContactId = useRef(lockedContactId || null)
+  const createdContactId = useRef(null)
 
   const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
   const doSave = async () => {
     let contactId = createdContactId.current
     if (!contactId) {
-      let newC = null
-      let createErr = null
-      try {
-        newC = await addContact({ name: name.trim() })
-      } catch (e) { createErr = e }
-      contactId = newC?.id
-      if (!contactId && createErr) throw createErr
-      if (!contactId) throw new Error('Kontakt yaratilmadi')
-      createdContactId.current = contactId
+      // Mavjud kontaktdan kelgan bo'lsa va ism o'zgartirilmagan bo'lsa — o'shanga biriktiramiz
+      if (lockedContactId && name.trim() === lockedName.trim()) {
+        contactId = lockedContactId
+      } else {
+        let newC = null
+        let createErr = null
+        try {
+          newC = await addContact({ name: name.trim() })
+        } catch (e) { createErr = e }
+        contactId = newC?.id
+        if (!contactId && createErr) throw createErr
+        if (!contactId) throw new Error('Kontakt yaratilmadi')
+        createdContactId.current = contactId
+      }
     }
-    await addDebt({ contact: contactId, debt_type: debtType, amount, currency, note, due_date: dueDate })
+    await addDebt({ contact: contactId, debt_type: debtType, amount, currency, due_date: dueDate, note })
   }
 
   const describeError = (e) => {
@@ -208,14 +212,11 @@ export default function AddDebt() {
           </label>
           <input
             type="text" placeholder={t('name_ph2')}
-            value={name} onChange={(e) => { if (!lockedContactId) setName(e.target.value) }}
-            readOnly={!!lockedContactId}
+            value={name} onChange={(e) => setName(e.target.value)}
             style={{
               width: '100%', padding: '13px 14px', borderRadius: 14, boxSizing: 'border-box',
               border: name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
-              fontSize: 15, fontWeight: 600,
-              color: lockedContactId ? '#15803d' : '#111',
-              background: lockedContactId ? '#f0fdf4' : '#fff',
+              fontSize: 15, fontWeight: 600, color: '#111', background: '#fff',
               fontFamily: 'inherit', outline: 'none',
             }}
           />
