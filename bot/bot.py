@@ -52,26 +52,26 @@ _intro_file_id = None
 
 
 def send_intro(chat_id, caption, reply_markup):
-    """Brendli GIF + caption + tugmalar. Birinchi yuborishda fayl yuklanadi,
-    keyin file_id qayta ishlatiladi (tezroq)."""
+    """Brendli VIDEO + caption + tugmalar (sendVideo — "GIF" yorlig'isiz, to'liq
+    sifatli). Birinchi yuborishda fayl yuklanadi, keyin file_id qayta ishlatiladi."""
     global _intro_file_id
     base = {'chat_id': chat_id, 'caption': caption, 'parse_mode': 'HTML',
-            'reply_markup': json.dumps(reply_markup)}
+            'reply_markup': json.dumps(reply_markup), 'supports_streaming': True}
     try:
         if _intro_file_id:
-            r = requests.post(f'{API}/sendAnimation', data={**base, 'animation': _intro_file_id}, timeout=20)
+            r = requests.post(f'{API}/sendVideo', data={**base, 'video': _intro_file_id}, timeout=20)
             if r.json().get('ok'):
                 return
         if os.path.exists(INTRO_GIF):
             with open(INTRO_GIF, 'rb') as f:
-                r = requests.post(f'{API}/sendAnimation', data=base, files={'animation': f}, timeout=60)
+                r = requests.post(f'{API}/sendVideo', data=base, files={'video': f}, timeout=60)
             j = r.json()
             if j.get('ok'):
-                anim = j['result'].get('animation') or j['result'].get('document')
-                if anim:
-                    _intro_file_id = anim.get('file_id')
+                vid = j['result'].get('video') or j['result'].get('document')
+                if vid:
+                    _intro_file_id = vid.get('file_id')
                 return
-        # GIF yo'q yoki yuborilmadi — oddiy matnga qaytamiz
+        # Video yo'q yoki yuborilmadi — oddiy matnga qaytamiz
         tg('sendMessage', base)
     except Exception as e:
         log.error('send_intro: %s', e)
