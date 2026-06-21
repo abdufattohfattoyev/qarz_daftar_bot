@@ -101,7 +101,7 @@ export function DebtDetail() {
           {/* Yana qarz + Tahrirlash + O'chirish */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             <ActionBtn
-              onClick={() => { haptic('light'); navigate(`/add?contact=${debt.contact}&name=${encodeURIComponent(debt.contact_name)}`) }}
+              onClick={() => { haptic('light'); navigate('/add') }}
               color="#16a34a" bg="#f0fdf4" border="#bbf7d0"
               icon={<path d="M9 4v10M4 9h10" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round"/>}
               label={t('add_short')}

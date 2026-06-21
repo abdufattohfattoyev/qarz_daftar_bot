@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useContactStore, useAuthStore } from '../store'
 import { haptic } from '../utils'
 import { useT } from '../i18n'
@@ -29,10 +29,6 @@ export default function AddDebt() {
   const { addDebt } = useDebtStore()
   const { addContact } = useContactStore()
 
-  const [params] = useSearchParams()
-  const lockedContactId = params.get('contact')        // mavjud kontaktga qarz qo'shish
-  const lockedName = params.get('name') || ''
-
   const [debtType,  setDebtType]  = useState('gave')
   const [amount,    setAmount]    = useState('')
   const [numStr,    setNumStr]    = useState('')
@@ -41,29 +37,26 @@ export default function AddDebt() {
   const [dueDate,   setDueDate]   = useState('')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
-  const [name, setName] = useState(lockedName)
+  const [name, setName] = useState('')
 
+  // Qayta urinishda dublikat bo'lmasligi uchun yaratilgan kontakt id'sini eslab qolamiz
   const createdContactId = useRef(null)
 
   const fmtNum = (raw) => raw ? new Intl.NumberFormat('uz-UZ').format(parseInt(raw)) : ''
 
   const doSave = async () => {
+    // Har bir qarz uchun ALOHIDA kontakt yaratiladi — bir xil ism bo'lsa ham
     let contactId = createdContactId.current
     if (!contactId) {
-      // Mavjud kontaktdan kelgan bo'lsa va ism o'zgartirilmagan bo'lsa — o'shanga biriktiramiz
-      if (lockedContactId && name.trim() === lockedName.trim()) {
-        contactId = lockedContactId
-      } else {
-        let newC = null
-        let createErr = null
-        try {
-          newC = await addContact({ name: name.trim() })
-        } catch (e) { createErr = e }
-        contactId = newC?.id
-        if (!contactId && createErr) throw createErr
-        if (!contactId) throw new Error('Kontakt yaratilmadi')
-        createdContactId.current = contactId
-      }
+      let newC = null
+      let createErr = null
+      try {
+        newC = await addContact({ name: name.trim() })
+      } catch (e) { createErr = e }
+      contactId = newC?.id
+      if (!contactId && createErr) throw createErr
+      if (!contactId) throw new Error('Kontakt yaratilmadi')
+      createdContactId.current = contactId
     }
     await addDebt({ contact: contactId, debt_type: debtType, amount, currency, due_date: dueDate, note })
   }
@@ -86,7 +79,7 @@ export default function AddDebt() {
     try {
       await doSave()
       haptic('success')
-      navigate(lockedContactId ? `/contacts/${lockedContactId}` : '/')
+      navigate('/')
     } catch (e) {
       if (e.response?.status === 401) {
         try {
@@ -123,7 +116,7 @@ export default function AddDebt() {
         display: 'flex', alignItems: 'center', gap: 10,
         transition: 'background .3s',
       }}>
-        <button onClick={() => navigate(lockedContactId ? `/contacts/${lockedContactId}` : '/')} className="nav-btn" style={{
+        <button onClick={() => navigate('/')} className="nav-btn" style={{
           width: 32, height: 32, borderRadius: 9, border: 'none',
           background: 'rgba(255,255,255,.18)', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -308,7 +301,7 @@ export default function AddDebt() {
 
         {/* Buttons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, margin: '0 14px' }}>
-          <button className="pill-btn" onClick={() => navigate(lockedContactId ? `/contacts/${lockedContactId}` : '/')} style={{
+          <button className="pill-btn" onClick={() => navigate('/')} style={{
             padding: '14px 10px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 16,
             background: '#fff', fontSize: 14, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit',
           }}>{t('cancel')}</button>

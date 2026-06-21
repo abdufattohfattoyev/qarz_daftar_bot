@@ -33,7 +33,8 @@ class Contact(models.Model):
         verbose_name = 'Kontakt'
         verbose_name_plural = 'Kontaktlar'
         ordering = ['-created_at']
-        unique_together = [['owner', 'phone']]
+        # Noyoblik cheklovi yo'q — bir xil ismli (yoki telefonsiz) bir nechta
+        # kontakt yaratilishi mumkin; har bir qarz alohida yozuv bo'ladi
 
     def __str__(self):
         return f'{self.name} ({self.owner})'
