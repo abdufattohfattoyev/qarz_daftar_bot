@@ -117,7 +117,7 @@ class DebtViewSet(viewsets.ModelViewSet):
         """Foydalanuvchining barcha qarz va kontaktlarini o'chirish"""
         from apps.contacts.models import Contact
         deleted_debts, _ = Debt.objects.filter(user=request.user).delete()
-        deleted_contacts, _ = Contact.objects.filter(user=request.user).delete()
+        deleted_contacts, _ = Contact.objects.filter(owner=request.user).delete()
         return Response({
             'deleted_debts': deleted_debts,
             'deleted_contacts': deleted_contacts,
