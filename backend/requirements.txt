@@ -12,3 +12,4 @@ python-telegram-bot==21.6
 openpyxl==3.1.5
 django-filter==24.3
 whitenoise==6.7.0
+requests==2.32.3
