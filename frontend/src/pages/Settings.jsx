@@ -50,6 +50,14 @@ export default function Settings() {
     updateUser({ [key]: val }).catch(() => {})
   }
 
+  const openSupport = () => {
+    haptic('light')
+    const url = 'https://t.me/fattoyev_a'
+    const tg = window.Telegram?.WebApp
+    if (tg?.openTelegramLink) tg.openTelegramLink(url)
+    else window.open(url, '_blank')
+  }
+
   const exportExcel = async () => {
     haptic('light')
     try {
@@ -82,16 +90,34 @@ export default function Settings() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 100px' }}>
 
         {/* Profile card */}
-        <div style={{ margin: '4px 16px 20px', background: 'linear-gradient(135deg,#16a34a,#22c55e)', borderRadius: 22, padding: '20px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(255,255,255,.22)', border: '2px solid rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-            {initials(user?.display_name || 'U')}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.display_name || '—'}
+        <div style={{ margin: '4px 16px 20px', background: 'linear-gradient(135deg,#0a4d26,#16a34a 60%,#22c55e)', borderRadius: 22, padding: '20px 18px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', right: -30, top: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.07)' }} />
+          <div style={{ position: 'absolute', right: 30, bottom: -40, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,.05)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, position: 'relative' }}>
+            <div style={{ width: 58, height: 58, borderRadius: 18, background: 'rgba(255,255,255,.22)', border: '2px solid rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 21, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+              {initials(user?.display_name || 'U')}
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginTop: 2 }}>
-              {user?.telegram_username ? `@${user.telegram_username}` : t('tg_user')}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.display_name || '—'}
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.telegram_username ? `@${user.telegram_username}` : t('tg_user')}
+              </div>
+            </div>
+          </div>
+          {/* chips */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.16)', borderRadius: 10, padding: '6px 11px' }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,.7)' }}>{t('currency')}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{user?.currency || 'UZS'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.16)', borderRadius: 10, padding: '6px 11px' }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,.7)' }}>{t('language')}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{user?.language === 'ru' ? 'RU' : 'UZ'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.16)', borderRadius: 10, padding: '6px 11px' }}>
+              <span style={{ fontSize: 12 }}>{user?.notifications_enabled ? '🔔' : '🔕'}</span>
             </div>
           </div>
         </div>
@@ -123,6 +149,12 @@ export default function Settings() {
           <Row icon={<ExcelIcon />} label={t('excel_download')} value="⬇" onClick={exportExcel} />
           <Divider />
           <Row icon={<DeleteAllIcon />} label={t('delete_all')} danger onClick={() => { haptic('medium'); setModal('delete') }} />
+        </Card>
+
+        {/* Support */}
+        <SectionLabel>{t('support')}</SectionLabel>
+        <Card>
+          <Row icon={<SupportIcon />} label={t('support_label')} value="@fattoyev_a" onClick={openSupport} />
         </Card>
 
         {/* App version */}
@@ -199,6 +231,15 @@ export default function Settings() {
         )}
       </BottomSheet>}
     </div>
+  )
+}
+
+function SupportIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M10 2.5c-4 0-7 2.8-7 6.4 0 1.9.9 3.6 2.3 4.8L4.8 17l3.1-1.4c.7.15 1.4.23 2.1.23 4 0 7-2.8 7-6.4S14 2.5 10 2.5z" stroke="#16a34a" strokeWidth="1.4" strokeLinejoin="round"/>
+      <circle cx="7" cy="9" r="1" fill="#16a34a"/><circle cx="10" cy="9" r="1" fill="#16a34a"/><circle cx="13" cy="9" r="1" fill="#16a34a"/>
+    </svg>
   )
 }
 
