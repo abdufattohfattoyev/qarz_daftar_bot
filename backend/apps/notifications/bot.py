@@ -42,6 +42,46 @@ def answer_callback(callback_id, text=None):
     _api('answerCallbackQuery', payload)
 
 
+def send_document(chat_id, file_bytes, filename, caption=None):
+    """Fayl (Excel/PDF) yuborish."""
+    token = settings.BOT_TOKEN
+    if not token:
+        return False
+    data = {'chat_id': chat_id}
+    if caption:
+        data['caption'] = caption
+        data['parse_mode'] = 'HTML'
+    try:
+        requests.post(
+            f'https://api.telegram.org/bot{token}/sendDocument',
+            data=data, files={'document': (filename, file_bytes)}, timeout=30,
+        )
+        return True
+    except Exception as e:
+        logger.error('sendDocument error: %s', e)
+        return False
+
+
+def send_photo(chat_id, image_bytes, filename='hisobot.png', caption=None):
+    """Rasm yuborish."""
+    token = settings.BOT_TOKEN
+    if not token:
+        return False
+    data = {'chat_id': chat_id}
+    if caption:
+        data['caption'] = caption
+        data['parse_mode'] = 'HTML'
+    try:
+        requests.post(
+            f'https://api.telegram.org/bot{token}/sendPhoto',
+            data=data, files={'photo': (filename, image_bytes)}, timeout=30,
+        )
+        return True
+    except Exception as e:
+        logger.error('sendPhoto error: %s', e)
+        return False
+
+
 # ── Keyboards ──────────────────────────────────────────────────────────────────
 
 def main_menu(notifications_on=True):

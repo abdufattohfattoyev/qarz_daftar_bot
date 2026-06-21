@@ -10,6 +10,25 @@ export default function Settings() {
   const { user, updateUser } = useAuthStore()
   const [modal, setModal] = useState(null) // 'currency' | 'language' | 'delete'
   const [deleting, setDeleting] = useState(false)
+  const [sending, setSending] = useState('')   // '' | 'excel' | 'image'
+  const [toast, setToast] = useState('')
+
+  const sendReport = async (format) => {
+    if (sending) return
+    haptic('light')
+    setSending(format)
+    try {
+      await statsAPI.send(format)
+      haptic('success')
+      setToast(t('sent_to_tg'))
+    } catch (e) {
+      haptic('error')
+      setToast(e.response?.data?.error || t('err_generic'))
+    } finally {
+      setSending('')
+      setTimeout(() => setToast(''), 2500)
+    }
+  }
 
   const handleDeleteAll = async () => {
     if (deleting) return
@@ -96,7 +115,11 @@ export default function Settings() {
         {/* Data */}
         <SectionLabel>{t('data')}</SectionLabel>
         <Card>
-          <Row icon={<ExcelIcon />} label={t('excel_export')} value="⬇" onClick={exportExcel} />
+          <Row icon={<ExcelIcon />} label={t('excel_to_tg')} value={sending === 'excel' ? '⏳' : '📤'} onClick={() => sendReport('excel')} />
+          <Divider />
+          <Row icon={<ExcelIcon />} label={t('image_to_tg')} value={sending === 'image' ? '⏳' : '🖼'} onClick={() => sendReport('image')} />
+          <Divider />
+          <Row icon={<ExcelIcon />} label={t('excel_download')} value="⬇" onClick={exportExcel} />
           <Divider />
           <Row icon={<DeleteAllIcon />} label={t('delete_all')} danger onClick={() => { haptic('medium'); setModal('delete') }} />
         </Card>
@@ -106,6 +129,16 @@ export default function Settings() {
           {t('app_name')} v1.0
         </div>
       </div>
+
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+          background: '#0f172a', color: '#fff', padding: '11px 20px', borderRadius: 14,
+          fontSize: 13, fontWeight: 600, zIndex: 999, boxShadow: '0 6px 20px rgba(0,0,0,.3)',
+          maxWidth: '85%', textAlign: 'center',
+        }}>{toast}</div>
+      )}
 
       {/* MODALS */}
       {modal && <BottomSheet onClose={() => setModal(null)}>

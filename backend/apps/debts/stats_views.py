@@ -6,7 +6,6 @@ from decimal import Decimal
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-import openpyxl
 from django.http import HttpResponse
 from .models import Debt, Payment
 
@@ -142,42 +141,41 @@ def stats(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def export_excel(request):
-    """Excel faylga export qilish"""
-    user = request.user
-    debts = Debt.objects.filter(user=user).select_related('contact').order_by('-created_at')
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = 'Qarz daftar'
-
-    # Sarlavha
-    headers = [
-        'Sana', 'Kontakt', 'Telefon', 'Tur', 'Miqdor',
-        'To\'langan', 'Qoldi', 'Valyuta', 'Holat', 'Izoh', 'Muddat'
-    ]
-    ws.append(headers)
-
-    # Ma'lumotlar
-    for debt in debts:
-        type_display = 'Men berdim' if debt.debt_type == 'gave' else 'Mendan oldi'
-        status_display = {'active': 'Faol', 'partial': 'Qisman', 'paid': 'To\'langan'}.get(debt.status, '')
-        ws.append([
-            debt.created_at.strftime('%d.%m.%Y %H:%M'),
-            debt.contact.name,
-            debt.contact.phone,
-            type_display,
-            float(debt.amount),
-            float(debt.paid_amount),
-            float(debt.remaining_amount),
-            debt.currency,
-            status_display,
-            debt.note,
-            debt.due_date.strftime('%d.%m.%Y') if debt.due_date else '',
-        ])
-
+    """Chiroyli Excel faylga export (to'g'ridan-to'g'ri yuklab olish)."""
+    from .reports import build_excel
+    data = build_excel(request.user)
     response = HttpResponse(
+        data,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = 'attachment; filename="qarz_daftar.xlsx"'
-    wb.save(response)
     return response
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_report(request):
+    """Hisobotni Telegram bot orqali yuborish. format: 'excel' | 'image'."""
+    user = request.user
+    if not user.telegram_id:
+        return Response({'error': 'Telegram ulanmagan'}, status=400)
+
+    fmt = request.data.get('format', 'excel')
+    from apps.notifications import bot
+    from .reports import build_excel, build_image
+
+    try:
+        if fmt == 'image':
+            img = build_image(user)
+            ok = bot.send_photo(user.telegram_id, img, 'qarz_hisobot.png',
+                                caption='📊 <b>Qarz daftar hisoboti</b>')
+        else:
+            xlsx = build_excel(user)
+            ok = bot.send_document(user.telegram_id, xlsx, 'qarz_daftar.xlsx',
+                                   caption='📒 <b>Qarz daftar hisoboti</b>')
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+    if not ok:
+        return Response({'error': 'Yuborishda xato'}, status=500)
+    return Response({'ok': True})
