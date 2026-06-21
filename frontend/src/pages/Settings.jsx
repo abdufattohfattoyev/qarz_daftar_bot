@@ -227,10 +227,15 @@ export default function Settings() {
         }}>{toast}</div>
       )}
 
-      {/* PIN MODAL */}
+      {/* PIN MODAL — to'liq ekran (klaviatura to'liq sig'ishi uchun) */}
       {pinMode && (
-        <BottomSheet onClose={closePin}>
-          <div style={{ padding: '4px 18px 24px' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#F0F2F5', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px' }}>
+            <button onClick={closePin} style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,.08)' }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="#64748b" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0 24px 24px' }}>
             <PinPad
               title={pinMode === 'set' ? t('pin_new') : pinMode === 'confirm' ? t('pin_confirm') : t('pin_current')}
               sub={pinMode === 'disable' ? t('pin_disable_sub') : t('pin_set_sub')}
@@ -239,7 +244,7 @@ export default function Settings() {
               onComplete={onPinEntered}
             />
           </div>
-        </BottomSheet>
+        </div>
       )}
 
       {/* MODALS */}
