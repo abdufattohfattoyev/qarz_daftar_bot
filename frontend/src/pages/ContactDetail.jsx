@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { contactsAPI } from '../api'
+import { useDebtStore } from '../store'
 import { initials, avatarColor, fmtDate, fmtTime, haptic } from '../utils'
-import { ArrowUpIcon, ArrowDownIcon, ChevronRight } from '../components/Icons'
+import { ArrowUpIcon, ArrowDownIcon } from '../components/Icons'
 import { useT } from '../i18n'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(Math.abs(parseFloat(v || 0))))
@@ -17,9 +18,19 @@ export default function ContactDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const t = useT()
+  const { deleteDebt } = useDebtStore()
   const [contact, setContact] = useState(null)
   const [debts, setDebts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [openId, setOpenId] = useState(null)        // ochilgan qarz qatori
+  const [confirmId, setConfirmId] = useState(null)  // o'chirish tasdig'i
+  const [deleting, setDeleting] = useState(false)
+
+  const reload = () => {
+    return Promise.all([contactsAPI.get(id), contactsAPI.debts(id)])
+      .then(([c, d]) => { setContact(c.data); setDebts(d.data) })
+      .catch(() => {})
+  }
 
   useEffect(() => {
     let alive = true
@@ -33,6 +44,19 @@ export default function ContactDetail() {
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [id])
+
+  const handleDelete = async (debtId) => {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      await deleteDebt(debtId)
+      haptic('success')
+      setConfirmId(null)
+      setOpenId(null)
+      await reload()
+    } catch { haptic('error') }
+    finally { setDeleting(false) }
+  }
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
@@ -144,42 +168,74 @@ export default function ContactDetail() {
             {debts.map((debt, i) => {
               const isGave = debt.debt_type === 'gave'
               const isPaid = debt.status === 'paid'
+              const open = openId === debt.id
               return (
-                <div key={debt.id} onClick={() => { haptic('light'); navigate(`/debt/${debt.id}`) }} className="list-item" style={{
-                  background: '#fff', borderRadius: 16, padding: '12px 13px',
-                  display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer',
+                <div key={debt.id} style={{
+                  background: '#fff', borderRadius: 16, overflow: 'hidden',
                   boxShadow: '0 2px 10px rgba(0,0,0,.05)',
-                  opacity: isPaid ? 0.6 : 1,
+                  opacity: isPaid ? 0.7 : 1,
                   animation: `fadeUp .2s ${i * 0.03}s both`,
                   borderLeft: `3px solid ${isPaid ? '#cbd5e1' : isGave ? '#22c55e' : '#ef4444'}`,
                 }}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 11, flexShrink: 0,
-                    background: isGave ? '#dcfce7' : '#fee2e2',
-                    color: isGave ? '#16a34a' : '#ef4444',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>{isGave ? <ArrowUpIcon /> : <ArrowDownIcon />}</div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: isGave ? '#f0fdf4' : '#fff1f2', color: isGave ? '#16a34a' : '#ef4444' }}>
-                        {isGave ? t('gave_label') : t('got_label')}
-                      </span>
-                      {isPaid && <span style={{ fontSize: 9, fontWeight: 700, color: '#16a34a' }}>🟢 {t('status_paid')}</span>}
+                  {/* Qator */}
+                  <div onClick={() => { haptic('light'); setOpenId(open ? null : debt.id); setConfirmId(null) }}
+                    className="list-item" style={{ padding: '12px 13px', display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, background: isGave ? '#dcfce7' : '#fee2e2', color: isGave ? '#16a34a' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {isGave ? <ArrowUpIcon /> : <ArrowDownIcon />}
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
-                      {fmtDate(debt.created_at)} · {fmtTime(debt.created_at)}
-                      {debt.note ? ` · ${debt.note}` : ''}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: isGave ? '#f0fdf4' : '#fff1f2', color: isGave ? '#16a34a' : '#ef4444' }}>
+                          {isGave ? t('gave_label') : t('got_label')}
+                        </span>
+                        {isPaid && <span style={{ fontSize: 9, fontWeight: 700, color: '#16a34a' }}>🟢 {t('status_paid')}</span>}
+                        {debt.status === 'partial' && <span style={{ fontSize: 9, fontWeight: 700, color: '#f97316' }}>🟠 {t('status_partial')}</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
+                        {fmtDate(debt.created_at)} · {fmtTime(debt.created_at)}{debt.note ? ` · ${debt.note}` : ''}
+                      </div>
                     </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3, color: isGave ? '#16a34a' : '#ef4444' }}>
+                        {isGave ? '+' : '−'}{n(debt.remaining_amount)}
+                      </p>
+                      <p style={{ margin: '1px 0 0', fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>{debt.currency}</p>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
+                      <path d="M4 6l4 4 4-4" stroke="#cbd5e1" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </div>
 
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3, color: isGave ? '#16a34a' : '#ef4444' }}>
-                      {isGave ? '+' : '−'}{n(debt.remaining_amount)}
-                    </p>
-                    <p style={{ margin: '1px 0 0', fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>{debt.currency}</p>
-                  </div>
-                  <ChevronRight />
+                  {/* Inline amallar */}
+                  {open && (
+                    <div style={{ padding: '0 13px 12px' }}>
+                      {confirmId === debt.id ? (
+                        <div style={{ background: '#fef2f2', borderRadius: 12, padding: 12, border: '1px solid #fecaca' }}>
+                          <div style={{ fontSize: 13, color: '#991b1b', fontWeight: 600, marginBottom: 10, textAlign: 'center' }}>{t('delete_debt_q')}</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            <button onClick={() => setConfirmId(null)} style={{ padding: 11, borderRadius: 11, border: '1.5px solid #e5e7eb', background: '#fff', fontSize: 13, fontWeight: 700, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>{t('cancel')}</button>
+                            <button onClick={() => handleDelete(debt.id)} disabled={deleting} style={{ padding: 11, borderRadius: 11, border: 'none', background: '#ef4444', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>{deleting ? t('deleting') : t('yes_delete')}</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: isPaid ? '1fr 1fr' : '1.4fr 1fr 1fr', gap: 8 }}>
+                          {!isPaid && (
+                            <RowBtn onClick={() => { haptic(); navigate(`/debt/${debt.id}/pay`) }} primary
+                              icon={<path d="M3 9l4 4 8-8" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
+                              label={t('pay_btn')} />
+                          )}
+                          <RowBtn onClick={() => { haptic('light'); navigate(`/debt/${debt.id}/edit`) }}
+                            color="#2563eb" bg="#eff6ff" border="#bfdbfe"
+                            icon={<path d="M11 3l2 2-7 7-2.5.5L4 10l7-7z" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>}
+                            label={t('edit_btn')} />
+                          <RowBtn onClick={() => setConfirmId(debt.id)}
+                            color="#ef4444" bg="#fef2f2" border="#fecaca"
+                            icon={<path d="M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.4 8h5.2l.4-8" stroke="#ef4444" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>}
+                            label={t('delete_btn')} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -197,5 +253,19 @@ export default function ContactDetail() {
         display: 'flex', alignItems: 'center', gap: 6,
       }}>{t('add_debt_for')}</button>
     </div>
+  )
+}
+
+function RowBtn({ onClick, primary, color, bg, border, icon, label }) {
+  return (
+    <button onClick={onClick} className="pill-btn" style={{
+      padding: '10px 6px', borderRadius: 11, fontFamily: 'inherit', cursor: 'pointer',
+      border: primary ? 'none' : `1.5px solid ${border}`,
+      background: primary ? 'linear-gradient(135deg,#22c55e,#16a34a)' : bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+    }}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">{icon}</svg>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: primary ? '#fff' : color }}>{label}</span>
+    </button>
   )
 }
