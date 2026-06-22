@@ -45,7 +45,7 @@ def build_excel(user):
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = 'Qarz daftar'
+    ws.title = 'Qarz Yordamchi'
 
     thin = Side(style='thin', color='E2E8F0')
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -54,7 +54,7 @@ def build_excel(user):
     # ── Sarlavha ──
     ws.merge_cells('A1:K1')
     c = ws['A1']
-    c.value = '📒 QARZ DAFTAR — HISOBOT'
+    c.value = '📒 QARZ YORDAMCHI — HISOBOT'
     c.font = Font(bold=True, size=16, color='FFFFFF')
     c.fill = PatternFill('solid', fgColor=GREEN)
     c.alignment = Alignment(horizontal='center', vertical='center')
@@ -124,7 +124,7 @@ def build_excel(user):
     # ── Brend (pastki qator) ──
     brand_row = r + 1
     ws.merge_cells(start_row=brand_row, start_column=1, end_row=brand_row, end_column=11)
-    bc = ws.cell(brand_row, 1, '📒 Qarz Daftar — @Qarz_Yordamchi_Bot')
+    bc = ws.cell(brand_row, 1, '📒 Qarz Yordamchi — @Qarz_Yordamchi_Bot')
     bc.font = Font(bold=True, color=GREEN, size=11)
     bc.alignment = Alignment(horizontal='center')
 
@@ -164,7 +164,7 @@ def build_image(user):
 
     # Header
     d.rectangle([0, 0, W, 120], fill='#16a34a')
-    d.text((40, 30), 'Qarz Daftar', font=font(34, True), fill='#ffffff')
+    d.text((40, 30), 'Qarz Yordamchi', font=font(34, True), fill='#ffffff')
     d.text((40, 78), f'{name} · {timezone.now().strftime("%d.%m.%Y")}',
            font=font(18), fill='#dcfce7')
 
@@ -189,7 +189,7 @@ def build_image(user):
         y += 150
 
     # ── Brend (pastda, markazda) ──
-    brand = 'Qarz Daftar  -  @Qarz_Yordamchi_Bot'
+    brand = 'Qarz Yordamchi  -  @Qarz_Yordamchi_Bot'
     bf = font(17, True)
     bw = d.textbbox((0, 0), brand, font=bf)[2]
     d.text(((W - bw) // 2, H - 32), brand, font=bf, fill='#16a34a')

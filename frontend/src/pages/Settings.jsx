@@ -111,7 +111,7 @@ export default function Settings() {
       const url = URL.createObjectURL(new Blob([res.data]))
       const a = document.createElement('a')
       a.href = url
-      a.download = 'qarz_daftar.xlsx'
+      a.download = 'qarz_yordamchi.xlsx'
       a.click()
       URL.revokeObjectURL(url)
     } catch { }

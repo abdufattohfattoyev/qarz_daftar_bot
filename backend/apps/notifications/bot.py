@@ -160,7 +160,7 @@ def handle_start(chat_id, user_obj=None):
         send(chat_id, text, reply_markup=main_menu(user_obj.notifications_enabled))
     else:
         text = (
-            "👋 <b>Qarz Daftar</b>ga xush kelibsiz!\n\n"
+            "👋 <b>Qarz Yordamchi</b>ga xush kelibsiz!\n\n"
             "Qarzlaringizni kuzatib borish uchun ilovani oching."
         )
         send(chat_id, text, reply_markup=main_menu())

@@ -36,7 +36,7 @@ export const translations = {
     ob_start: 'Boshlash',
 
     // App / loading screens
-    app_name: 'Qarz daftar',
+    app_name: 'Qarz Yordamchi',
     dev_hint: 'Ilovadan foydalanish uchun Telegram botni oching va /start yozing',
     open_bot: 'Botni ochish',
     dev_login: 'Test sifatida kirish (dev)',
@@ -236,7 +236,7 @@ export const translations = {
     add_debt_btn: '+ Добавить долг',
 
     // App / loading screens
-    app_name: 'Долговая книга',
+    app_name: 'Qarz Yordamchi',
     dev_hint: 'Чтобы пользоваться приложением, откройте Telegram-бота и напишите /start',
     open_bot: 'Открыть бота',
     dev_login: 'Войти как тест (dev)',

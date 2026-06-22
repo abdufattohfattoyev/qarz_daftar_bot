@@ -1,4 +1,4 @@
-# 📒 Qarz Daftar — Telegram Mini App
+# 📒 Qarz Yordamchi — Telegram Mini App
 
 Django + React + PostgreSQL + Docker
 
@@ -104,7 +104,7 @@ BotFather da:
 /setmenubutton
 → Bot tanlang
 → URL: https://yourdomain.com
-→ Text: 📒 Qarz daftar
+→ Text: 📒 Qarz Yordamchi
 ```
 
 Webhook o'rnatish:

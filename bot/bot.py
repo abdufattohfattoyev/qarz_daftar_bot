@@ -193,7 +193,7 @@ def handle_start(chat_id, from_user):
         caption = start_text(state)
         markup = main_menu(state.get('notifications_enabled', True))
     else:
-        caption = (f"{emoji('wave', '👋')} <b>Qarz Daftar</b>ga xush kelibsiz!\n\n"
+        caption = (f"{emoji('wave', '👋')} <b>Qarz Yordamchi</b>ga xush kelibsiz!\n\n"
                    "Qarzlaringizni boshqarish uchun ilovani oching.")
         markup = main_menu(True)
     send_intro(chat_id, caption, markup)

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================
-# QARZ DAFTAR - Deploy script
+# QARZ YORDAMCHI - Deploy script
 # Ishlatish: bash deploy.sh
 # =============================================
 
@@ -16,7 +16,7 @@ warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 err() { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 
 echo ""
-echo "🚀 QARZ DAFTAR — Deploy boshlandi"
+echo "🚀 QARZ YORDAMCHI — Deploy boshlandi"
 echo "=================================="
 
 # Docker tekshirish

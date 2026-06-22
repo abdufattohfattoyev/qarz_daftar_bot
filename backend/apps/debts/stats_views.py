@@ -148,7 +148,7 @@ def export_excel(request):
         data,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="qarz_daftar.xlsx"'
+    response['Content-Disposition'] = 'attachment; filename="qarz_yordamchi.xlsx"'
     return response
 
 
@@ -175,11 +175,11 @@ def send_report(request):
         if fmt == 'image':
             img = build_image(user)
             ok = bot.send_photo(user.telegram_id, img, 'qarz_hisobot.png',
-                                caption='📊 <b>Qarz daftar hisoboti</b>')
+                                caption='📊 <b>Qarz Yordamchi hisoboti</b>')
         else:
             xlsx = build_excel(user)
-            ok = bot.send_document(user.telegram_id, xlsx, 'qarz_daftar.xlsx',
-                                   caption='📒 <b>Qarz daftar hisoboti</b>')
+            ok = bot.send_document(user.telegram_id, xlsx, 'qarz_yordamchi.xlsx',
+                                   caption='📒 <b>Qarz Yordamchi hisoboti</b>')
 
         if not ok:
             return Response({'error': 'Telegramga yuborilmadi (bot xabarni jo\'nata olmadi)'}, status=502)
