@@ -18,6 +18,13 @@ export const fmtDate = (date) => dayjs(date).tz(TZ).format('D MMMM YYYY')
 export const fmtTime = (date) => dayjs(date).tz(TZ).format('HH:mm')
 export const fmtDateTime = (date) => dayjs(date).tz(TZ).format('D MMMM YYYY, HH:mm')
 export const fmtShort = (date) => dayjs(date).tz(TZ).format('D MMM')
+
+// Bugundan berilgan sanagacha qancha kun (manfiy = o'tib ketgan, 0 = bugun)
+export const daysUntil = (date) => {
+  if (!date) return null
+  const today = dayjs().tz(TZ).startOf('day')
+  return dayjs(date).tz(TZ).startOf('day').diff(today, 'day')
+}
 export const nowTashkent = () => dayjs().tz(TZ).format('D MMMM YYYY, HH:mm')
 
 export const initials = (name = '') => {

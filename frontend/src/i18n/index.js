@@ -47,6 +47,10 @@ export const translations = {
     given: 'Berganim',
     taken: 'Olganim',
     recent_ops: 'Oxirgi amallar',
+    due_title: 'Muddatlar',
+    days_left: '{n} kun qoldi',
+    days_overdue: '{n} kun o\'tdi',
+    due_today_label: 'Bugun muddat',
     no_debts: "Qarzlar yo'q",
     add_first_debt: "Birinchi qarzni qo'shing",
     i_gave: 'Men berdim',
@@ -243,6 +247,10 @@ export const translations = {
     given: 'Я дал',
     taken: 'Я взял',
     recent_ops: 'Последние операции',
+    due_title: 'Сроки',
+    days_left: 'осталось {n} дн.',
+    days_overdue: 'просрочено {n} дн.',
+    due_today_label: 'Срок сегодня',
     no_debts: 'Долгов нет',
     add_first_debt: 'Добавьте первый долг',
     i_gave: 'Я дал в долг',
@@ -393,6 +401,16 @@ export const translations = {
     pay_note: '💬 Заметка (необязательно)',
     pay_method_ph: 'Способ оплаты...',
     mark_paid: 'Отметить оплаченным',
+
+    // DebtDetail / Edit
+    delete_debt_q: 'Удалить долг?',
+    delete_debt_desc: 'Этот долг и его история платежей будут удалены безвозвратно.',
+    edit_btn: 'Изменить',
+    add_short: 'Долг',
+    edit_debt: 'Изменить долг',
+    save_changes: 'Сохранить изменения',
+    err_amount_lt_paid: 'Сумма меньше уже оплаченной',
+    already_paid: 'Оплачено',
   },
 }
 

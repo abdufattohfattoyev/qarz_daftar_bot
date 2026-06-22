@@ -4,7 +4,14 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-DEBUG = os.environ.get('DEBUG', '1') == '1'
+DEBUG = os.environ.get('DEBUG', '0') == '1'   # standart — XAVFSIZ (o'chiq); dev'da .env da DEBUG=1
+
+# Production'da dev kalitlari bilan ishga tushishni taqiqlaymiz
+if not DEBUG and SECRET_KEY == 'dev-secret-key-change-in-production':
+    raise RuntimeError(
+        "Production uchun SECRET_KEY .env faylda o'rnatilishi SHART "
+        "(DEBUG=0 da dev kalit ishlatib bo'lmaydi)."
+    )
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -105,10 +112,21 @@ REST_FRAMEWORK = {
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    # Access qisqa umrli — o'g'irlansa zarari kam; refresh (30 kun) + Telegram
+    # re-auth orqali interceptor jim yangilab turadi.
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': True,
 }
+
+# Production xavfsizlik sozlamalari (DEBUG=0 da yoqiladi)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = False  # nginx HTTPS'ni o'zi hal qiladi
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
 CORS_ALLOWED_ORIGINS = os.environ.get(
     'CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173'

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useAuthStore } from '../store'
-import { fmtDate, fmtTime, initials, avatarColor, haptic } from '../utils'
+import { fmtDate, fmtTime, initials, avatarColor, haptic, daysUntil } from '../utils'
 import { ArrowUpIcon, ArrowDownIcon, ChevronRight } from '../components/Icons'
 import { useT, localeCode } from '../i18n'
 
@@ -21,6 +21,12 @@ export default function Home() {
   const totalGave = active.filter(d => d.debt_type === 'gave').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const totalGot  = active.filter(d => d.debt_type === 'got').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const net = totalGave - totalGot
+  // Muddat ogohlantirishlari — o'tib ketgan yoki 3 kun ichida qaytariladigan qarzlar
+  const dueAlerts = active
+    .filter((d) => d.due_date)
+    .map((d) => ({ ...d, _days: daysUntil(d.due_date) }))
+    .filter((d) => d._days !== null && d._days <= 3)
+    .sort((a, b) => a._days - b._days)
   const q = search.trim().toLowerCase()
   const groups = groupedByDate()
     .map((g) => ({ ...g, debts: g.debts.filter((d) => !q || (d.contact_name || '').toLowerCase().includes(q)) }))
@@ -98,6 +104,45 @@ export default function Home() {
 
       {/* ── SCROLLABLE CONTENT ── */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
+
+        {/* ⏰ MUDDAT OGOHLANTIRISHLARI */}
+        {dueAlerts.length > 0 && !q && (
+          <div style={{ padding: '12px 0 2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px 8px' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>⏰ {t('due_title')}</span>
+              <span style={{ fontSize: 11, color: '#fff', fontWeight: 700, background: '#ef4444', padding: '1px 7px', borderRadius: 20 }}>{dueAlerts.length}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 16px 4px', scrollbarWidth: 'none' }}>
+              {dueAlerts.map((d) => {
+                const overdue = d._days < 0
+                const today = d._days === 0
+                const isGave = d.debt_type === 'gave'
+                const av = avatarColor(d.contact_name)
+                const color = overdue ? '#ef4444' : today ? '#f97316' : '#16a34a'
+                const bg = overdue ? '#fef2f2' : today ? '#fff7ed' : '#f0fdf4'
+                const badge = overdue ? t('days_overdue', { n: Math.abs(d._days) })
+                  : today ? t('due_today_label')
+                  : t('days_left', { n: d._days })
+                return (
+                  <div key={d.id} onClick={() => { haptic('light'); navigate(`/debt/${d.id}`) }} className="list-item" style={{
+                    minWidth: 156, flexShrink: 0, background: '#fff', borderRadius: 16, padding: 12,
+                    border: `1.5px solid ${color}33`, boxShadow: '0 2px 8px rgba(0,0,0,.05)', cursor: 'pointer',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 10, background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{initials(d.contact_name)}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.contact_name}</div>
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: isGave ? '#16a34a' : '#ef4444', letterSpacing: -.3 }}>
+                      {isGave ? '+' : '−'}{n(d.remaining_amount)} <span style={{ fontSize: 9, fontWeight: 600, color: '#cbd5e1' }}>{d.currency}</span>
+                    </div>
+                    <div style={{ display: 'inline-block', marginTop: 7, fontSize: 10, fontWeight: 700, color, background: bg, padding: '3px 8px', borderRadius: 6 }}>{badge}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 6px' }}>
           <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{t('recent_ops')}</h3>
           <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, background: '#fff', padding: '3px 9px', borderRadius: 20 }}>

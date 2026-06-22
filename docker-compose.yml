@@ -78,6 +78,26 @@ services:
     networks:
       - internal
 
+  # Muddati o'tgan qarzlar uchun har 24 soatda eslatma yuboradi
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nasiya_scheduler
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "while true; do
+               python manage.py send_reminders || true;
+               sleep 86400;
+             done"
+    networks:
+      - internal
+
 volumes:
   postgres_data:
   redis_data:

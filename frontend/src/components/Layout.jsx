@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { HomeIcon, UsersIcon, ChartIcon, SettingIcon, PlusIcon } from './Icons'
 import { useT } from '../i18n'
+import ErrorBoundary from './ErrorBoundary'
 
 const NAV = [
   { to: '/', Icon: HomeIcon, labelKey: 'nav_home' },
@@ -75,7 +76,9 @@ export default function Layout() {
       <style>{CSS}</style>
 
       <div key={key} className="page-enter" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Outlet />
+        <ErrorBoundary key={key}>
+          <Outlet />
+        </ErrorBoundary>
       </div>
 
       {/* ── BOTTOM NAV ── */}

@@ -106,6 +106,12 @@ export const useDebtStore = create((set, get) => ({
     return data
   },
 
+  updateDebt: async (id, updates) => {
+    const { data } = await debtsAPI.update(id, updates)
+    set((s) => ({ debts: s.debts.map((d) => (d.id === id ? data : d)) }))
+    return data
+  },
+
   payDebt: async (id, payData) => {
     const { data } = await debtsAPI.pay(id, payData)
     set((s) => ({
@@ -164,6 +170,12 @@ export const useContactStore = create((set) => ({
   addContact: async (contactData) => {
     const { data } = await contactsAPI.create(contactData)
     set((s) => ({ contacts: [data, ...s.contacts] }))
+    return data
+  },
+
+  updateContact: async (id, updates) => {
+    const { data } = await contactsAPI.update(id, updates)
+    set((s) => ({ contacts: s.contacts.map((c) => (c.id === id ? data : c)) }))
     return data
   },
 
