@@ -272,3 +272,24 @@ def notify_overdue(debt):
         f"📌 {label}"
     )
     send(debt.user.telegram_id, text, reply_markup=open_app_btn())
+
+
+def notify_due_soon(debt, days_left: int):
+    """Bugun (0) yoki ertaga (1) muddati tugaydigan qarzlar uchun eslatma."""
+    if not debt.user.telegram_id or not debt.user.notifications_enabled:
+        return
+    label = 'Menga qaytarishi kerak' if debt.debt_type == 'gave' else 'Men qaytaraman'
+    if days_left == 0:
+        title = "⏰ <b>Bugun muddat!</b>"
+        when = "Bugun so'nggi kun"
+    else:
+        title = "📅 <b>Ertaga muddat!</b>"
+        when = "Ertaga so'nggi kun"
+    text = (
+        f"{title}\n\n"
+        f"👤 <b>{debt.contact.name}</b>\n"
+        f"💰 <b>{fmt_amount(debt.remaining_amount, debt.currency)}</b>\n"
+        f"📅 {when}: {fmt_date(debt.due_date)}\n"
+        f"📌 {label}"
+    )
+    send(debt.user.telegram_id, text, reply_markup=open_app_btn('📒 Ko\'rish'))

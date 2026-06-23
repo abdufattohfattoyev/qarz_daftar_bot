@@ -21,14 +21,23 @@ export default function Home() {
 
   const active = debts.filter(d => d.status !== 'paid')
   const paidCount = debts.length - active.length
-  // Faqat tanlangan valyutadagi faol qarzlar balansga kiradi
+
+  // Har valyuta uchun alohida balans
+  const bal = (cur) => {
+    const ca = active.filter(d => (d.currency || 'UZS') === cur)
+    const gave = ca.filter(d => d.debt_type === 'gave').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
+    const got  = ca.filter(d => d.debt_type === 'got').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
+    return { gave, got, net: gave - got, hasAny: gave > 0 || got > 0 }
+  }
+  const uzsB = bal('UZS')
+  const usdB = bal('USD')
+  const isMultiCur = uzsB.hasAny && usdB.hasAny
+
+  // Single-currency fallback (homeCurrency toggle faqat multi bo'lmaganda)
   const curActive = active.filter(d => (d.currency || 'UZS') === homeCurrency)
   const totalGave = curActive.filter(d => d.debt_type === 'gave').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const totalGot  = curActive.filter(d => d.debt_type === 'got').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const net = totalGave - totalGot
-  // Ikkinchi valyutada qarz bormi? Toggle ko'rsatish uchun
-  const hasUSD = debts.some(d => d.currency === 'USD')
-  const hasUZS = debts.some(d => !d.currency || d.currency === 'UZS')
   // Muddat ogohlantirishlari — o'tib ketgan yoki 3 kun ichida qaytariladigan qarzlar
   const dueAlerts = active
     .filter((d) => d.due_date)
@@ -43,6 +52,7 @@ export default function Home() {
   // Katta raqamlar chiqib ketmasligi uchun shrift o'lchamini moslaymiz (responsive)
   const netStr = n(Math.abs(net))
   const netFont = netStr.length > 12 ? 20 : netStr.length > 9 ? 24 : 28
+  const fs = (v) => { const s = n(Math.abs(v)); return s.length > 9 ? 18 : s.length > 6 ? 21 : 24 }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -63,65 +73,106 @@ export default function Home() {
               {t('greeting', { name: firstName })} 👋
             </h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Valyuta toggle — faqat ikkinchi valyutada ham qarz bo'lsa ko'rsatiladi */}
-            {(hasUSD && hasUZS) && (
-              <div style={{ display: 'flex', background: 'rgba(0,0,0,.2)', borderRadius: 8, padding: 2, gap: 2 }}>
-                {['UZS', 'USD'].map(cur => (
-                  <button key={cur} onClick={() => setHomeCurrency(cur)} style={{
-                    padding: '3px 9px', borderRadius: 6, border: 'none', fontSize: 10, fontWeight: 800, cursor: 'pointer',
-                    background: homeCurrency === cur ? '#fff' : 'transparent',
-                    color: homeCurrency === cur ? '#16a34a' : 'rgba(255,255,255,.55)',
-                    transition: 'all .15s',
-                  }}>{cur}</button>
-                ))}
-              </div>
-            )}
-            <div style={{
-              width: 36, height: 36, borderRadius: 11,
-              background: 'rgba(255,255,255,.18)',
-              border: '1.5px solid rgba(255,255,255,.28)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 800, color: '#fff',
-            }}>
-              {initials(user?.display_name || 'U')}
-            </div>
+          <div style={{
+            width: 36, height: 36, borderRadius: 11,
+            background: 'rgba(255,255,255,.18)',
+            border: '1.5px solid rgba(255,255,255,.28)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 800, color: '#fff',
+          }}>
+            {initials(user?.display_name || 'U')}
           </div>
         </div>
 
         {/* balance glass card */}
-        <div style={{
-          background: 'rgba(0,0,0,.15)',
-          borderRadius: 18,
-          padding: '12px 14px',
-          border: '1px solid rgba(255,255,255,.12)',
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: 10 }}>
-            <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,.55)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700 }}>
-              {t('net_balance')}
-            </p>
-            <p style={{ margin: '3px 0 0', fontSize: netFont, fontWeight: 900, color: '#fff', letterSpacing: -1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {net >= 0 ? '+' : '−'}{netStr}
-              <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, opacity: .65 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
-            </p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {[
-              { label: t('given'), val: totalGave, Icon: ArrowUpIcon },
-              { label: t('taken'), val: totalGot,  Icon: ArrowDownIcon },
-            ].map(({ label, val, Icon }) => (
-              <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: '8px 10px', minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                  <div style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
-                    <Icon />
-                  </div>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: n(val).length > 9 ? 13 : 15, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
-                <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,.45)' }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</p>
+        <div style={{ background: 'rgba(0,0,0,.15)', borderRadius: 18, padding: '12px 14px', border: '1px solid rgba(255,255,255,.12)' }}>
+
+          {isMultiCur ? (
+            /* ── DUAL CURRENCY: ikki valyuta bir vaqtda ── */
+            <>
+              {/* Net balanslar yonma-yon */}
+              <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, marginBottom: 10 }}>
+                {[
+                  { cur: 'UZS', b: uzsB, label: 'UZS' },
+                  { cur: 'USD', b: usdB, label: '$' },
+                ].map(({ cur, b, label }, i) => {
+                  const ns = n(Math.abs(b.net))
+                  const nf = ns.length > 9 ? 18 : ns.length > 6 ? 22 : 26
+                  return (
+                    <React.Fragment key={cur}>
+                      {i > 0 && <div style={{ width: 1, background: 'rgba(255,255,255,.15)', margin: '0 12px' }} />}
+                      <div style={{ flex: 1, textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,.5)', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700 }}>
+                          {t('net_balance')} · {label}
+                        </p>
+                        <p style={{ margin: '3px 0 0', fontSize: nf, fontWeight: 900, color: b.net >= 0 ? '#86efac' : '#fca5a5', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
+                          {b.net >= 0 ? '+' : '−'}{ns}
+                          <span style={{ fontSize: 10, fontWeight: 600, marginLeft: 3, opacity: .7 }}>{label}</span>
+                        </p>
+                      </div>
+                    </React.Fragment>
+                  )
+                })}
               </div>
-            ))}
-          </div>
+
+              {/* Berganim / Olganim: 2 ustun, har birida UZS + USD satri */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {[
+                  { label: t('given'), Icon: ArrowUpIcon,   uzs: uzsB.gave, usd: usdB.gave },
+                  { label: t('taken'), Icon: ArrowDownIcon, uzs: uzsB.got,  usd: usdB.got  },
+                ].map(({ label, Icon, uzs, usd }) => (
+                  <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: '8px 10px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 5, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                        <Icon />
+                      </div>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,.7)', fontWeight: 700 }}>{label}</span>
+                    </div>
+                    {/* UZS qatori */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                      <p style={{ margin: 0, fontSize: fs(uzs), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(uzs)}</p>
+                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,.4)', fontWeight: 600 }}>UZS</span>
+                    </div>
+                    {/* USD qatori */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 3, paddingTop: 3, borderTop: '1px solid rgba(255,255,255,.1)' }}>
+                      <p style={{ margin: 0, fontSize: fs(usd), fontWeight: 800, color: 'rgba(255,255,255,.75)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(usd)}</p>
+                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,.35)', fontWeight: 600 }}>$</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            /* ── SINGLE CURRENCY: oddiy holat ── */
+            <>
+              <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,.55)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700 }}>
+                  {t('net_balance')}
+                </p>
+                <p style={{ margin: '3px 0 0', fontSize: netFont, fontWeight: 900, color: '#fff', letterSpacing: -1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {net >= 0 ? '+' : '−'}{netStr}
+                  <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, opacity: .65 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
+                </p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {[
+                  { label: t('given'), val: totalGave, Icon: ArrowUpIcon },
+                  { label: t('taken'), val: totalGot,  Icon: ArrowDownIcon },
+                ].map(({ label, val, Icon }) => (
+                  <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: '8px 10px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                        <Icon />
+                      </div>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: n(val).length > 9 ? 13 : 15, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,.45)' }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

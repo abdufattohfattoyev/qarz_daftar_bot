@@ -61,25 +61,36 @@ def _notify_payment_made(payment_id: int):
 
 def _send_overdue_reminders():
     try:
+        from datetime import timedelta
         from django.utils import timezone
         from apps.debts.models import Debt
         from apps.notifications import bot
 
-        overdue = Debt.objects.filter(
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        base = Debt.objects.filter(
             status__in=['active', 'partial'],
-            due_date__lt=timezone.now().date(),
             user__notifications_enabled=True,
             user__telegram_id__isnull=False,
         ).select_related('user', 'contact')
 
+        jobs = [
+            (base.filter(due_date__lt=today),    'overdue',   lambda d: bot.notify_overdue(d)),
+            (base.filter(due_date=today),         'due_today', lambda d: bot.notify_due_soon(d, 0)),
+            (base.filter(due_date=tomorrow),      'due_tmrw',  lambda d: bot.notify_due_soon(d, 1)),
+        ]
+
         sent = 0
-        for debt in overdue:
-            try:
-                bot.notify_overdue(debt)
-                sent += 1
-            except Exception as e:
-                logger.error('overdue (debt=%s): %s', debt.id, e)
-        logger.info('Overdue reminders sent: %s', sent)
+        for qs, tag, fn in jobs:
+            for debt in qs:
+                try:
+                    fn(debt)
+                    sent += 1
+                except Exception as e:
+                    logger.error('%s (debt=%s): %s', tag, debt.id, e)
+
+        logger.info('Due reminders sent: %s', sent)
     except Exception as e:
         logger.error('send_overdue_reminders: %s', e)
 
