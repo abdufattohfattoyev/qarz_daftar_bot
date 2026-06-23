@@ -13,6 +13,9 @@ BACKEND_URL = os.environ.get('BACKEND_INTERNAL_URL', 'http://nasiya_backend:8000
 ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')   # ovozni matnga (Whisper) — ixtiyoriy
 WHISPER_MODEL = os.environ.get('WHISPER_MODEL', 'whisper-1')   # yoki 'gpt-4o-mini-transcribe'
+# Til: bo'sh = avtomatik aniqlash. Whisper 'uz' parametrini qabul qilmaydi,
+# shuning uchun standart bo'sh — model o'zbekchani o'zi tanib oladi.
+WHISPER_LANG = os.environ.get('WHISPER_LANG', '')
 # Whisper'ni o'zbekcha qarz so'zlariga yo'naltiruvchi prompt (aniqlikni oshiradi)
 WHISPER_PROMPT = ("Qarz daftari. Misol: Diyorga 200 ming so'm berdim. "
                   "Akmaldan 50 dollar oldim. ming, million, so'm, dollar, berdim, oldim.")
@@ -208,11 +211,14 @@ def transcribe_voice(file_id):
             return None
         # 2. Audio baytlarni yuklab olamiz
         audio = requests.get(f'https://api.telegram.org/file/bot{TOKEN}/{path}', timeout=30).content
-        # 3. Whisper'ga yuboramiz (o'zbek tili + qarz so'zlariga yo'naltiruvchi prompt)
+        # 3. Whisper'ga yuboramiz (til avtomatik aniqlanadi + qarz so'zlari prompti)
+        data = {'model': WHISPER_MODEL, 'prompt': WHISPER_PROMPT}
+        if WHISPER_LANG:          # faqat ko'rsatilgan bo'lsa yuboramiz (uz qabul qilinmaydi)
+            data['language'] = WHISPER_LANG
         wr = requests.post(
             'https://api.openai.com/v1/audio/transcriptions',
             headers={'Authorization': f'Bearer {OPENAI_API_KEY}'},
-            data={'model': WHISPER_MODEL, 'language': 'uz', 'prompt': WHISPER_PROMPT},
+            data=data,
             files={'file': ('voice.ogg', audio, 'audio/ogg')},
             timeout=60,
         )
