@@ -98,7 +98,7 @@ export default function Home() {
             /* ── DUAL CURRENCY ── */
             <>
               {/* Net balanslar — 2 pill badge */}
-              <div className="pop-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 8 }}>
                 {[
                   { cur: 'UZS', b: uzsB, sym: 'UZS' },
                   { cur: 'USD', b: usdB, sym: '$' },
@@ -137,7 +137,6 @@ export default function Home() {
                   <div key={label} style={{
                     background: 'rgba(255,255,255,.1)',
                     borderRadius: 12, padding: '8px 10px', minWidth: 0,
-                    animation: `fadeUp .3s ${delay} both`,
                     border: '1px solid rgba(255,255,255,.08)',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
@@ -163,7 +162,7 @@ export default function Home() {
           ) : (
             /* ── SINGLE CURRENCY ── */
             <>
-              <div className="pop-in" style={{ textAlign: 'center', marginBottom: 9 }}>
+              <div style={{ textAlign: 'center', marginBottom: 9 }}>
                 <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,.45)', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700 }}>
                   {t('net_balance')}
                 </p>
@@ -180,7 +179,6 @@ export default function Home() {
                   <div key={label} style={{
                     background: 'rgba(255,255,255,.1)',
                     borderRadius: 12, padding: '9px 10px', minWidth: 0,
-                    animation: `fadeUp .3s ${delay} both`,
                     border: '1px solid rgba(255,255,255,.08)',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
