@@ -51,8 +51,9 @@ export default function Home() {
   const firstName = (user?.display_name || user?.full_name || 'User').split(' ')[0]
   // Katta raqamlar chiqib ketmasligi uchun shrift o'lchamini moslaymiz (responsive)
   const netStr = n(Math.abs(net))
-  const netFont = netStr.length > 12 ? 20 : netStr.length > 9 ? 24 : 28
-  const fs = (v) => { const s = n(Math.abs(v)); return s.length > 9 ? 18 : s.length > 6 ? 21 : 24 }
+  const netFont = netStr.length > 11 ? 18 : netStr.length > 8 ? 21 : 24
+  // Sub-karta raqam o'lchami (kichikroq, responsive)
+  const fz = (v) => { const s = n(Math.abs(v)); return s.length > 9 ? 12 : s.length > 6 ? 14 : 16 }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -60,114 +61,135 @@ export default function Home() {
       {/* ── STICKY HEADER ── */}
       <div style={{
         flexShrink: 0,
-        background: 'linear-gradient(145deg, #0a4d26 0%, #16a34a 55%, #22c55e 100%)',
-        padding: '12px 16px 14px',
+        background: 'linear-gradient(150deg, #082e17 0%, #15803d 50%, #22c55e 100%)',
+        padding: '10px 14px 12px',
       }}>
         {/* greeting row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div className="slide-down" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div>
-            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,.55)', fontWeight: 500, letterSpacing: '.03em' }}>
+            <p style={{ margin: 0, fontSize: 9.5, color: 'rgba(255,255,255,.5)', fontWeight: 500, letterSpacing: '.04em' }}>
               {new Date().toLocaleDateString(localeCode(), { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
-            <h2 style={{ margin: '1px 0 0', fontSize: 15, fontWeight: 700, color: '#fff' }}>
+            <h2 style={{ margin: '1px 0 0', fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: -.2 }}>
               {t('greeting', { name: firstName })} 👋
             </h2>
           </div>
           <div style={{
-            width: 36, height: 36, borderRadius: 11,
-            background: 'rgba(255,255,255,.18)',
-            border: '1.5px solid rgba(255,255,255,.28)',
+            width: 34, height: 34, borderRadius: 10,
+            background: 'rgba(255,255,255,.15)',
+            border: '1.5px solid rgba(255,255,255,.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 800, color: '#fff',
+            fontSize: 12, fontWeight: 800, color: '#fff',
+            letterSpacing: -.5,
           }}>
             {initials(user?.display_name || 'U')}
           </div>
         </div>
 
         {/* balance glass card */}
-        <div style={{ background: 'rgba(0,0,0,.15)', borderRadius: 18, padding: '12px 14px', border: '1px solid rgba(255,255,255,.12)' }}>
+        <div style={{
+          background: 'rgba(0,0,0,.18)',
+          borderRadius: 16,
+          padding: '10px 12px',
+          border: '1px solid rgba(255,255,255,.1)',
+          backdropFilter: 'blur(8px)',
+        }}>
 
           {isMultiCur ? (
-            /* ── DUAL CURRENCY: ikki valyuta bir vaqtda ── */
+            /* ── DUAL CURRENCY ── */
             <>
-              {/* Net balanslar yonma-yon */}
-              <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, marginBottom: 10 }}>
+              {/* Net balanslar — 2 pill badge */}
+              <div className="pop-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 8 }}>
                 {[
-                  { cur: 'UZS', b: uzsB, label: 'UZS' },
-                  { cur: 'USD', b: usdB, label: '$' },
-                ].map(({ cur, b, label }, i) => {
+                  { cur: 'UZS', b: uzsB, sym: 'UZS' },
+                  { cur: 'USD', b: usdB, sym: '$' },
+                ].map(({ cur, b, sym }) => {
                   const ns = n(Math.abs(b.net))
-                  const nf = ns.length > 9 ? 18 : ns.length > 6 ? 22 : 26
+                  const nf = ns.length > 10 ? 15 : ns.length > 7 ? 18 : 21
+                  const isPos = b.net >= 0
                   return (
-                    <React.Fragment key={cur}>
-                      {i > 0 && <div style={{ width: 1, background: 'rgba(255,255,255,.15)', margin: '0 12px' }} />}
-                      <div style={{ flex: 1, textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,.5)', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700 }}>
-                          {t('net_balance')} · {label}
-                        </p>
-                        <p style={{ margin: '3px 0 0', fontSize: nf, fontWeight: 900, color: b.net >= 0 ? '#86efac' : '#fca5a5', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
-                          {b.net >= 0 ? '+' : '−'}{ns}
-                          <span style={{ fontSize: 10, fontWeight: 600, marginLeft: 3, opacity: .7 }}>{label}</span>
-                        </p>
-                      </div>
-                    </React.Fragment>
+                    <div key={cur} style={{
+                      background: isPos ? 'rgba(134,239,172,.12)' : 'rgba(252,165,165,.12)',
+                      borderRadius: 11,
+                      padding: '7px 10px',
+                      border: `1px solid ${isPos ? 'rgba(134,239,172,.2)' : 'rgba(252,165,165,.2)'}`,
+                      textAlign: 'center',
+                    }}>
+                      <p style={{ margin: 0, fontSize: 7, color: 'rgba(255,255,255,.4)', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700 }}>
+                        {t('net_balance')} · {sym}
+                      </p>
+                      <p style={{ margin: '2px 0 0', fontSize: nf, fontWeight: 900, color: isPos ? '#86efac' : '#fca5a5', letterSpacing: -.3, whiteSpace: 'nowrap', lineHeight: 1.1 }}>
+                        {b.net >= 0 ? '+' : '−'}{ns}
+                        <span style={{ fontSize: 8, fontWeight: 600, marginLeft: 2, opacity: .65 }}>{sym}</span>
+                      </p>
+                    </div>
                   )
                 })}
               </div>
 
-              {/* Berganim / Olganim: 2 ustun, har birida UZS + USD satri */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {/* Berganim / Olganim */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
                 {[
-                  { label: t('given'), Icon: ArrowUpIcon,   uzs: uzsB.gave, usd: usdB.gave },
-                  { label: t('taken'), Icon: ArrowDownIcon, uzs: uzsB.got,  usd: usdB.got  },
-                ].map(({ label, Icon, uzs, usd }) => (
-                  <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: '8px 10px', minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-                      <div style={{ width: 18, height: 18, borderRadius: 5, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                  { label: t('given'), Icon: ArrowUpIcon,   uzs: uzsB.gave, usd: usdB.gave, delay: '.08s' },
+                  { label: t('taken'), Icon: ArrowDownIcon, uzs: uzsB.got,  usd: usdB.got,  delay: '.14s' },
+                ].map(({ label, Icon, uzs, usd, delay }) => (
+                  <div key={label} style={{
+                    background: 'rgba(255,255,255,.1)',
+                    borderRadius: 12, padding: '8px 9px', minWidth: 0,
+                    animation: `fadeUp .3s ${delay} both`,
+                    border: '1px solid rgba(255,255,255,.08)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 5 }}>
+                      <div style={{ width: 16, height: 16, borderRadius: 5, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                         <Icon />
                       </div>
-                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,.7)', fontWeight: 700 }}>{label}</span>
+                      <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,.6)', fontWeight: 700, letterSpacing: '.02em' }}>{label}</span>
                     </div>
-                    {/* UZS qatori */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                      <p style={{ margin: 0, fontSize: fs(uzs), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(uzs)}</p>
-                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,.4)', fontWeight: 600 }}>UZS</span>
+                    {/* UZS */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                      <p style={{ margin: 0, fontSize: fz(uzs), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(uzs)}</p>
+                      <span style={{ fontSize: 7, color: 'rgba(255,255,255,.35)', fontWeight: 700, flexShrink: 0 }}>UZS</span>
                     </div>
-                    {/* USD qatori */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 3, paddingTop: 3, borderTop: '1px solid rgba(255,255,255,.1)' }}>
-                      <p style={{ margin: 0, fontSize: fs(usd), fontWeight: 800, color: 'rgba(255,255,255,.75)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(usd)}</p>
-                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,.35)', fontWeight: 600 }}>$</span>
+                    {/* USD divider */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginTop: 2, paddingTop: 3, borderTop: '1px solid rgba(255,255,255,.08)' }}>
+                      <p style={{ margin: 0, fontSize: fz(usd), fontWeight: 800, color: 'rgba(255,255,255,.6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(usd)}</p>
+                      <span style={{ fontSize: 7, color: 'rgba(255,255,255,.25)', fontWeight: 700, flexShrink: 0 }}>$</span>
                     </div>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            /* ── SINGLE CURRENCY: oddiy holat ── */
+            /* ── SINGLE CURRENCY ── */
             <>
-              <div style={{ textAlign: 'center', marginBottom: 10 }}>
-                <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,.55)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700 }}>
+              <div className="pop-in" style={{ textAlign: 'center', marginBottom: 9 }}>
+                <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,.45)', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700 }}>
                   {t('net_balance')}
                 </p>
-                <p style={{ margin: '3px 0 0', fontSize: netFont, fontWeight: 900, color: '#fff', letterSpacing: -1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ margin: '2px 0 0', fontSize: netFont, fontWeight: 900, color: net >= 0 ? '#86efac' : '#fca5a5', letterSpacing: -.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.1 }}>
                   {net >= 0 ? '+' : '−'}{netStr}
-                  <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, opacity: .65 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 3, opacity: .65 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
                 </p>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
                 {[
-                  { label: t('given'), val: totalGave, Icon: ArrowUpIcon },
-                  { label: t('taken'), val: totalGot,  Icon: ArrowDownIcon },
-                ].map(({ label, val, Icon }) => (
-                  <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: '8px 10px', minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                      <div style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                  { label: t('given'), val: totalGave, Icon: ArrowUpIcon,   delay: '.08s' },
+                  { label: t('taken'), val: totalGot,  Icon: ArrowDownIcon, delay: '.14s' },
+                ].map(({ label, val, Icon, delay }) => (
+                  <div key={label} style={{
+                    background: 'rgba(255,255,255,.1)',
+                    borderRadius: 12, padding: '8px 9px', minWidth: 0,
+                    animation: `fadeUp .3s ${delay} both`,
+                    border: '1px solid rgba(255,255,255,.08)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 5 }}>
+                      <div style={{ width: 16, height: 16, borderRadius: 5, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                         <Icon />
                       </div>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                      <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,.6)', fontWeight: 700 }}>{label}</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: n(val).length > 9 ? 13 : 15, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
-                    <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,.45)' }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</p>
+                    <p style={{ margin: 0, fontSize: fz(val), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 7.5, color: 'rgba(255,255,255,.3)', fontWeight: 600 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</p>
                   </div>
                 ))}
               </div>

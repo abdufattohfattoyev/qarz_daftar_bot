@@ -38,10 +38,20 @@ const CSS = `
     70%  { transform: scale(1.1); }
     100% { transform: scale(1); }
   }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.88) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
 
-  .page-enter { animation: scaleIn .22s cubic-bezier(.25,.8,.25,1) both; }
-  .fadeup     { animation: fadeUp .28s cubic-bezier(.25,.8,.25,1) both; }
-  .sheet-anim { animation: slideUp .3s cubic-bezier(.25,.8,.25,1) both; }
+  .page-enter  { animation: scaleIn  .22s cubic-bezier(.25,.8,.25,1) both; }
+  .fadeup      { animation: fadeUp   .28s cubic-bezier(.25,.8,.25,1) both; }
+  .sheet-anim  { animation: slideUp  .3s  cubic-bezier(.25,.8,.25,1) both; }
+  .slide-down  { animation: slideDown .25s cubic-bezier(.25,.8,.25,1) both; }
+  .pop-in      { animation: popIn    .3s  cubic-bezier(.34,1.56,.64,1) both; }
 
   .nav-btn { transition: transform .15s, opacity .15s; -webkit-tap-highlight-color: transparent; }
   .nav-btn:active { transform: scale(0.88) !important; opacity: .7; }
