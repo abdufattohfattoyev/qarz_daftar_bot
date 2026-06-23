@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { contactsAPI } from '../api'
-import { initials, avatarColor, fmtDate, fmtTime, haptic } from '../utils'
+import { initials, avatarColor, fmtDate, fmtTime, haptic, daysUntil } from '../utils'
 import { ArrowUpIcon, ArrowDownIcon } from '../components/Icons'
 import { useT } from '../i18n'
 
@@ -178,6 +178,22 @@ export default function ContactDetail() {
                     <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
                       {fmtDate(debt.created_at)} · {fmtTime(debt.created_at)}{debt.note ? ` · ${debt.note}` : ''}
                     </div>
+                    {/* Muddat — har qarzning o'z sanasi (faqat to'lanmaganlarda) */}
+                    {debt.due_date && !isPaid && (() => {
+                      const d = daysUntil(debt.due_date)
+                      const overdue = d !== null && d < 0
+                      const today = d === 0
+                      const color = overdue ? '#ef4444' : today ? '#f97316' : '#16a34a'
+                      const bg = overdue ? '#fef2f2' : today ? '#fff7ed' : '#f0fdf4'
+                      const label = overdue ? t('days_overdue', { n: Math.abs(d) })
+                        : today ? t('due_today_label')
+                        : t('days_left', { n: d })
+                      return (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 5, fontSize: 10, fontWeight: 700, color, background: bg, padding: '2px 8px', borderRadius: 6 }}>
+                          📅 {fmtDate(debt.due_date)} · {label}
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3,
