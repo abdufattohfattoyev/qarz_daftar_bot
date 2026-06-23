@@ -188,6 +188,86 @@ def bot_toggle_notif(request):
     return Response({'notifications_enabled': user.notifications_enabled})
 
 
+def _is_admin(telegram_id):
+    """ADMIN_CHAT_ID bilan solishtiradi (faqat admin AI funksiyasidan foydalanadi)."""
+    admin = str(getattr(settings, 'ADMIN_CHAT_ID', '') or '').strip()
+    return admin and str(telegram_id).strip() == admin
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def bot_parse_debt(request):
+    """Matndan qarz ajratadi (Claude). Faqat admin uchun. Draft qaytaradi — yaratmaydi."""
+    if request.headers.get('X-Bot-Secret', '') != settings.BOT_TOKEN:
+        return Response({'error': 'Ruxsat yo\'q'}, status=403)
+
+    telegram_id = request.data.get('telegram_id')
+    if not _is_admin(telegram_id):
+        return Response({'ok': False, 'error': 'not_admin'}, status=403)
+
+    text = (request.data.get('text') or '').strip()
+    if not text:
+        return Response({'ok': False, 'error': 'empty'})
+
+    from apps.notifications.ai_parser import parse_debt_text
+    draft = parse_debt_text(text)
+    if not draft:
+        return Response({'ok': False, 'error': 'parse_failed'})
+    return Response({'ok': True, 'draft': draft})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def bot_create_debt(request):
+    """Tasdiqlangan draftdan kontakt + qarz yaratadi. Faqat admin uchun."""
+    if request.headers.get('X-Bot-Secret', '') != settings.BOT_TOKEN:
+        return Response({'error': 'Ruxsat yo\'q'}, status=403)
+
+    telegram_id = request.data.get('telegram_id')
+    if not _is_admin(telegram_id):
+        return Response({'ok': False, 'error': 'not_admin'}, status=403)
+
+    try:
+        user = User.objects.get(telegram_id=telegram_id)
+    except User.DoesNotExist:
+        return Response({'ok': False, 'error': 'no_user'}, status=404)
+
+    from decimal import Decimal, InvalidOperation
+    from apps.contacts.models import Contact
+    from apps.debts.models import Debt
+
+    name = (request.data.get('contact') or '').strip()
+    try:
+        amount = Decimal(str(request.data.get('amount', 0)))
+    except (InvalidOperation, TypeError):
+        amount = Decimal('0')
+    currency = request.data.get('currency', 'UZS')
+    debt_type = request.data.get('type', 'gave')
+
+    if not name or amount <= 0 or currency not in ('UZS', 'USD') or debt_type not in ('gave', 'got'):
+        return Response({'ok': False, 'error': 'invalid'}, status=400)
+
+    # Mavjud kontaktni ism bo'yicha topamiz (case-insensitive), bo'lmasa yangi
+    contact = Contact.objects.filter(owner=user, name__iexact=name).first()
+    if not contact:
+        contact = Contact.objects.create(owner=user, name=name)
+
+    debt = Debt.objects.create(
+        user=user, contact=contact, debt_type=debt_type,
+        amount=amount, currency=currency,
+        note=request.data.get('note', '') or '',
+    )
+
+    return Response({
+        'ok': True,
+        'debt_id': debt.id,
+        'contact': contact.name,
+        'amount': float(amount),
+        'currency': currency,
+        'type': debt_type,
+    })
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def set_pin(request):

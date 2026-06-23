@@ -11,8 +11,23 @@ TOKEN = os.environ.get('BOT_TOKEN', '')
 WEBAPP_URL = os.environ.get('WEBAPP_URL', 'https://nasiya-karta.uz')
 BACKEND_URL = os.environ.get('BACKEND_INTERNAL_URL', 'http://nasiya_backend:8000')
 ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')   # ovozni matnga (Whisper) — ixtiyoriy
 API = f'https://api.telegram.org/bot{TOKEN}'
 HDRS = {'X-Bot-Secret': TOKEN, 'Host': 'nasiya-karta.uz'}
+
+# Admin uchun tasdiqlanmagan qarz draftlari (chat_id → draft). Bitta admin, bitta jarayon.
+PENDING_DEBTS = {}
+
+
+def is_admin(chat_id):
+    return ADMIN_CHAT_ID and str(chat_id) == str(ADMIN_CHAT_ID)
+
+
+def fmt_num(v):
+    try:
+        return f"{int(round(float(v))):,}".replace(',', ' ')
+    except (ValueError, TypeError):
+        return str(v)
 
 # ── Premium (custom) emoji ──────────────────────────────────────────────────────
 # custom_emoji_id ni @userinfobot yoki @stickerdownloadbot dan oling va shu yerga
@@ -141,6 +156,99 @@ def notify_admin(text):
     tg('sendMessage', {'chat_id': ADMIN_CHAT_ID, 'text': text, 'parse_mode': 'HTML'})
 
 
+# ── AI qarz kiritish (faqat admin) ────────────────────────────────────────────
+
+def parse_debt(telegram_id, text):
+    """Backendga matn yuborib qarz draftini oladi. {ok, draft} yoki {ok:False, error}."""
+    try:
+        r = requests.post(f'{BACKEND_URL}/api/auth/bot-parse-debt/',
+                          json={'telegram_id': telegram_id, 'text': text}, headers=HDRS, timeout=30)
+        return r.json()
+    except Exception as e:
+        log.error(f'parse_debt xato: {e}')
+        return {'ok': False, 'error': 'network'}
+
+
+def create_debt(telegram_id, draft):
+    """Tasdiqlangan draftni backendga yuborib qarz yaratadi."""
+    try:
+        r = requests.post(f'{BACKEND_URL}/api/auth/bot-create-debt/',
+                          json={'telegram_id': telegram_id, **draft}, headers=HDRS, timeout=15)
+        return r.json()
+    except Exception as e:
+        log.error(f'create_debt xato: {e}')
+        return {'ok': False, 'error': 'network'}
+
+
+def transcribe_voice(file_id):
+    """Telegram ovozli xabarni Whisper (OpenAI) orqali matnga aylantiradi.
+    OPENAI_API_KEY bo'lmasa None qaytaradi."""
+    if not OPENAI_API_KEY:
+        return None
+    try:
+        # 1. Telegram'dan fayl yo'lini olamiz
+        r = requests.get(f'{API}/getFile', params={'file_id': file_id}, timeout=10)
+        path = r.json().get('result', {}).get('file_path')
+        if not path:
+            return None
+        # 2. Audio baytlarni yuklab olamiz
+        audio = requests.get(f'https://api.telegram.org/file/bot{TOKEN}/{path}', timeout=30).content
+        # 3. Whisper'ga yuboramiz (o'zbek tili)
+        wr = requests.post(
+            'https://api.openai.com/v1/audio/transcriptions',
+            headers={'Authorization': f'Bearer {OPENAI_API_KEY}'},
+            data={'model': 'whisper-1', 'language': 'uz'},
+            files={'file': ('voice.ogg', audio, 'audio/ogg')},
+            timeout=60,
+        )
+        return (wr.json().get('text') or '').strip()
+    except Exception as e:
+        log.error(f'transcribe_voice xato: {e}')
+        return None
+
+
+def debt_confirm_card(draft):
+    """Tasdiqlash kartochkasi matni + tugmalari."""
+    is_gave = draft.get('type') == 'gave'
+    arrow = '↗️' if is_gave else '↙️'
+    label = 'Men berdim (menga qarzdor)' if is_gave else 'Men oldim (men qarzdor)'
+    cur = '$' if draft.get('currency') == 'USD' else 'so\'m'
+    text = (
+        "🎤 <b>Tushundim:</b>\n\n"
+        f"👤 <b>{draft.get('contact', '—')}</b>\n"
+        f"{arrow} {label}\n"
+        f"💰 <b>{fmt_num(draft.get('amount'))} {cur}</b>\n\n"
+        "❓ Shu qarz to'g'rimi?"
+    )
+    markup = {'inline_keyboard': [[
+        {'text': '✅ Ha, saqlash', 'callback_data': 'debt_yes'},
+        {'text': '❌ Yo\'q',        'callback_data': 'debt_no'},
+    ]]}
+    return text, markup
+
+
+def handle_ai_debt(chat_id, text):
+    """Admin matn/ovoz yubordi — parse qilib tasdiqlash kartochkasini ko'rsatadi."""
+    res = parse_debt(chat_id, text)
+    if res.get('ok'):
+        PENDING_DEBTS[chat_id] = res['draft']
+        card, markup = debt_confirm_card(res['draft'])
+        tg('sendMessage', {'chat_id': chat_id, 'text': card,
+                           'parse_mode': 'HTML', 'reply_markup': json.dumps(markup)})
+    else:
+        err = res.get('error')
+        if err == 'parse_failed':
+            msg = ("🤔 Tushunolmadim. Masalan, shunday yozing yoki ayting:\n\n"
+                   "<i>«Diyorga 200 ming berdim»</i>\n"
+                   "<i>«Akmaldan 50 dollar oldim»</i>")
+        elif err == 'not_admin':
+            return False   # admin emas — pastda menyu ko'rsatiladi
+        else:
+            msg = "⚠️ Xatolik yuz berdi, qaytadan urinib ko'ring."
+        tg('sendMessage', {'chat_id': chat_id, 'text': msg, 'parse_mode': 'HTML'})
+    return True
+
+
 # ── Keyboards & matnlar ──────────────────────────────────────────────────────
 
 def main_menu(notif_on=True):
@@ -229,6 +337,30 @@ def handle_callback(cb):
         state = get_state(chat_id)
         edit(start_text(state), main_menu(state.get('notifications_enabled', True)))
 
+    elif action == 'debt_yes':
+        draft = PENDING_DEBTS.pop(chat_id, None)
+        if not draft:
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Muddati o\'tdi'})
+            edit('⌛️ Bu so\'rov eskirgan. Qaytadan yuboring.', None)
+            return
+        res = create_debt(chat_id, draft)
+        if res.get('ok'):
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': '✅ Saqlandi'})
+            is_gave = res.get('type') == 'gave'
+            cur = '$' if res.get('currency') == 'USD' else 'so\'m'
+            edit(f"✅ <b>Qarz saqlandi!</b>\n\n"
+                 f"👤 <b>{res.get('contact')}</b>\n"
+                 f"{'↗️ Men berdim' if is_gave else '↙️ Men oldim'}: "
+                 f"<b>{fmt_num(res.get('amount'))} {cur}</b>", None)
+        else:
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Xatolik'})
+            edit('⚠️ Saqlashda xatolik. Qaytadan urinib ko\'ring.', None)
+
+    elif action == 'debt_no':
+        PENDING_DEBTS.pop(chat_id, None)
+        tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Bekor qilindi'})
+        edit('❌ Bekor qilindi. Qaytadan yuborishingiz mumkin.', None)
+
     else:
         tg('answerCallbackQuery', {'callback_query_id': cb_id})
 
@@ -254,6 +386,7 @@ def main():
 
                 msg = update.get('message', {})
                 text = msg.get('text', '')
+                voice = msg.get('voice')
                 chat_id = msg.get('chat', {}).get('id')
                 if not chat_id:
                     continue
@@ -261,8 +394,33 @@ def main():
                 if text.startswith('/start'):
                     log.info(f'/start → {chat_id}')
                     handle_start(chat_id, msg.get('from', {}))
+
+                elif is_admin(chat_id) and voice:
+                    # 🎤 Admin ovozli xabar yubordi — Whisper → parse → tasdiqlash
+                    register_user(msg.get('from', {}))
+                    tg('sendChatAction', {'chat_id': chat_id, 'action': 'typing'})
+                    if not OPENAI_API_KEY:
+                        tg('sendMessage', {'chat_id': chat_id, 'parse_mode': 'HTML',
+                                           'text': "🎙 Ovozni matnga aylantirish hozircha o'chiq.\n\n"
+                                                   "Iltimos, qarzni <b>matn bilan yozing</b>:\n"
+                                                   "<i>«Diyorga 200 ming berdim»</i>"})
+                    else:
+                        transcript = transcribe_voice(voice['file_id'])
+                        if transcript:
+                            log.info(f'🎤 admin ovoz: "{transcript}"')
+                            handle_ai_debt(chat_id, transcript)
+                        else:
+                            tg('sendMessage', {'chat_id': chat_id,
+                                               'text': "🤔 Ovozni tushunolmadim. Qaytadan ayting yoki matn bilan yozing."})
+
+                elif is_admin(chat_id) and text:
+                    # ✍️ Admin matn yubordi — AI qarz sifatida sinaymiz
+                    register_user(msg.get('from', {}))
+                    tg('sendChatAction', {'chat_id': chat_id, 'action': 'typing'})
+                    handle_ai_debt(chat_id, text)
+
                 else:
-                    # Boshqa har qanday matn — menyuni ko'rsatamiz
+                    # Oddiy foydalanuvchi — menyuni ko'rsatamiz
                     handle_start(chat_id, msg.get('from', {}))
             except Exception as e:
                 log.error(f'update qayta ishlashda xato: {e}')

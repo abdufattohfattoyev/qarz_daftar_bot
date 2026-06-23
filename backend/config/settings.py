@@ -169,3 +169,5 @@ WEBAPP_URL = os.environ.get('WEBAPP_URL', 'https://nasiya-karta.uz')
 
 # Claude API — ovozli/matnli qarz parsing uchun (Haiku 4.5)
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+# AI qarz kiritish faqat shu Telegram ID uchun ishlaydi (admin)
+ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '')
