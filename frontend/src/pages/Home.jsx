@@ -107,20 +107,22 @@ export default function Home() {
                   const ns = n(Math.abs(b.net))
                   const nf = ns.length > 10 ? 18 : ns.length > 7 ? 21 : 24
                   const isPos = b.net >= 0
+                  const glow = isPos ? '0 0 18px rgba(74,222,128,.55)' : '0 0 18px rgba(248,113,113,.55)'
                   return (
                     <div key={cur} style={{
-                      background: isPos ? 'rgba(134,239,172,.14)' : 'rgba(252,165,165,.14)',
-                      borderRadius: 11,
+                      background: isPos ? 'rgba(74,222,128,.1)' : 'rgba(248,113,113,.1)',
+                      borderRadius: 12,
                       padding: '8px 10px',
-                      border: `1px solid ${isPos ? 'rgba(134,239,172,.25)' : 'rgba(252,165,165,.25)'}`,
+                      border: `1px solid ${isPos ? 'rgba(134,239,172,.3)' : 'rgba(252,165,165,.3)'}`,
+                      boxShadow: isPos ? 'inset 0 0 20px rgba(74,222,128,.08)' : 'inset 0 0 20px rgba(248,113,113,.08)',
                       textAlign: 'center',
                     }}>
                       <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,.5)', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700 }}>
                         {t('net_balance')} · {sym}
                       </p>
-                      <p style={{ margin: '3px 0 0', fontSize: nf, fontWeight: 900, color: isPos ? '#86efac' : '#fca5a5', letterSpacing: -.3, whiteSpace: 'nowrap', lineHeight: 1.1 }}>
+                      <p style={{ margin: '3px 0 0', fontSize: nf, fontWeight: 900, color: isPos ? '#4ade80' : '#f87171', letterSpacing: -.3, whiteSpace: 'nowrap', lineHeight: 1.1, textShadow: glow }}>
                         {b.net >= 0 ? '+' : '−'}{ns}
-                        <span style={{ fontSize: 12, fontWeight: 800, marginLeft: 3, color: isPos ? '#86efac' : '#fca5a5', opacity: .9 }}>{sym}</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, marginLeft: 3, color: isPos ? '#4ade80' : '#f87171', textShadow: glow }}>{sym}</span>
                       </p>
                     </div>
                   )
@@ -147,13 +149,13 @@ export default function Home() {
                     </div>
                     {/* UZS */}
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                      <p style={{ margin: 0, fontSize: fz(uzs), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(uzs)}</p>
+                      <p style={{ margin: 0, fontSize: fz(uzs), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textShadow: '0 0 12px rgba(255,255,255,.25)' }}>{n(uzs)}</p>
                       <span style={{ fontSize: 9, color: 'rgba(255,255,255,.5)', fontWeight: 700, flexShrink: 0 }}>UZS</span>
                     </div>
-                    {/* USD divider */}
+                    {/* USD divider — oltin rang */}
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 3, paddingTop: 4, borderTop: '1px solid rgba(255,255,255,.1)' }}>
-                      <p style={{ margin: 0, fontSize: fz(usd), fontWeight: 800, color: 'rgba(255,255,255,.75)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(usd)}</p>
-                      <span style={{ fontSize: 11, color: '#86efac', fontWeight: 800, flexShrink: 0 }}>$</span>
+                      <p style={{ margin: 0, fontSize: fz(usd), fontWeight: 800, color: usd > 0 ? '#fbbf24' : 'rgba(255,255,255,.4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textShadow: usd > 0 ? '0 0 14px rgba(251,191,36,.5)' : 'none' }}>{n(usd)}</p>
+                      <span style={{ fontSize: 11, color: usd > 0 ? '#fbbf24' : 'rgba(255,255,255,.35)', fontWeight: 800, flexShrink: 0, textShadow: usd > 0 ? '0 0 14px rgba(251,191,36,.5)' : 'none' }}>$</span>
                     </div>
                   </div>
                 ))}
@@ -166,9 +168,9 @@ export default function Home() {
                 <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,.45)', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700 }}>
                   {t('net_balance')}
                 </p>
-                <p style={{ margin: '2px 0 0', fontSize: netFont, fontWeight: 900, color: net >= 0 ? '#86efac' : '#fca5a5', letterSpacing: -.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.1 }}>
+                <p style={{ margin: '2px 0 0', fontSize: netFont, fontWeight: 900, color: net >= 0 ? '#4ade80' : '#f87171', letterSpacing: -.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.1, textShadow: net >= 0 ? '0 0 20px rgba(74,222,128,.55)' : '0 0 20px rgba(248,113,113,.55)' }}>
                   {net >= 0 ? '+' : '−'}{netStr}
-                  <span style={{ fontSize: homeCurrency === 'USD' ? 16 : 13, fontWeight: 800, marginLeft: 4, color: net >= 0 ? '#86efac' : '#fca5a5', opacity: .85 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
+                  <span style={{ fontSize: homeCurrency === 'USD' ? 16 : 13, fontWeight: 800, marginLeft: 4, color: net >= 0 ? '#4ade80' : '#f87171' }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
                 </p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
@@ -189,8 +191,8 @@ export default function Home() {
                       <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,.65)', fontWeight: 700 }}>{label}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                      <p style={{ margin: 0, fontSize: fz(val), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
-                      <span style={{ fontSize: homeCurrency === 'USD' ? 11 : 9, color: homeCurrency === 'USD' ? '#86efac' : 'rgba(255,255,255,.5)', fontWeight: homeCurrency === 'USD' ? 800 : 700, flexShrink: 0 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
+                      <p style={{ margin: 0, fontSize: fz(val), fontWeight: 800, color: homeCurrency === 'USD' ? '#fbbf24' : '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textShadow: homeCurrency === 'USD' ? '0 0 14px rgba(251,191,36,.5)' : '0 0 12px rgba(255,255,255,.25)' }}>{n(val)}</p>
+                      <span style={{ fontSize: homeCurrency === 'USD' ? 11 : 9, color: homeCurrency === 'USD' ? '#fbbf24' : 'rgba(255,255,255,.5)', fontWeight: homeCurrency === 'USD' ? 800 : 700, flexShrink: 0 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
                     </div>
                   </div>
                 ))}
