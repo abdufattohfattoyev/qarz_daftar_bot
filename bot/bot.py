@@ -478,6 +478,12 @@ def main():
                 if not chat_id:
                     continue
 
+                # Diagnostika — ovoz kelganda nima holatda ekanini logga yozamiz
+                if voice:
+                    log.info(
+                        f"🎤 VOICE chat={chat_id} | ADMIN_CHAT_ID={ADMIN_CHAT_ID or '(BOSH!)'} "
+                        f"| is_admin={is_admin(chat_id)} | OPENAI={'bor' if OPENAI_API_KEY else 'YO‘Q!'}")
+
                 if text.startswith('/start'):
                     log.info(f'/start → {chat_id}')
                     handle_start(chat_id, msg.get('from', {}))
