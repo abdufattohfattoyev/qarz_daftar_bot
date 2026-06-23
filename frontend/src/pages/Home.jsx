@@ -51,9 +51,9 @@ export default function Home() {
   const firstName = (user?.display_name || user?.full_name || 'User').split(' ')[0]
   // Katta raqamlar chiqib ketmasligi uchun shrift o'lchamini moslaymiz (responsive)
   const netStr = n(Math.abs(net))
-  const netFont = netStr.length > 11 ? 18 : netStr.length > 8 ? 21 : 24
-  // Sub-karta raqam o'lchami (kichikroq, responsive)
-  const fz = (v) => { const s = n(Math.abs(v)); return s.length > 9 ? 12 : s.length > 6 ? 14 : 16 }
+  const netFont = netStr.length > 12 ? 22 : netStr.length > 9 ? 25 : 28
+  // Sub-karta raqam o'lchami (responsive)
+  const fz = (v) => { const s = n(Math.abs(v)); return s.length > 9 ? 14 : s.length > 6 ? 16 : 18 }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -105,22 +105,22 @@ export default function Home() {
                   { cur: 'USD', b: usdB, sym: '$' },
                 ].map(({ cur, b, sym }) => {
                   const ns = n(Math.abs(b.net))
-                  const nf = ns.length > 10 ? 15 : ns.length > 7 ? 18 : 21
+                  const nf = ns.length > 10 ? 18 : ns.length > 7 ? 21 : 24
                   const isPos = b.net >= 0
                   return (
                     <div key={cur} style={{
-                      background: isPos ? 'rgba(134,239,172,.12)' : 'rgba(252,165,165,.12)',
+                      background: isPos ? 'rgba(134,239,172,.14)' : 'rgba(252,165,165,.14)',
                       borderRadius: 11,
-                      padding: '7px 10px',
-                      border: `1px solid ${isPos ? 'rgba(134,239,172,.2)' : 'rgba(252,165,165,.2)'}`,
+                      padding: '8px 10px',
+                      border: `1px solid ${isPos ? 'rgba(134,239,172,.25)' : 'rgba(252,165,165,.25)'}`,
                       textAlign: 'center',
                     }}>
-                      <p style={{ margin: 0, fontSize: 7, color: 'rgba(255,255,255,.4)', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700 }}>
+                      <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,.5)', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700 }}>
                         {t('net_balance')} · {sym}
                       </p>
-                      <p style={{ margin: '2px 0 0', fontSize: nf, fontWeight: 900, color: isPos ? '#86efac' : '#fca5a5', letterSpacing: -.3, whiteSpace: 'nowrap', lineHeight: 1.1 }}>
+                      <p style={{ margin: '3px 0 0', fontSize: nf, fontWeight: 900, color: isPos ? '#86efac' : '#fca5a5', letterSpacing: -.3, whiteSpace: 'nowrap', lineHeight: 1.1 }}>
                         {b.net >= 0 ? '+' : '−'}{ns}
-                        <span style={{ fontSize: 8, fontWeight: 600, marginLeft: 2, opacity: .65 }}>{sym}</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, marginLeft: 3, color: isPos ? '#86efac' : '#fca5a5', opacity: .9 }}>{sym}</span>
                       </p>
                     </div>
                   )
@@ -135,25 +135,25 @@ export default function Home() {
                 ].map(({ label, Icon, uzs, usd, delay }) => (
                   <div key={label} style={{
                     background: 'rgba(255,255,255,.1)',
-                    borderRadius: 12, padding: '8px 9px', minWidth: 0,
+                    borderRadius: 12, padding: '8px 10px', minWidth: 0,
                     animation: `fadeUp .3s ${delay} both`,
                     border: '1px solid rgba(255,255,255,.08)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 5 }}>
-                      <div style={{ width: 16, height: 16, borderRadius: 5, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 6, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                         <Icon />
                       </div>
-                      <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,.6)', fontWeight: 700, letterSpacing: '.02em' }}>{label}</span>
+                      <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,.65)', fontWeight: 700, letterSpacing: '.02em' }}>{label}</span>
                     </div>
                     {/* UZS */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
                       <p style={{ margin: 0, fontSize: fz(uzs), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(uzs)}</p>
-                      <span style={{ fontSize: 7, color: 'rgba(255,255,255,.35)', fontWeight: 700, flexShrink: 0 }}>UZS</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,.5)', fontWeight: 700, flexShrink: 0 }}>UZS</span>
                     </div>
                     {/* USD divider */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginTop: 2, paddingTop: 3, borderTop: '1px solid rgba(255,255,255,.08)' }}>
-                      <p style={{ margin: 0, fontSize: fz(usd), fontWeight: 800, color: 'rgba(255,255,255,.6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(usd)}</p>
-                      <span style={{ fontSize: 7, color: 'rgba(255,255,255,.25)', fontWeight: 700, flexShrink: 0 }}>$</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 3, paddingTop: 4, borderTop: '1px solid rgba(255,255,255,.1)' }}>
+                      <p style={{ margin: 0, fontSize: fz(usd), fontWeight: 800, color: 'rgba(255,255,255,.75)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(usd)}</p>
+                      <span style={{ fontSize: 11, color: '#86efac', fontWeight: 800, flexShrink: 0 }}>$</span>
                     </div>
                   </div>
                 ))}
@@ -168,7 +168,7 @@ export default function Home() {
                 </p>
                 <p style={{ margin: '2px 0 0', fontSize: netFont, fontWeight: 900, color: net >= 0 ? '#86efac' : '#fca5a5', letterSpacing: -.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.1 }}>
                   {net >= 0 ? '+' : '−'}{netStr}
-                  <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 3, opacity: .65 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
+                  <span style={{ fontSize: homeCurrency === 'USD' ? 16 : 13, fontWeight: 800, marginLeft: 4, color: net >= 0 ? '#86efac' : '#fca5a5', opacity: .85 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
                 </p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
@@ -178,18 +178,20 @@ export default function Home() {
                 ].map(({ label, val, Icon, delay }) => (
                   <div key={label} style={{
                     background: 'rgba(255,255,255,.1)',
-                    borderRadius: 12, padding: '8px 9px', minWidth: 0,
+                    borderRadius: 12, padding: '9px 10px', minWidth: 0,
                     animation: `fadeUp .3s ${delay} both`,
                     border: '1px solid rgba(255,255,255,.08)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 5 }}>
-                      <div style={{ width: 16, height: 16, borderRadius: 5, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 6, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                         <Icon />
                       </div>
-                      <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,.6)', fontWeight: 700 }}>{label}</span>
+                      <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,.65)', fontWeight: 700 }}>{label}</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: fz(val), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
-                    <p style={{ margin: '1px 0 0', fontSize: 7.5, color: 'rgba(255,255,255,.3)', fontWeight: 600 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</p>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                      <p style={{ margin: 0, fontSize: fz(val), fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
+                      <span style={{ fontSize: homeCurrency === 'USD' ? 11 : 9, color: homeCurrency === 'USD' ? '#86efac' : 'rgba(255,255,255,.5)', fontWeight: homeCurrency === 'USD' ? 800 : 700, flexShrink: 0 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
+                    </div>
                   </div>
                 ))}
               </div>
