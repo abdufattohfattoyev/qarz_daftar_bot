@@ -285,6 +285,72 @@ def bot_create_debt(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+def bot_pay_debt(request):
+    """Avvalgi qarzni to'lash (qarz emas). Faqat admin.
+    type='gave' kelsa → men qarzdor (got) qarzlarini to'laydi;
+    type='got' kelsa  → menga qarzdor (gave) qarzlarini to'laydi."""
+    if request.headers.get('X-Bot-Secret', '') != settings.BOT_TOKEN:
+        return Response({'error': 'Ruxsat yo\'q'}, status=403)
+
+    telegram_id = request.data.get('telegram_id')
+    if not _is_admin(telegram_id):
+        return Response({'ok': False, 'error': 'not_admin'}, status=403)
+
+    try:
+        user = User.objects.get(telegram_id=telegram_id)
+    except User.DoesNotExist:
+        return Response({'ok': False, 'error': 'no_user'}, status=404)
+
+    from decimal import Decimal, InvalidOperation
+    from apps.contacts.models import Contact
+    from apps.debts.models import Debt, Payment
+
+    name = (request.data.get('contact') or '').strip()
+    currency = request.data.get('currency', 'UZS')
+    # "berdim"(gave) → o'z qarzimni to'layapman → got qarzlar; aksincha gave
+    target_type = 'got' if request.data.get('type') == 'gave' else 'gave'
+    try:
+        amount = Decimal(str(request.data.get('amount', 0)))
+    except (InvalidOperation, TypeError):
+        amount = Decimal('0')
+
+    contact = Contact.objects.filter(owner=user, name__iexact=name).first()
+    if not contact or amount <= 0:
+        return Response({'ok': False, 'error': 'invalid'}, status=400)
+
+    debts = Debt.objects.filter(
+        user=user, contact=contact, debt_type=target_type,
+        currency=currency, status__in=['active', 'partial'],
+    ).order_by('created_at')
+
+    left = amount
+    paid_total = Decimal('0')
+    for d in debts:
+        if left <= 0:
+            break
+        portion = min(left, d.remaining_amount)
+        if portion > 0:
+            Payment.objects.create(debt=d, amount=portion, created_by=user)
+            left -= portion
+            paid_total += portion
+
+    if paid_total <= 0:
+        return Response({'ok': False, 'error': 'no_debt'})  # to'lanadigan qarz yo'q
+
+    contact.refresh_from_db()
+    net = float(contact.balance_usd if currency == 'USD' else contact.balance_uzs)
+    return Response({
+        'ok': True,
+        'contact': contact.name,
+        'paid': float(paid_total),
+        'leftover': float(left),      # qarzdan oshib ketgan qism (bo'lsa)
+        'currency': currency,
+        'net': net,                   # to'lovdan keyingi balans
+    })
+
+
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def set_pin(request):
     """PIN o'rnatish/o'zgartirish (4-6 raqam)."""

@@ -53,25 +53,38 @@ export default function Contacts() {
           <div style={{ fontSize: 20, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>{t('contacts_title')}</div>
         </div>
 
-        {/* Summary strip */}
+        {/* Summary strip — chiroyli dual valyuta */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px 12px' }}>
           {[
-            { bg: '#f0fdf4', iconBg: '#dcfce7', color: '#16a34a', Icon: ArrowUpIcon, label: t('owes_me'), uzs: totalGaveUZS, usd: totalGaveUSD },
-            { bg: '#fff1f2', iconBg: '#fee2e2', color: '#ef4444', Icon: ArrowDownIcon, label: t('i_owe'),   uzs: totalGotUZS,  usd: totalGotUSD  },
-          ].map(({ bg, iconBg, color, Icon, label, uzs, usd }) => (
-            <div key={label} style={{ background: bg, borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
-                <Icon />
+            { bg: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', border: '#bbf7d0', iconBg: '#16a34a', color: '#15803d', Icon: ArrowUpIcon, label: t('owes_me'), uzs: totalGaveUZS, usd: totalGaveUSD },
+            { bg: 'linear-gradient(135deg,#fff1f2,#fee2e2)', border: '#fecaca', iconBg: '#ef4444', color: '#dc2626', Icon: ArrowDownIcon, label: t('i_owe'),  uzs: totalGotUZS,  usd: totalGotUSD  },
+          ].map(({ bg, border, iconBg, color, Icon, label, uzs, usd }) => {
+            const hasUsd = usd > 0
+            const uzsFont = n(uzs).length > 8 ? 15 : 18
+            return (
+              <div key={label} style={{ background: bg, borderRadius: 16, padding: '11px 12px', border: `1px solid ${border}` }}>
+                {/* sarlavha + ikonka */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: 7, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                    <Icon />
+                  </div>
+                  <span style={{ fontSize: 9.5, color, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</span>
+                </div>
+                {/* UZS — asosiy */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                  <span style={{ fontSize: uzsFont, fontWeight: 900, color, letterSpacing: -.4, whiteSpace: 'nowrap' }}>{n(uzs)}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color, opacity: .55 }}>UZS</span>
+                </div>
+                {/* USD — alohida chiziq bilan (faqat bo'lsa) */}
+                {hasUsd && (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 4, paddingTop: 4, borderTop: `1px dashed ${border}` }}>
+                    <span style={{ fontSize: 15, fontWeight: 900, color, letterSpacing: -.4, whiteSpace: 'nowrap' }}>{n(usd)}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color, opacity: .7 }}>$</span>
+                  </div>
+                )}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 9, color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</p>
-                <p style={{ margin: '2px 0 0', fontSize: uzs > 0 && usd > 0 ? 11 : 14, fontWeight: 800, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {n(uzs)} <span style={{ fontSize: 8, opacity: .7 }}>UZS</span>
-                  {usd > 0 && <><br />{n(usd)} <span style={{ fontSize: 8, opacity: .7 }}>$</span></>}
-                </p>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Search */}

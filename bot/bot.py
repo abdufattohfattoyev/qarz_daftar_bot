@@ -184,6 +184,17 @@ def create_debt(telegram_id, draft):
         return {'ok': False, 'error': 'network'}
 
 
+def pay_debt(telegram_id, draft):
+    """Avvalgi qarzni to'lash (yangi qarz emas)."""
+    try:
+        r = requests.post(f'{BACKEND_URL}/api/auth/bot-pay-debt/',
+                          json={'telegram_id': telegram_id, **draft}, headers=HDRS, timeout=15)
+        return r.json()
+    except Exception as e:
+        log.error(f'pay_debt xato: {e}')
+        return {'ok': False, 'error': 'network'}
+
+
 def transcribe_voice(file_id):
     """Telegram ovozli xabarni Whisper (OpenAI) orqali matnga aylantiradi.
     OPENAI_API_KEY bo'lmasa None qaytaradi."""
@@ -240,27 +251,41 @@ def debt_confirm_card(draft, existing=None):
         f"💰 <b>{fmt_num(amount)} {cur}</b>",
     ]
 
-    # Avvalgi holat
+    # Avvalgi holat va chalkashlikni aniqlash
+    old_net = 0.0
+    ambiguous = False
     if existing:
         old_net = existing['balance_usd'] if is_usd else existing['balance_uzs']
-        delta = amount if is_gave else -amount   # gave → menga qarz oshadi
-        new_net = old_net + delta
         nm = existing['name']
         last = existing.get('last_date')
         lines.append("\n📊 <b>Avvalgi holat:</b>")
         lines.append(f"   {_net_phrase(nm, old_net, cur)}")
         if last:
-            lines.append(f"   🕐 oxirgi qarz: {last}")
-        lines.append(f"➡️ <b>Bu qarzdan keyin:</b> {_net_phrase(nm, new_net, cur)}")
+            lines.append(f"   🕐 oxirgi: {last}")
+        # Teskari balans bo'lsa — bu to'lov bo'lishi mumkin
+        # gave + men qarzdor (net<0)  yoki  got + menga qarzdor (net>0)
+        ambiguous = (is_gave and old_net < 0) or (not is_gave and old_net > 0)
     else:
         lines.append("\n🆕 <b>Yangi kontakt</b> — birinchi qarz")
 
-    lines.append("\n❓ Shu qarz to'g'rimi?")
-
-    markup = {'inline_keyboard': [[
-        {'text': '✅ Ha, saqlash', 'callback_data': 'debt_yes'},
-        {'text': '❌ Yo\'q',        'callback_data': 'debt_no'},
-    ]]}
+    if ambiguous:
+        # Aqlli savol: yangi qarzmi yoki avvalgi qarzni to'lashmi?
+        lines.append(f"\n💡 <b>Diqqat:</b> bu <b>{fmt_num(amount)} {cur}</b> —")
+        lines.append("avvalgi qarzni to'lashmi yoki yangi qarzmi?")
+        markup = {'inline_keyboard': [
+            [{'text': '💸 Qarzni to\'ladim', 'callback_data': 'debt_pay'}],
+            [{'text': '➕ Yangi qarz',       'callback_data': 'debt_yes'}],
+            [{'text': '❌ Bekor',            'callback_data': 'debt_no'}],
+        ]}
+    else:
+        delta = amount if is_gave else -amount
+        if existing:
+            lines.append(f"➡️ <b>Keyin:</b> {_net_phrase(existing['name'], old_net + delta, cur)}")
+        lines.append("\n❓ Shu qarz to'g'rimi?")
+        markup = {'inline_keyboard': [[
+            {'text': '✅ Ha, saqlash', 'callback_data': 'debt_yes'},
+            {'text': '❌ Yo\'q',        'callback_data': 'debt_no'},
+        ]]}
     return '\n'.join(lines), markup
 
 
@@ -392,6 +417,31 @@ def handle_callback(cb):
         else:
             tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Xatolik'})
             edit('⚠️ Saqlashda xatolik. Qaytadan urinib ko\'ring.', None)
+
+    elif action == 'debt_pay':
+        draft = PENDING_DEBTS.pop(chat_id, None)
+        if not draft:
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Muddati o\'tdi'})
+            edit('⌛️ Bu so\'rov eskirgan. Qaytadan yuboring.', None)
+            return
+        res = pay_debt(chat_id, draft)
+        if res.get('ok'):
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': '✅ To\'lov qabul qilindi'})
+            cur = '$' if res.get('currency') == 'USD' else 'so\'m'
+            net = res.get('net', 0)
+            lines = ["💸 <b>To'lov qabul qilindi!</b>\n",
+                     f"👤 <b>{res.get('contact')}</b>",
+                     f"✅ To'landi: <b>{fmt_num(res.get('paid'))} {cur}</b>",
+                     f"📊 Qoldiq: {_net_phrase(res.get('contact'), net, cur)}"]
+            if res.get('leftover', 0) > 0:
+                lines.append(f"\n⚠️ {fmt_num(res['leftover'])} {cur} ortiqcha — bu qarzga o'tmadi.")
+            edit('\n'.join(lines), None)
+        elif res.get('error') == 'no_debt':
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Qarz topilmadi'})
+            edit("🤔 To'lanadigan avvalgi qarz topilmadi. «Yangi qarz» bo'lishi mumkin.", None)
+        else:
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Xatolik'})
+            edit("⚠️ To'lovda xatolik. Qaytadan urinib ko'ring.", None)
 
     elif action == 'debt_no':
         PENDING_DEBTS.pop(chat_id, None)
