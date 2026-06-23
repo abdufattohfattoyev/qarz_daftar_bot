@@ -31,14 +31,18 @@ export default function Contacts() {
   const filtered = contacts.filter(c => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search)
     if (!matchSearch) return false
-    if (tab === 'gave') return c.balance_uzs > 0  // men bergandim — ular menga qazdor
-    if (tab === 'got')  return c.balance_uzs < 0  // men olganman — men ularga qarzdor
+    const uzs = c.balance_uzs || 0
+    const usd = c.balance_usd || 0
+    if (tab === 'gave') return uzs > 0 || usd > 0
+    if (tab === 'got')  return uzs < 0 || usd < 0
     return true
   })
 
-  // Summalar
-  const totalGave = contacts.filter(c => c.balance_uzs > 0).reduce((s, c) => s + c.balance_uzs, 0)
-  const totalGot  = contacts.filter(c => c.balance_uzs < 0).reduce((s, c) => s + Math.abs(c.balance_uzs), 0)
+  // Summalar — har valyuta alohida
+  const totalGaveUZS = contacts.filter(c => (c.balance_uzs || 0) > 0).reduce((s, c) => s + c.balance_uzs, 0)
+  const totalGotUZS  = contacts.filter(c => (c.balance_uzs || 0) < 0).reduce((s, c) => s + Math.abs(c.balance_uzs), 0)
+  const totalGaveUSD = contacts.filter(c => (c.balance_usd || 0) > 0).reduce((s, c) => s + (c.balance_usd || 0), 0)
+  const totalGotUSD  = contacts.filter(c => (c.balance_usd || 0) < 0).reduce((s, c) => s + Math.abs(c.balance_usd || 0), 0)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -51,24 +55,23 @@ export default function Contacts() {
 
         {/* Summary strip */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px 12px' }}>
-          <div style={{ background: '#f0fdf4', borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
-              <ArrowUpIcon />
+          {[
+            { bg: '#f0fdf4', iconBg: '#dcfce7', color: '#16a34a', Icon: ArrowUpIcon, label: t('owes_me'), uzs: totalGaveUZS, usd: totalGaveUSD },
+            { bg: '#fff1f2', iconBg: '#fee2e2', color: '#ef4444', Icon: ArrowDownIcon, label: t('i_owe'),   uzs: totalGotUZS,  usd: totalGotUSD  },
+          ].map(({ bg, iconBg, color, Icon, label, uzs, usd }) => (
+            <div key={label} style={{ background: bg, borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
+                <Icon />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 9, color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</p>
+                <p style={{ margin: '2px 0 0', fontSize: uzs > 0 && usd > 0 ? 11 : 14, fontWeight: 800, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {n(uzs)} <span style={{ fontSize: 8, opacity: .7 }}>UZS</span>
+                  {usd > 0 && <><br />{n(usd)} <span style={{ fontSize: 8, opacity: .7 }}>$</span></>}
+                </p>
+              </div>
             </div>
-            <div>
-              <p style={{ margin: 0, fontSize: 9, color: '#16a34a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{t('owes_me')}</p>
-              <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 800, color: '#16a34a' }}>{n(totalGave)}</p>
-            </div>
-          </div>
-          <div style={{ background: '#fff1f2', borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexShrink: 0 }}>
-              <ArrowDownIcon />
-            </div>
-            <div>
-              <p style={{ margin: 0, fontSize: 9, color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{t('i_owe')}</p>
-              <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 800, color: '#ef4444' }}>{n(totalGot)}</p>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Search */}
@@ -139,9 +142,13 @@ export default function Contacts() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map((contact, i) => {
             const av = avatarColor(contact.name)
-            const bal = contact.balance_uzs || 0
-            const isPos = bal > 0
-            const isZero = bal === 0
+            const balUZS = contact.balance_uzs || 0
+            const balUSD = contact.balance_usd || 0
+            const isZero = balUZS === 0 && balUSD === 0
+            // Asosiy rang uchun: UZS bo'lsa u, bo'lmasa USD
+            const primary = balUZS !== 0 ? balUZS : balUSD
+            const isPos = primary > 0
+            const borderColor = isZero ? '#e5e7eb' : isPos ? '#22c55e' : '#ef4444'
             return (
               <div
                 key={contact.id}
@@ -153,7 +160,7 @@ export default function Contacts() {
                   boxShadow: '0 2px 10px rgba(0,0,0,.05)',
                   cursor: 'pointer',
                   animation: `fadeUp .2s ${i * 0.03}s both`,
-                  borderLeft: isZero ? '3px solid #e5e7eb' : isPos ? '3px solid #22c55e' : '3px solid #ef4444',
+                  borderLeft: `3px solid ${borderColor}`,
                 }}>
                 {/* avatar */}
                 <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -193,17 +200,29 @@ export default function Contacts() {
                   </div>
                 </div>
 
-                {/* balance */}
+                {/* balance — UZS va USD alohida qatorlarda */}
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   {isZero ? (
                     <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>{t('no_balance')}</span>
                   ) : (
-                    <>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3, color: isPos ? '#16a34a' : '#ef4444' }}>
-                        {isPos ? '+' : '−'}{n(bal)}
-                      </p>
-                      <p style={{ margin: '1px 0 0', fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>UZS</p>
-                    </>
+                    <div>
+                      {balUZS !== 0 && (
+                        <div>
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3, color: balUZS > 0 ? '#16a34a' : '#ef4444' }}>
+                            {balUZS > 0 ? '+' : '−'}{n(balUZS)}
+                          </p>
+                          <p style={{ margin: '1px 0 0', fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>UZS</p>
+                        </div>
+                      )}
+                      {balUSD !== 0 && (
+                        <div style={{ marginTop: balUZS !== 0 ? 4 : 0 }}>
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -.3, color: balUSD > 0 ? '#16a34a' : '#ef4444' }}>
+                            {balUSD > 0 ? '+' : '−'}{n(balUSD)}
+                          </p>
+                          <p style={{ margin: '1px 0 0', fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>$</p>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
                 <ChevronRight />
