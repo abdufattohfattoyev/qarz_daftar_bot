@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore, useDebtStore, useContactStore } from '../store'
 import { initials, haptic } from '../utils'
 import { statsAPI, authAPI } from '../api'
@@ -8,6 +9,7 @@ import { useT } from '../i18n'
 
 export default function Settings() {
   const t = useT()
+  const navigate = useNavigate()
   const { user, updateUser } = useAuthStore()
   const [modal, setModal] = useState(null) // 'currency' | 'language' | 'delete'
   const [deleting, setDeleting] = useState(false)
@@ -167,6 +169,22 @@ export default function Settings() {
             </div>
           </div>
         </div>
+
+        {/* Admin panel — faqat admin uchun */}
+        {user?.is_admin && (
+          <div onClick={() => { haptic('light'); navigate('/admin') }} style={{
+            margin: '4px 0 8px', padding: '14px 16px', borderRadius: 16, cursor: 'pointer',
+            background: 'linear-gradient(135deg,#0f172a,#1e293b)', display: 'flex', alignItems: 'center', gap: 12,
+            boxShadow: '0 4px 14px rgba(15,23,42,.25)',
+          }}>
+            <div style={{ fontSize: 22 }}>🛡</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Admin panel</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>Statistika · foydalanuvchilar · xabar</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="rgba(255,255,255,.6)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+        )}
 
         {/* App settings */}
         <SectionLabel>{t('app_settings')}</SectionLabel>

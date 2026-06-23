@@ -40,6 +40,11 @@ export const translations = {
     dev_hint: 'Ilovadan foydalanish uchun Telegram botni oching va /start yozing',
     open_bot: 'Botni ochish',
     dev_login: 'Test sifatida kirish (dev)',
+    code_hint: 'Telegram botdan 6 xonali kod oling va shu yerga kiriting',
+    code_get: 'Botdan kod olish',
+    code_enter: 'Kirish',
+    code_6digit: 'Kod 6 ta raqamdan iborat',
+    code_wrong: "Kod noto'g'ri yoki muddati o'tgan",
 
     // Home
     greeting: 'Salom, {name}',
@@ -241,6 +246,11 @@ export const translations = {
     dev_hint: 'Чтобы пользоваться приложением, откройте Telegram-бота и напишите /start',
     open_bot: 'Открыть бота',
     dev_login: 'Войти как тест (dev)',
+    code_hint: 'Получите 6-значный код в Telegram-боте и введите здесь',
+    code_get: 'Получить код в боте',
+    code_enter: 'Войти',
+    code_6digit: 'Код состоит из 6 цифр',
+    code_wrong: 'Код неверный или истёк',
 
     // Home
     greeting: 'Привет, {name}',

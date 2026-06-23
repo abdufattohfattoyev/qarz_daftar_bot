@@ -54,6 +54,7 @@ class TelegramAuthSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     display_name = serializers.ReadOnlyField()
     has_pin = serializers.SerializerMethodField()
+    is_admin = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -61,12 +62,17 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'telegram_id', 'telegram_username',
             'full_name', 'display_name', 'phone',
             'photo_url', 'currency', 'language',
-            'notifications_enabled', 'has_pin', 'created_at'
+            'notifications_enabled', 'has_pin', 'is_admin', 'created_at'
         ]
         read_only_fields = ['id', 'telegram_id', 'created_at']
 
     def get_has_pin(self, obj):
         return bool(obj.pin_code)
+
+    def get_is_admin(self, obj):
+        from django.conf import settings
+        admin = str(getattr(settings, 'ADMIN_CHAT_ID', '') or '').strip()
+        return bool(admin) and str(obj.telegram_id) == admin
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):

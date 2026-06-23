@@ -71,6 +71,15 @@ export const useAuthStore = create((set, get) => ({
     set({ user: data.user, needDevLogin: false })
   },
 
+  // 6 xonali kod orqali web kirish
+  codeLogin: async (code) => {
+    const { data } = await authAPI.codeLogin(code)
+    localStorage.setItem('access_token', data.tokens.access)
+    localStorage.setItem('refresh_token', data.tokens.refresh)
+    set({ user: { ...data.user, ...loadPrefs() }, needDevLogin: false })
+    return data.user
+  },
+
   updateUser: async (updates) => {
     // 1. Lokal saqlaymiz — refreshdan keyin ham qoladi (backendga bog'liq emas)
     savePrefs(updates)

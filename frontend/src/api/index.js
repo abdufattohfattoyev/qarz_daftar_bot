@@ -57,11 +57,20 @@ api.interceptors.response.use(
 export const authAPI = {
   telegramAuth: (init_data) => api.post('/auth/telegram/', { init_data }),
   devLogin: () => api.post('/auth/dev-login/', {}),
+  codeLogin: (code) => api.post('/auth/code-login/', { code }),
   me: () => api.get('/auth/me/'),
   updateMe: (data) => api.patch('/auth/me/', data),
   setPin: (pin) => api.post('/auth/pin/set/', { pin }),
   verifyPin: (pin) => api.post('/auth/pin/verify/', { pin }),
   disablePin: (pin) => api.post('/auth/pin/disable/', { pin }),
+}
+
+// Admin panel (faqat admin)
+export const adminAPI = {
+  overview: () => api.get('/auth/admin/overview/'),
+  users: (q) => api.get('/auth/admin/users/', { params: q ? { q } : {} }),
+  userDebts: (id) => api.get(`/auth/admin/user/${id}/debts/`),
+  broadcast: (text) => api.post('/auth/admin/broadcast/', { text }),
 }
 
 // Contacts

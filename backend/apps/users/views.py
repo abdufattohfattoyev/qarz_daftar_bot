@@ -188,6 +188,48 @@ def bot_toggle_notif(request):
     return Response({'notifications_enabled': user.notifications_enabled})
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def bot_gen_login_code(request):
+    """Bot chaqiradi: foydalanuvchi uchun 6 xonali kirish kodi yaratadi (5 daqiqa)."""
+    if request.headers.get('X-Bot-Secret', '') != settings.BOT_TOKEN:
+        return Response({'error': 'Ruxsat yo\'q'}, status=403)
+    telegram_id = request.data.get('telegram_id')
+    if not telegram_id:
+        return Response({'error': 'telegram_id kerak'}, status=400)
+    # Foydalanuvchi bo'lmasa yaratamiz (botda /start bosgan bo'lsa bor)
+    User.objects.get_or_create(
+        telegram_id=telegram_id,
+        defaults={'username': f'tg_{telegram_id}',
+                  'full_name': request.data.get('full_name', ''),
+                  'telegram_username': request.data.get('username', '')})
+    import random
+    from django.core.cache import cache
+    code = f'{random.randint(0, 999999):06d}'
+    cache.set(f'logincode:{code}', int(telegram_id), timeout=300)   # 5 daqiqa
+    return Response({'code': code, 'ttl': 300})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def code_login(request):
+    """Web: 6 xonali kod orqali kirish. To'g'ri bo'lsa JWT beradi."""
+    code = str(request.data.get('code', '')).strip()
+    if not (code.isdigit() and len(code) == 6):
+        return Response({'error': 'Kod 6 ta raqamdan iborat'}, status=400)
+    from django.core.cache import cache
+    key = f'logincode:{code}'
+    telegram_id = cache.get(key)
+    if not telegram_id:
+        return Response({'error': 'Kod noto\'g\'ri yoki muddati o\'tgan'}, status=400)
+    cache.delete(key)   # bir martalik
+    try:
+        user = User.objects.get(telegram_id=telegram_id)
+    except User.DoesNotExist:
+        return Response({'error': 'Foydalanuvchi topilmadi'}, status=404)
+    return Response({'tokens': get_tokens_for_user(user), 'user': UserSerializer(user).data})
+
+
 def _is_admin(telegram_id):
     """ADMIN_CHAT_ID bilan solishtiradi (faqat admin AI funksiyasidan foydalanadi)."""
     admin = str(getattr(settings, 'ADMIN_CHAT_ID', '') or '').strip()

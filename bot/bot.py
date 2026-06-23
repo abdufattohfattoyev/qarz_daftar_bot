@@ -127,6 +127,18 @@ def get_state(telegram_id):
         return {}
 
 
+def gen_login_code(telegram_id, full_name='', username=''):
+    """Backenddan 6 xonali web-kirish kodini oladi."""
+    try:
+        r = requests.post(f'{BACKEND_URL}/api/auth/bot-gen-code/',
+                          json={'telegram_id': telegram_id, 'full_name': full_name, 'username': username},
+                          headers=HDRS, timeout=8)
+        return r.json().get('code')
+    except Exception as e:
+        log.error(f'gen_login_code xato: {e}')
+        return None
+
+
 def toggle_notif(telegram_id):
     try:
         r = requests.post(f'{BACKEND_URL}/api/auth/bot-toggle-notif/',
@@ -329,6 +341,7 @@ def main_menu(notif_on=True):
     notif = '🔔 Eslatma: Yoqiq' if notif_on else '🔕 Eslatma: O\'chiq'
     return {'inline_keyboard': [
         [{'text': '📒 Ilovani ochish', 'web_app': {'url': WEBAPP_URL}}],
+        [{'text': '🔑 Saytga kirish kodi', 'callback_data': 'web_login'}],
         [{'text': '📊 Statistika', 'callback_data': 'stats'},
          {'text': notif,           'callback_data': 'toggle'}],
         [{'text': '❓ Yordam',       'callback_data': 'help'}],
@@ -398,6 +411,20 @@ def handle_callback(cb):
     elif action == 'help':
         tg('answerCallbackQuery', {'callback_query_id': cb_id})
         edit(help_text(), back_menu())
+
+    elif action == 'web_login':
+        tg('answerCallbackQuery', {'callback_query_id': cb_id})
+        frm = cb.get('from', {})
+        full_name = f"{frm.get('first_name', '')} {frm.get('last_name', '')}".strip()
+        code = gen_login_code(chat_id, full_name, frm.get('username', ''))
+        if code:
+            txt = (f"🔑 <b>Saytga kirish kodi</b>\n\n"
+                   f"<code>{code}</code>\n\n"
+                   f"Bu kodni saytdagi kirish oynasiga kiriting.\n"
+                   f"⏱ 5 daqiqa amal qiladi. Hech kimga bermang!")
+        else:
+            txt = "⚠️ Kod yaratilmadi. Birozdan keyin qayta urinib ko'ring."
+        edit(txt, back_menu())
 
     elif action == 'toggle':
         enabled = toggle_notif(chat_id)

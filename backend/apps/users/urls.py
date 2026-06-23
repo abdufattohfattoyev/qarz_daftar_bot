@@ -1,9 +1,18 @@
 from django.urls import path
 from . import views
+from . import admin_api
 
 urlpatterns = [
     path('telegram/', views.telegram_auth, name='telegram-auth'),
     path('dev-login/', views.dev_login, name='dev-login'),
+    # Kod orqali web kirish
+    path('bot-gen-code/', views.bot_gen_login_code, name='bot-gen-code'),
+    path('code-login/', views.code_login, name='code-login'),
+    # Admin panel API
+    path('admin/overview/', admin_api.admin_overview, name='admin-overview'),
+    path('admin/users/', admin_api.admin_users, name='admin-users'),
+    path('admin/user/<int:user_id>/debts/', admin_api.admin_user_debts, name='admin-user-debts'),
+    path('admin/broadcast/', admin_api.admin_broadcast, name='admin-broadcast'),
     path('bot-register/', views.bot_register, name='bot-register'),
     path('bot-state/', views.bot_state, name='bot-state'),
     path('bot-toggle-notif/', views.bot_toggle_notif, name='bot-toggle-notif'),
