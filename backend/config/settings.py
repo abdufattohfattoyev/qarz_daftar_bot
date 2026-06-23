@@ -3,6 +3,14 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# .env faylni yuklaymiz (lokal dev uchun; Docker'da env'lar compose'dan keladi).
+# load_dotenv mavjud env'larni ustiga yozmaydi — shuning uchun ikkalasi ham ishlaydi.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
+
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 DEBUG = os.environ.get('DEBUG', '0') == '1'   # standart — XAVFSIZ (o'chiq); dev'da .env da DEBUG=1
 
@@ -158,3 +166,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '')
 WEBAPP_URL = os.environ.get('WEBAPP_URL', 'https://nasiya-karta.uz')
+
+# Claude API — ovozli/matnli qarz parsing uchun (Haiku 4.5)
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
