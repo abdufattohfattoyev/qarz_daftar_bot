@@ -135,18 +135,18 @@ export const useDebtStore = create((set, get) => ({
     set((s) => ({ filters: { ...s.filters, [key]: value } }))
   },
 
-  // Sana bo'yicha guruhlab qaytarish (to'langanlar ham ko'rinadi, lekin
-  // guruh summasiga faqat to'lanmaganlar qo'shiladi)
+  // Sana bo'yicha guruhlab qaytarish. totals = { UZS: N, USD: N }
+  // Har valyuta alohida hisoblanadi — aralashtirish yo'q.
   groupedByDate: () => {
     const debts = get().debts
     const groups = {}
     debts.forEach((debt) => {
-      // created_at ba'zan bo'lmasligi mumkin (optimistic qo'shilgan) — qulamaslik uchun himoya
       const date = (debt.created_at || new Date().toISOString()).split('T')[0]
-      if (!groups[date]) groups[date] = { date, debts: [], total: 0 }
+      if (!groups[date]) groups[date] = { date, debts: [], totals: {} }
       const sign = debt.debt_type === 'gave' ? 1 : -1
+      const cur = debt.currency || 'UZS'
       groups[date].debts.push(debt)
-      groups[date].total += sign * parseFloat(debt.remaining_amount)
+      groups[date].totals[cur] = (groups[date].totals[cur] || 0) + sign * parseFloat(debt.remaining_amount || 0)
     })
     return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date))
   },

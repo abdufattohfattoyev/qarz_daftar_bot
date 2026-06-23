@@ -13,14 +13,22 @@ export default function Home() {
   const { user } = useAuthStore()
   const { debts, loading, fetchDebts, groupedByDate } = useDebtStore()
   const [search, setSearch] = useState('')
+  const [homeCurrency, setHomeCurrency] = useState(() => user?.currency || 'UZS')
 
   useEffect(() => { fetchDebts() }, [])
+  // user.currency o'zgarganda toggle ham yangilansin
+  useEffect(() => { if (user?.currency) setHomeCurrency(user.currency) }, [user?.currency])
 
   const active = debts.filter(d => d.status !== 'paid')
   const paidCount = debts.length - active.length
-  const totalGave = active.filter(d => d.debt_type === 'gave').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
-  const totalGot  = active.filter(d => d.debt_type === 'got').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
+  // Faqat tanlangan valyutadagi faol qarzlar balansga kiradi
+  const curActive = active.filter(d => (d.currency || 'UZS') === homeCurrency)
+  const totalGave = curActive.filter(d => d.debt_type === 'gave').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
+  const totalGot  = curActive.filter(d => d.debt_type === 'got').reduce((s, d) => s + parseFloat(d.remaining_amount || 0), 0)
   const net = totalGave - totalGot
+  // Ikkinchi valyutada qarz bormi? Toggle ko'rsatish uchun
+  const hasUSD = debts.some(d => d.currency === 'USD')
+  const hasUZS = debts.some(d => !d.currency || d.currency === 'UZS')
   // Muddat ogohlantirishlari — o'tib ketgan yoki 3 kun ichida qaytariladigan qarzlar
   const dueAlerts = active
     .filter((d) => d.due_date)
@@ -55,14 +63,29 @@ export default function Home() {
               {t('greeting', { name: firstName })} 👋
             </h2>
           </div>
-          <div style={{
-            width: 36, height: 36, borderRadius: 11,
-            background: 'rgba(255,255,255,.18)',
-            border: '1.5px solid rgba(255,255,255,.28)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 800, color: '#fff',
-          }}>
-            {initials(user?.display_name || 'U')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Valyuta toggle — faqat ikkinchi valyutada ham qarz bo'lsa ko'rsatiladi */}
+            {(hasUSD && hasUZS) && (
+              <div style={{ display: 'flex', background: 'rgba(0,0,0,.2)', borderRadius: 8, padding: 2, gap: 2 }}>
+                {['UZS', 'USD'].map(cur => (
+                  <button key={cur} onClick={() => setHomeCurrency(cur)} style={{
+                    padding: '3px 9px', borderRadius: 6, border: 'none', fontSize: 10, fontWeight: 800, cursor: 'pointer',
+                    background: homeCurrency === cur ? '#fff' : 'transparent',
+                    color: homeCurrency === cur ? '#16a34a' : 'rgba(255,255,255,.55)',
+                    transition: 'all .15s',
+                  }}>{cur}</button>
+                ))}
+              </div>
+            )}
+            <div style={{
+              width: 36, height: 36, borderRadius: 11,
+              background: 'rgba(255,255,255,.18)',
+              border: '1.5px solid rgba(255,255,255,.28)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 800, color: '#fff',
+            }}>
+              {initials(user?.display_name || 'U')}
+            </div>
           </div>
         </div>
 
@@ -79,7 +102,7 @@ export default function Home() {
             </p>
             <p style={{ margin: '3px 0 0', fontSize: netFont, fontWeight: 900, color: '#fff', letterSpacing: -1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {net >= 0 ? '+' : '−'}{netStr}
-              <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, opacity: .65 }}>UZS</span>
+              <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, opacity: .65 }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</span>
             </p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -95,7 +118,7 @@ export default function Home() {
                   <span style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
                 </div>
                 <p style={{ margin: 0, fontSize: n(val).length > 9 ? 13 : 15, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n(val)}</p>
-                <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,.45)' }}>UZS</p>
+                <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,.45)' }}>{homeCurrency === 'USD' ? '$' : 'UZS'}</p>
               </div>
             ))}
           </div>
@@ -209,8 +232,12 @@ export default function Home() {
           <div key={group.date} style={{ marginBottom: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 16px 4px' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em' }}>{fmtDate(group.date)}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: group.total >= 0 ? '#16a34a' : '#ef4444' }}>
-                {group.total >= 0 ? '+' : ''}{n(group.total)}
+              <span style={{ fontSize: 11, fontWeight: 700, display: 'flex', gap: 6 }}>
+                {Object.entries(group.totals || {}).map(([cur, tot]) => (
+                  <span key={cur} style={{ color: tot >= 0 ? '#16a34a' : '#ef4444' }}>
+                    {tot >= 0 ? '+' : ''}{n(tot)} {cur === 'USD' ? '$' : 'UZS'}
+                  </span>
+                ))}
               </span>
             </div>
             <div style={{ margin: '0 12px', background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 8px rgba(0,0,0,.05)' }}>
