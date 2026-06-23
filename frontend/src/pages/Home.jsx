@@ -56,11 +56,10 @@ export default function Home() {
   const fz = (v) => { const s = n(Math.abs(v)); return s.length > 9 ? 14 : s.length > 6 ? 16 : 18 }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
+    <div style={{ height: '100%', overflowY: 'auto', background: '#F0F2F5' }}>
 
-      {/* ── STICKY HEADER ── */}
+      {/* ── HEADER (kontent bilan birga scroll bo'ladi — qotib qolmaydi) ── */}
       <div style={{
-        flexShrink: 0,
         background: 'linear-gradient(150deg, #082e17 0%, #15803d 50%, #22c55e 100%)',
         padding: '10px 14px 12px',
       }}>
@@ -202,8 +201,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── SCROLLABLE CONTENT ── */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
+      {/* ── KONTENT ── */}
+      <div style={{ paddingBottom: 80 }}>
 
         {/* ⏰ MUDDAT OGOHLANTIRISHLARI */}
         {dueAlerts.length > 0 && !q && (
