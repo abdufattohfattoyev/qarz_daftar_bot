@@ -16,9 +16,9 @@ WHISPER_MODEL = os.environ.get('WHISPER_MODEL', 'whisper-1')   # yoki 'gpt-4o-mi
 # Til: bo'sh = avtomatik aniqlash. Whisper 'uz' parametrini qabul qilmaydi,
 # shuning uchun standart bo'sh — model o'zbekchani o'zi tanib oladi.
 WHISPER_LANG = os.environ.get('WHISPER_LANG', '')
-# Whisper'ni o'zbekcha qarz so'zlariga yo'naltiruvchi prompt (aniqlikni oshiradi)
-WHISPER_PROMPT = ("Qarz daftari. Misol: Diyorga 200 ming so'm berdim. "
-                  "Akmaldan 50 dollar oldim. ming, million, so'm, dollar, berdim, oldim.")
+# Whisper promptni namuna jumla qilib beramiz — kalit-so'z RO'YXATI emas
+# (ro'yxat audio noaniq bo'lsa "echo" bo'lib qaytadi). Qisqa tabiiy jumla xavfsizroq.
+WHISPER_PROMPT = os.environ.get('WHISPER_PROMPT', "Diyorga ikki yuz ming so'm berdim.")
 API = f'https://api.telegram.org/bot{TOKEN}'
 HDRS = {'X-Bot-Secret': TOKEN, 'Host': 'nasiya-karta.uz'}
 
@@ -225,7 +225,13 @@ def transcribe_voice(file_id):
         if wr.status_code != 200:
             log.error(f'Whisper [{wr.status_code}]: {wr.text[:200]}')
             return None
-        return (wr.json().get('text') or '').strip()
+        text = (wr.json().get('text') or '').strip()
+        # Whisper ba'zan promptni qaytaradi (jim/qisqa audio) — bunday natijani rad etamiz
+        norm = lambda s: ''.join(ch for ch in s.lower() if ch.isalnum())
+        if not text or norm(text) == norm(WHISPER_PROMPT):
+            log.info(f'Whisper echo/bo\'sh natija: "{text}"')
+            return None
+        return text
     except Exception as e:
         log.error(f'transcribe_voice xato: {e}')
         return None
