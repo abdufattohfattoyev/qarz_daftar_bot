@@ -56,7 +56,7 @@ export default function Home() {
   const fz = (v) => { const s = n(Math.abs(v)); return s.length > 9 ? 14 : s.length > 6 ? 16 : 18 }
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', background: '#F0F2F5' }}>
+    <div className="no-scrollbar" style={{ height: '100%', overflowY: 'auto', background: '#F0F2F5', scrollbarWidth: 'none' }}>
 
       {/* ── HEADER (kontent bilan birga scroll bo'ladi — qotib qolmaydi) ── */}
       <div style={{

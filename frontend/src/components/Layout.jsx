@@ -67,6 +67,9 @@ const CSS = `
 
   input { -webkit-appearance: none; }
   button { -webkit-tap-highlight-color: transparent; }
+
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; width: 0; height: 0; }
 `
 
 export default function Layout() {
