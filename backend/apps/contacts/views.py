@@ -25,15 +25,24 @@ class ContactViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Dublikatning oldini olamiz:
-        - Telefon berilgan bo'lsa — telefon bo'yicha aniqlaymiz (bir xil raqam =
-          bir xil odam, ism boshqacha yozilgan bo'lsa ham).
+        - Telefon berilgan bo'lsa — avval telefon bo'yicha aniqlaymiz (bir xil raqam
+          = bir xil odam). Topilmasa, shu ismli ESKI TELEFONSIZ kontakt bo'lsa,
+          unga telefonni qo'shamiz (yangilaymiz) — alohida dublikat yaratmaymiz.
         - Telefonsiz bo'lsa — bir xil ismli telefonsiz kontaktni qayta ishlatamiz.
-        Shunda bitta 'Diyor' bir necha marta paydo bo'lmaydi."""
+        Shunda eski raqamsiz kontaktlar ham yangi raqamli bilan birlashadi."""
         name = (request.data.get('name') or '').strip()
         phone = (request.data.get('phone') or '').strip()
         existing = None
         if phone:
             existing = Contact.objects.filter(owner=request.user, phone=phone).first()
+            if not existing and name:
+                # Eski raqamsiz kontaktni topib, raqamni unga qo'shamiz
+                old = Contact.objects.filter(
+                    owner=request.user, name__iexact=name, phone='').first()
+                if old:
+                    old.phone = phone
+                    old.save(update_fields=['phone'])
+                    existing = old
         elif name:
             existing = Contact.objects.filter(
                 owner=request.user, name__iexact=name, phone='').first()
