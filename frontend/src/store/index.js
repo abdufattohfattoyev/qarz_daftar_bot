@@ -169,7 +169,13 @@ export const useContactStore = create((set) => ({
 
   addContact: async (contactData) => {
     const { data } = await contactsAPI.create(contactData)
-    set((s) => ({ contacts: [data, ...s.contacts] }))
+    // Backend mavjud kontaktni qaytargan bo'lishi mumkin — lokal ro'yxatda
+    // takrorlanmasligi uchun id bo'yicha tekshiramiz
+    set((s) => ({
+      contacts: s.contacts.some((c) => c.id === data.id)
+        ? s.contacts.map((c) => (c.id === data.id ? data : c))
+        : [data, ...s.contacts],
+    }))
     return data
   },
 

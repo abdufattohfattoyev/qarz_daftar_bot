@@ -52,7 +52,8 @@ export default function AddDebt() {
   const doSave = async () => {
     let contactId = createdContactId.current
     if (!contactId) {
-      // Yangi qarz — alohida kontakt yaratiladi (bir xil ism bo'lsa ham)
+      // Yangi qarz — backend bir xil ismli kontakt bo'lsa uni qayta ishlatadi
+      // (dublikat yaratilmaydi), aks holda yangi kontakt yaratadi
       let newC = null
       let createErr = null
       try {
