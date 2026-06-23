@@ -1,8 +1,14 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useDebtStore, useContactStore, useAuthStore } from '../store'
 import { haptic } from '../utils'
 import { useT } from '../i18n'
+
+const PhoneIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+    <path d="M14 11.2c-.2-.2-1-.7-1.5-.9-.4-.2-.7-.1-1 .2l-.6.7c-.2.2-.4.3-.7.1-1-.5-2.6-2-3.4-3.1-.2-.3-.1-.5.1-.7l.7-.6c.3-.3.3-.6.2-1-.2-.5-.7-1.3-.9-1.5-.3-.3-.5-.3-.8-.2l-.8.5C3.2 5 2.9 6 3.3 7.3c.4 1.4 1.6 2.9 2.9 4.1 1.2 1.2 2.7 2.4 4.1 2.9 1.3.4 2.3.1 3-1l.5-.8c.1-.3.1-.5-.3-.7z" stroke="#64748b" strokeWidth="1.2" fill="none"/>
+  </svg>
+)
 
 const CalIcon = () => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
@@ -27,7 +33,7 @@ export default function AddDebt() {
   const navigate = useNavigate()
   const t = useT()
   const { addDebt } = useDebtStore()
-  const { addContact } = useContactStore()
+  const { addContact, contacts, fetchContacts } = useContactStore()
 
   const [params] = useSearchParams()
   const existingContactId = params.get('contact')   // mavjud kontaktga qarz qo'shish — ism so'ralmaydi
@@ -42,6 +48,16 @@ export default function AddDebt() {
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+
+  // Kontaktlarni yuklab olamiz — telefon bo'yicha mavjud odamni aniqlash uchun
+  useEffect(() => { if (!existingContactId) fetchContacts() }, [])
+
+  // Telefon raqamidan raqamlarni ajratib, mavjud kontaktni topamiz
+  const phoneDigits = phone.replace(/\D/g, '')
+  const matched = (!existingContactId && phoneDigits.length >= 9)
+    ? contacts.find((c) => (c.phone || '').replace(/\D/g, '') === phoneDigits)
+    : null
 
   // Mavjud kontakt bo'lsa — uning id'sidan boshlaymiz; aks holda qayta urinishda
   // dublikat bo'lmasligi uchun yaratilgan kontakt id'sini eslab qolamiz
@@ -52,17 +68,22 @@ export default function AddDebt() {
   const doSave = async () => {
     let contactId = createdContactId.current
     if (!contactId) {
-      // Yangi qarz — backend bir xil ismli kontakt bo'lsa uni qayta ishlatadi
-      // (dublikat yaratilmaydi), aks holda yangi kontakt yaratadi
-      let newC = null
-      let createErr = null
-      try {
-        newC = await addContact({ name: name.trim() })
-      } catch (e) { createErr = e }
-      contactId = newC?.id
-      if (!contactId && createErr) throw createErr
-      if (!contactId) throw new Error('Kontakt yaratilmadi')
-      createdContactId.current = contactId
+      // Telefon bo'yicha mavjud odam topilgan bo'lsa — o'shani ishlatamiz
+      if (matched?.id) {
+        contactId = matched.id
+        createdContactId.current = contactId
+      } else {
+        // Yangi kontakt — backend telefon/ism bo'yicha dublikatni qayta ishlatadi
+        let newC = null
+        let createErr = null
+        try {
+          newC = await addContact({ name: name.trim(), phone: phone.trim() })
+        } catch (e) { createErr = e }
+        contactId = newC?.id
+        if (!contactId && createErr) throw createErr
+        if (!contactId) throw new Error('Kontakt yaratilmadi')
+        createdContactId.current = contactId
+      }
     }
     await addDebt({ contact: contactId, debt_type: debtType, amount, currency, due_date: dueDate, note })
   }
@@ -78,7 +99,7 @@ export default function AddDebt() {
   }
 
   const handleSubmit = async () => {
-    if (!existingContactId && !name.trim())  return setError(t('err_name'))
+    if (!existingContactId && !matched && !name.trim())  return setError(t('err_name'))
     if (!amount || parseFloat(amount) <= 0)  return setError(t('err_amount'))
 
     setLoading(true); setError('')
@@ -108,7 +129,7 @@ export default function AddDebt() {
   const isGave    = debtType === 'gave'
   const accent    = isGave ? '#16a34a' : '#ef4444'
   const goBack    = () => navigate(existingContactId ? `/contacts/${existingContactId}` : '/')
-  const canSubmit = (existingContactId || name.trim()) && parseFloat(amount) > 0
+  const canSubmit = (existingContactId || matched || name.trim()) && parseFloat(amount) > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
@@ -216,19 +237,43 @@ export default function AddDebt() {
           </div>
         ) : (
           <div style={{ padding: '0 14px', marginBottom: 12 }}>
+            {/* Ism */}
             <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
               <PersonIcon /> {t('name_req')}
             </label>
             <input
               type="text" placeholder={t('name_ph2')}
-              value={name} onChange={(e) => setName(e.target.value)}
+              value={matched ? matched.name : name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={!!matched}
               style={{
                 width: '100%', padding: '13px 14px', borderRadius: 14, boxSizing: 'border-box',
-                border: name.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
+                border: (matched || name.trim()) ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)',
+                fontSize: 15, fontWeight: 600, color: matched ? '#15803d' : '#111',
+                background: matched ? '#f0fdf4' : '#fff',
+                fontFamily: 'inherit', outline: 'none',
+              }}
+            />
+
+            {/* Telefon (ixtiyoriy, lekin chalkashlikni oldini oladi) */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#64748b', margin: '10px 0 6px' }}>
+              <PhoneIcon /> {t('phone_optional')}
+            </label>
+            <input
+              type="tel" inputMode="tel" placeholder="+998 90 123 45 67"
+              value={phone} onChange={(e) => setPhone(e.target.value)}
+              style={{
+                width: '100%', padding: '13px 14px', borderRadius: 14, boxSizing: 'border-box',
+                border: matched ? '2px solid #16a34a' : (phone.trim() ? `2px solid ${accent}` : '1.5px solid rgba(0,0,0,0.1)'),
                 fontSize: 15, fontWeight: 600, color: '#111', background: '#fff',
                 fontFamily: 'inherit', outline: 'none',
               }}
             />
+            {matched && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+                <span>✓</span> <span>Mavjud kontakt: <b>{matched.name}</b> — shu odamga qo'shiladi</span>
+              </div>
+            )}
           </div>
         )}
 

@@ -24,17 +24,21 @@ class ContactViewSet(viewsets.ModelViewSet):
         return ContactSerializer
 
     def create(self, request, *args, **kwargs):
-        """Dublikatning oldini olamiz: bir xil ismli (va bir xil telefonli — yoki
-        ikkalasi ham telefonsiz) kontakt bo'lsa, yangisini yaratmaymiz, mavjudini
-        qaytaramiz. Shunda bitta 'Diyor' bir necha marta paydo bo'lmaydi."""
+        """Dublikatning oldini olamiz:
+        - Telefon berilgan bo'lsa — telefon bo'yicha aniqlaymiz (bir xil raqam =
+          bir xil odam, ism boshqacha yozilgan bo'lsa ham).
+        - Telefonsiz bo'lsa — bir xil ismli telefonsiz kontaktni qayta ishlatamiz.
+        Shunda bitta 'Diyor' bir necha marta paydo bo'lmaydi."""
         name = (request.data.get('name') or '').strip()
         phone = (request.data.get('phone') or '').strip()
-        if name:
-            qs = Contact.objects.filter(owner=request.user, name__iexact=name)
-            qs = qs.filter(phone=phone) if phone else qs.filter(phone='')
-            existing = qs.first()
-            if existing:
-                return Response(ContactCreateSerializer(existing).data, status=status.HTTP_200_OK)
+        existing = None
+        if phone:
+            existing = Contact.objects.filter(owner=request.user, phone=phone).first()
+        elif name:
+            existing = Contact.objects.filter(
+                owner=request.user, name__iexact=name, phone='').first()
+        if existing:
+            return Response(ContactCreateSerializer(existing).data, status=status.HTTP_200_OK)
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
