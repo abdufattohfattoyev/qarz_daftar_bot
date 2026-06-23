@@ -29,13 +29,18 @@ class Command(BaseCommand):
 
         merged = 0
         moved = 0
+        dup_groups = 0       # nechta ism dublikatlangan
+        dup_extra = 0        # ortiqcha kontaktlar soni (o'chiriladiganlar)
         for key, items in groups.items():
             if len(items) < 2:
                 continue
+            dup_groups += 1
+            dup_extra += len(items) - 1
             keep = items[0]            # eng eski — saqlanadi
             dups = items[1:]
+            phone = keep.phone or 'raqamsiz'
             self.stdout.write(
-                f"👥 '{keep.name}' — {len(items)} ta dublikat → bittaga birlashtiriladi")
+                f"👥 '{keep.name}' ({phone}) — {len(items)} ta → bittaga birlashtiriladi")
             if apply:
                 with transaction.atomic():
                     for d in dups:
@@ -44,9 +49,18 @@ class Command(BaseCommand):
                         d.delete()
                         merged += 1
 
+        # Umumiy xulosa
+        self.stdout.write("")
+        if dup_groups == 0:
+            self.stdout.write(self.style.SUCCESS("✅ Dublikat yo'q — hammasi toza!"))
+            return
+        self.stdout.write(
+            f"📊 Jami: {dup_groups} ta ism dublikatlangan, "
+            f"{dup_extra} ta ortiqcha kontakt birlashtiriladi.")
         if not apply:
             self.stdout.write(self.style.WARNING(
-                "\n— Bu faqat ko'rsatish. Birlashtirish uchun: --apply qo'shing"))
+                "— Bu faqat KO'RSATISH (hech narsa o'zgarmadi).\n"
+                "  Birlashtirish uchun: python manage.py merge_duplicates --apply"))
         else:
             self.stdout.write(self.style.SUCCESS(
-                f"\n✅ {merged} ta dublikat o'chirildi, {moved} ta qarz ko'chirildi"))
+                f"✅ {merged} ta dublikat o'chirildi, {moved} ta qarz ko'chirildi"))
