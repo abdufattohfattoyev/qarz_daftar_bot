@@ -214,24 +214,54 @@ def transcribe_voice(file_id):
         return None
 
 
-def debt_confirm_card(draft):
-    """Tasdiqlash kartochkasi matni + tugmalari."""
+def _net_phrase(name, net, cur):
+    """Balansni odam tilida: kim kimga qarzdor."""
+    a = fmt_num(abs(net))
+    if net > 0:
+        return f"{name} sizga <b>{a} {cur}</b> qarzdor"
+    if net < 0:
+        return f"Siz {name}ga <b>{a} {cur}</b> qarzdorsiz"
+    return "hisob teng"
+
+
+def debt_confirm_card(draft, existing=None):
+    """Tasdiqlash kartochkasi matni + tugmalari (avvalgi qarz tarixi bilan)."""
     is_gave = draft.get('type') == 'gave'
     arrow = '↗️' if is_gave else '↙️'
     label = 'Men berdim (menga qarzdor)' if is_gave else 'Men oldim (men qarzdor)'
-    cur = '$' if draft.get('currency') == 'USD' else 'so\'m'
-    text = (
-        "🎤 <b>Tushundim:</b>\n\n"
-        f"👤 <b>{draft.get('contact', '—')}</b>\n"
-        f"{arrow} {label}\n"
-        f"💰 <b>{fmt_num(draft.get('amount'))} {cur}</b>\n\n"
-        "❓ Shu qarz to'g'rimi?"
-    )
+    amount = float(draft.get('amount') or 0)
+    is_usd = draft.get('currency') == 'USD'
+    cur = '$' if is_usd else 'so\'m'
+
+    lines = [
+        "🎤 <b>Tushundim:</b>\n",
+        f"👤 <b>{draft.get('contact', '—')}</b>",
+        f"{arrow} {label}",
+        f"💰 <b>{fmt_num(amount)} {cur}</b>",
+    ]
+
+    # Avvalgi holat
+    if existing:
+        old_net = existing['balance_usd'] if is_usd else existing['balance_uzs']
+        delta = amount if is_gave else -amount   # gave → menga qarz oshadi
+        new_net = old_net + delta
+        nm = existing['name']
+        last = existing.get('last_date')
+        lines.append("\n📊 <b>Avvalgi holat:</b>")
+        lines.append(f"   {_net_phrase(nm, old_net, cur)}")
+        if last:
+            lines.append(f"   🕐 oxirgi qarz: {last}")
+        lines.append(f"➡️ <b>Bu qarzdan keyin:</b> {_net_phrase(nm, new_net, cur)}")
+    else:
+        lines.append("\n🆕 <b>Yangi kontakt</b> — birinchi qarz")
+
+    lines.append("\n❓ Shu qarz to'g'rimi?")
+
     markup = {'inline_keyboard': [[
         {'text': '✅ Ha, saqlash', 'callback_data': 'debt_yes'},
         {'text': '❌ Yo\'q',        'callback_data': 'debt_no'},
     ]]}
-    return text, markup
+    return '\n'.join(lines), markup
 
 
 def handle_ai_debt(chat_id, text):
@@ -239,7 +269,7 @@ def handle_ai_debt(chat_id, text):
     res = parse_debt(chat_id, text)
     if res.get('ok'):
         PENDING_DEBTS[chat_id] = res['draft']
-        card, markup = debt_confirm_card(res['draft'])
+        card, markup = debt_confirm_card(res['draft'], res.get('existing'))
         tg('sendMessage', {'chat_id': chat_id, 'text': card,
                            'parse_mode': 'HTML', 'reply_markup': json.dumps(markup)})
     else:

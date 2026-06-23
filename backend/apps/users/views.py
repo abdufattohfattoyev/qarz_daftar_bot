@@ -213,7 +213,23 @@ def bot_parse_debt(request):
     draft = parse_debt_text(text)
     if not draft:
         return Response({'ok': False, 'error': 'parse_failed'})
-    return Response({'ok': True, 'draft': draft})
+
+    # Mavjud kontaktning joriy holatini qaytaramiz (tasdiqlashda ko'rsatish uchun)
+    from apps.contacts.models import Contact
+    from apps.debts.models import Debt
+    existing = None
+    user = User.objects.filter(telegram_id=telegram_id).first()
+    if user:
+        contact = Contact.objects.filter(owner=user, name__iexact=draft['contact']).first()
+        if contact:
+            last = Debt.objects.filter(user=user, contact=contact).order_by('-created_at').first()
+            existing = {
+                'name': contact.name,
+                'balance_uzs': float(contact.balance_uzs),
+                'balance_usd': float(contact.balance_usd),
+                'last_date': last.created_at.strftime('%d.%m.%Y') if last else None,
+            }
+    return Response({'ok': True, 'draft': draft, 'existing': existing})
 
 
 @api_view(['POST'])
