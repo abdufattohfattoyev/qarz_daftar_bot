@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { debtsAPI } from '../api'
 import { useDebtStore } from '../store'
 import { fmt, fmtDate, fmtDateTime, nowTashkent, initials, avatarColor, haptic } from '../utils'
-import { useT } from '../i18n'
+import { useT, getLang } from '../i18n'
 
 export function DebtDetail() {
   const { id } = useParams()
@@ -261,7 +261,7 @@ export function PayDebt() {
         <div style={{ padding: '0 16px', marginBottom: 12 }}>
           <div style={{ fontSize: 12, color: '#666', marginBottom: 7, fontWeight: 500 }}>{t('date')}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px', border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 16, background: '#f8fafc' }}>
-            <span style={{ fontSize: 15, color: '#111', fontWeight: 600 }}>{nowTashkent()}</span>
+            <span style={{ fontSize: 15, color: '#111', fontWeight: 600 }}>{nowTashkent(getLang())}</span>
             <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, marginLeft: 'auto' }}>{t('auto_now')}</span>
           </div>
         </div>

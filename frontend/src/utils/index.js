@@ -25,7 +25,8 @@ export const daysUntil = (date) => {
   const today = dayjs().tz(TZ).startOf('day')
   return dayjs(date).tz(TZ).startOf('day').diff(today, 'day')
 }
-export const nowTashkent = () => dayjs().tz(TZ).format('D MMMM YYYY, HH:mm')
+// Til-aniq: global dayjs locale o'zgarib qolsa ham shu chaqiriqda majburlaymiz
+export const nowTashkent = (loc = 'uz') => dayjs().tz(TZ).locale(loc === 'ru' ? 'ru' : 'uz').format('D MMMM YYYY, HH:mm')
 
 export const initials = (name = '') => {
   const parts = name.trim().split(' ')

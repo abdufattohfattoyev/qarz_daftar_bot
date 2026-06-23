@@ -213,7 +213,7 @@ export const translations = {
     pay_amount: "💰 To'lov miqdori",
     date: '📅 Sana',
     pay_note: '💬 Izoh (ixtiyoriy)',
-    pay_method_ph: "To'lov usuli...",
+    pay_method_ph: "Masalan: naqd, karta...",
     mark_paid: "To'landi deb belgilash",
   },
 
@@ -401,7 +401,7 @@ export const translations = {
     pay_amount: '💰 Сумма оплаты',
     date: '📅 Дата',
     pay_note: '💬 Заметка (необязательно)',
-    pay_method_ph: 'Способ оплаты...',
+    pay_method_ph: 'Например: наличные, карта...',
     mark_paid: 'Отметить оплаченным',
 
     // DebtDetail / Edit
