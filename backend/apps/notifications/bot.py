@@ -274,6 +274,69 @@ def notify_overdue(debt):
     send(debt.user.telegram_id, text, reply_markup=open_app_btn())
 
 
+def send_weekly_report(user_obj):
+    """Haftalik hisobot — dushanba kunlari cron orqali yuboriladi.
+    Faollik yoki faol qarz bo'lmasa yubormaydi (spam bo'lmasin).
+    Yuborilgan bo'lsa True qaytaradi."""
+    if not user_obj.telegram_id or not user_obj.notifications_enabled:
+        return False
+
+    from datetime import timedelta
+    from django.utils import timezone
+    from django.db.models import Sum, Q
+    from apps.debts.models import Debt, Payment
+
+    week_ago = timezone.now() - timedelta(days=7)
+    debts = Debt.objects.filter(user=user_obj)
+    new_debts = debts.filter(created_at__gte=week_ago)
+    payments = Payment.objects.filter(debt__user=user_obj, paid_at__gte=week_ago)
+    active = debts.filter(status__in=['active', 'partial'])
+    overdue = active.filter(due_date__lt=timezone.now().date()).count()
+
+    balance = _balance_text(user_obj)
+    if not new_debts.exists() and not payments.exists() and not balance:
+        return False   # hafta bo'sh va faol qarz yo'q — jim turamiz
+
+    lines = ["📅 <b>Haftalik hisobot</b>",
+             f"<i>{week_ago.strftime('%d.%m')} — {timezone.now().strftime('%d.%m.%Y')}</i>\n"]
+
+    # Bu haftadagi harakat
+    if new_debts.exists() or payments.exists():
+        lines.append("📌 <b>Bu hafta:</b>")
+        for cur in ('UZS', 'USD'):
+            nd = new_debts.filter(currency=cur)
+            gave = nd.filter(debt_type='gave').aggregate(s=Sum('amount'))['s']
+            got = nd.filter(debt_type='got').aggregate(s=Sum('amount'))['s']
+            recv = payments.filter(debt__currency=cur, debt__debt_type='gave').aggregate(s=Sum('amount'))['s']
+            paid = payments.filter(debt__currency=cur, debt__debt_type='got').aggregate(s=Sum('amount'))['s']
+            if gave:
+                lines.append(f"  ↗ Berdim: <b>{fmt_amount(gave, cur)}</b>")
+            if got:
+                lines.append(f"  ↙ Oldim: <b>{fmt_amount(got, cur)}</b>")
+            if recv:
+                lines.append(f"  💵 Undirildi: <b>{fmt_amount(recv, cur)}</b>")
+            if paid:
+                lines.append(f"  ✅ To'ladim: <b>{fmt_amount(paid, cur)}</b>")
+        if new_debts.exists():
+            lines.append(f"  📋 Yangi qarzlar: <b>{new_debts.count()} ta</b>")
+        lines.append("")
+    else:
+        lines.append("📌 Bu hafta yangi harakat bo'lmadi.\n")
+
+    if balance:
+        lines.append("📊 <b>Joriy holat:</b>")
+        lines.append(balance.rstrip())
+        lines.append("")
+
+    if overdue:
+        lines.append(f"⚠️ Muddati o'tgan qarzlar: <b>{overdue} ta</b> — tekshirib chiqing!")
+    else:
+        lines.append("Yaxshi hafta o'tkazing! 🍀")
+
+    send(user_obj.telegram_id, '\n'.join(lines), reply_markup=open_app_btn('📒 Batafsil ko\'rish'))
+    return True
+
+
 def notify_due_soon(debt, days_left: int):
     """Bugun (0) yoki ertaga (1) muddati tugaydigan qarzlar uchun eslatma."""
     if not debt.user.telegram_id or not debt.user.notifications_enabled:

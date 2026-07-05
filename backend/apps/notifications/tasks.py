@@ -37,6 +37,11 @@ def send_overdue_reminders():
     _send_overdue_reminders()
 
 
+def send_weekly_reports():
+    # Cron/management command'dan (dushanba kunlari) chaqiriladi — sinxron
+    _send_weekly_reports()
+
+
 # ── Inner workers (thread ichida ishlaydi) ──────────────────────────────────────
 
 def _notify_debt_created(debt_id: int):
@@ -93,6 +98,28 @@ def _send_overdue_reminders():
         logger.info('Due reminders sent: %s', sent)
     except Exception as e:
         logger.error('send_overdue_reminders: %s', e)
+
+
+def _send_weekly_reports():
+    """Barcha foydalanuvchilarga haftalik hisobot (bot.send_weekly_report o'zi
+    kimga yuborish kerakligini hal qiladi — bo'sh haftalarni tashlab ketadi)."""
+    try:
+        import time
+        from apps.users.models import User
+        from apps.notifications import bot
+
+        users = User.objects.filter(telegram_id__isnull=False, notifications_enabled=True)
+        sent = 0
+        for u in users:
+            try:
+                if bot.send_weekly_report(u):
+                    sent += 1
+                    time.sleep(0.05)   # Telegram rate-limit (~20/s)
+            except Exception as e:
+                logger.error('weekly report (user=%s): %s', u.id, e)
+        logger.info('Weekly reports sent: %s/%s', sent, users.count())
+    except Exception as e:
+        logger.error('send_weekly_reports: %s', e)
 
 
 # Legacy helper — boshqa joylardan chaqirilsa ham ishlaydi

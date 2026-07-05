@@ -1,15 +1,24 @@
 // DebtDetail page
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { debtsAPI } from '../api'
-import { useDebtStore } from '../store'
+import { debtsAPI, authAPI } from '../api'
+import { useDebtStore, useAuthStore } from '../store'
 import { fmt, fmtDate, fmtDateTime, nowTashkent, initials, avatarColor, haptic } from '../utils'
 import { useT, getLang } from '../i18n'
+
+// app-meta bir marta olinadi (bot username backend'da ham keshlangan)
+let _appMeta = null
+const getAppMeta = async () => {
+  if (_appMeta) return _appMeta
+  try { _appMeta = (await authAPI.appMeta()).data } catch { _appMeta = {} }
+  return _appMeta
+}
 
 export function DebtDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const t = useT()
+  const { user } = useAuthStore()
   const { deleteDebt } = useDebtStore()
   const [debt, setDebt] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -31,6 +40,21 @@ export function DebtDetail() {
       haptic('error')
       setDeleting(false)
     }
+  }
+
+  // Qarz kartochkasini Telegram orqali ulashish — qarzdor havola bosса botga tushadi
+  const shareDebt = async () => {
+    haptic('light')
+    const meta = await getAppMeta()
+    const link = meta?.bot_username
+      ? `https://t.me/${meta.bot_username}?start=ref_${user?.telegram_id || ''}`
+      : ''
+    const text = t(isGave ? 'share_text_gave' : 'share_text_got',
+      { amount: fmt(debt.remaining_amount, debt.currency) })
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`
+    const twa = window.Telegram?.WebApp
+    if (twa?.openTelegramLink) twa.openTelegramLink(shareUrl)
+    else window.open(shareUrl, '_blank')
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 60, color: '#aaa' }}>{t('loading')}</div>
@@ -96,6 +120,20 @@ export function DebtDetail() {
             }}>
               <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               {t('pay_btn')}
+            </button>
+          )}
+          {/* Ulashish — qarzdorga eslatma (viral: havola botga olib keladi) */}
+          {debt.status !== 'paid' && (
+            <button onClick={shareDebt} className="pill-btn" style={{
+              width: '100%', padding: '13px 10px', borderRadius: 14,
+              border: '1.5px solid #bfdbfe', background: '#eff6ff', color: '#2563eb',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                <path d="M13 6.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM5 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM13 16.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM7.2 7.9l3.6-1.8M7.2 10.1l3.6 1.8" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {t(isGave ? 'share_remind_btn' : 'share_card_btn')}
             </button>
           )}
           {/* Yana qarz + Tahrirlash + O'chirish */}

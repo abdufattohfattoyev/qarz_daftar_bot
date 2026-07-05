@@ -179,40 +179,180 @@ function UserDebts({ sel, onBack }) {
   )
 }
 
-// ── XABAR YUBORISH ──
+// ── XABAR YUBORISH (reklama / e'lon) ──
+const AD_TEMPLATES = [
+  { label: '🆕 Yangilik', text: "🆕 <b>Yangilik!</b>\n\nIlovamizga yangi imkoniyat qo'shildi:\n\n✨ ...\n\nHoziroq sinab ko'ring 👇" },
+  { label: '💡 Maslahat', text: "💡 <b>Foydali maslahat</b>\n\nQarzlaringizni unutmaslik uchun har bir qarzga <b>muddat</b> qo'ying — muddati kelganda o'zimiz eslatamiz 🔔" },
+  { label: '🙏 Rahmat', text: "🙏 <b>Rahmat!</b>\n\nBizni tanlaganingiz uchun tashakkur. Taklif va fikrlaringiz bo'lsa, shu yerga yozib qoldiring 👇" },
+]
+
+// Telegram HTML (<b>, <i>) preview uchun xavfsiz renderga aylantiradi
+const tgPreviewHtml = (t) => t
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/gs, '<b>$1</b>')
+  .replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/gs, '<i>$1</i>')
+  .replace(/\n/g, '<br/>')
+
 function SendTab() {
   const [text, setText] = useState('')
+  const [btnMode, setBtnMode] = useState('app')   // 'none' | 'app' | 'url'
+  const [btnText, setBtnText] = useState('')
+  const [btnUrl, setBtnUrl] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState('')
+  const [progress, setProgress] = useState(null)   // {total, sent, failed, done}
+  const areaRef = React.useRef(null)
+  const pollRef = React.useRef(null)
 
-  const send = async () => {
-    if (!text.trim()) return
-    if (!window.confirm(`Barcha foydalanuvchilarga yuborilsinmi?\n\n"${text.slice(0, 100)}"`)) return
-    setBusy(true); setDone('')
-    try {
-      const { data } = await adminAPI.broadcast(text.trim())
-      setDone(`✅ ${data.sent_to} foydalanuvchiga yuborilmoqda`)
-      setText('')
-      haptic('success')
-    } catch {
-      setDone('⚠️ Xatolik yuz berdi')
-      haptic('error')
-    } finally { setBusy(false) }
+  useEffect(() => () => clearInterval(pollRef.current), [])
+
+  const button = btnMode === 'app' ? 'app'
+    : btnMode === 'url' && btnText.trim() && btnUrl.trim().startsWith('http')
+      ? { text: btnText.trim(), url: btnUrl.trim() }
+      : null
+
+  // Belgilangan matnni <b>/<i> bilan o'raydi
+  const wrap = (tag) => {
+    const el = areaRef.current
+    if (!el) return
+    const { selectionStart: s, selectionEnd: e } = el
+    if (s === e) return
+    setText(text.slice(0, s) + `<${tag}>` + text.slice(s, e) + `</${tag}>` + text.slice(e))
+    haptic('light')
   }
 
+  const startPoll = (id) => {
+    clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
+      try {
+        const { data } = await adminAPI.broadcastStatus(id)
+        setProgress(data)
+        if (data.done) {
+          clearInterval(pollRef.current)
+          setBusy(false)
+          setDone(`✅ Tugadi! Yetkazildi: ${data.sent} · Bloklagan: ${data.failed}`)
+          haptic('success')
+        }
+      } catch { /* keyingi urinishda oladi */ }
+    }, 1200)
+  }
+
+  const send = async (test) => {
+    if (!text.trim()) return
+    if (!test && !window.confirm('Barcha foydalanuvchilarga yuborilsinmi?\n\nAvval "🧪 O\'zimga sinab" bilan tekshirib ko\'rganingiz ma\'qul.')) return
+    setBusy(true); setDone(''); setProgress(null)
+    try {
+      const { data } = await adminAPI.broadcast({ text: text.trim(), button, test })
+      if (test) {
+        setDone(data.ok ? '🧪 O\'zingizga yuborildi — Telegramda ko\'ring' : '⚠️ Yuborilmadi, botga /start bosganmisiz?')
+        setBusy(false)
+        haptic('success')
+      } else {
+        setProgress({ total: data.total, sent: 0, failed: 0, done: false })
+        startPoll(data.broadcast_id)
+        setText('')
+      }
+    } catch (e) {
+      setDone(`⚠️ ${e?.response?.data?.error || 'Xatolik yuz berdi'}`)
+      setBusy(false)
+      haptic('error')
+    }
+  }
+
+  const pct = progress ? Math.round(((progress.sent + progress.failed) / Math.max(1, progress.total)) * 100) : 0
+
   return (
-    <div>
-      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10, lineHeight: 1.5 }}>
-        Barcha foydalanuvchilarga Telegram orqali e'lon yuboriladi.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Tayyor shablonlar */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }} className="no-scrollbar">
+        {AD_TEMPLATES.map((t) => (
+          <button key={t.label} onClick={() => { setText(t.text); haptic('light') }} className="pill-btn" style={{ flexShrink: 0, padding: '6px 11px', borderRadius: 10, border: 'none', background: '#fff', fontSize: 11, fontWeight: 700, color: '#334155', cursor: 'pointer', boxShadow: '0 1px 5px rgba(0,0,0,.05)' }}>{t.label}</button>
+        ))}
       </div>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="E'lon matnini yozing..." rows={6}
-        style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', borderRadius: 14, border: '1.5px solid rgba(0,0,0,0.1)', fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'vertical', background: '#fff' }} />
-      {done && <div style={{ margin: '10px 0', padding: '10px 12px', background: done.startsWith('✅') ? '#f0fdf4' : '#fef2f2', borderRadius: 10, fontSize: 13, color: done.startsWith('✅') ? '#16a34a' : '#ef4444' }}>{done}</div>}
-      <button onClick={send} disabled={busy || !text.trim()} style={{
-        width: '100%', marginTop: 12, padding: '14px', borderRadius: 14, border: 'none',
-        background: text.trim() ? 'linear-gradient(135deg,#22c55e,#16a34a)' : '#cbd5e1', color: '#fff',
-        fontSize: 15, fontWeight: 700, cursor: text.trim() ? 'pointer' : 'default', opacity: busy ? 0.6 : 1,
-      }}>{busy ? 'Yuborilmoqda...' : '📢 Hammaga yuborish'}</button>
+
+      {/* Matn + formatlash */}
+      <div style={{ background: '#fff', borderRadius: 14, padding: 12, boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+          <button onClick={() => wrap('b')} style={{ padding: '4px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>B</button>
+          <button onClick={() => wrap('i')} style={{ padding: '4px 13px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc', fontStyle: 'italic', fontSize: 13, cursor: 'pointer', fontFamily: 'serif' }}>I</button>
+          <span style={{ fontSize: 10, color: '#94a3b8' }}>matnni belgilab bosing</span>
+          <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: text.length > 4000 ? '#ef4444' : '#94a3b8' }}>{text.length}/4000</span>
+        </div>
+        <textarea ref={areaRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="E'lon matnini yozing..." rows={6}
+          style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.08)', fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'vertical', background: '#f8fafc' }} />
+      </div>
+
+      {/* Tugma tanlash */}
+      <div style={{ background: '#fff', borderRadius: 14, padding: 12, boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8 }}>Xabar ostidagi tugma</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[['app', '📒 Ilovani ochish'], ['url', '🔗 Havola'], ['none', 'Tugmasiz']].map(([k, lbl]) => (
+            <button key={k} onClick={() => { setBtnMode(k); haptic('light') }} style={{
+              flex: 1, padding: '8px 4px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              border: btnMode === k ? '1.5px solid #16a34a' : '1.5px solid #e2e8f0',
+              background: btnMode === k ? '#f0fdf4' : '#fff', color: btnMode === k ? '#16a34a' : '#64748b',
+            }}>{lbl}</button>
+          ))}
+        </div>
+        {btnMode === 'url' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+            <input value={btnText} onChange={(e) => setBtnText(e.target.value)} placeholder="Tugma matni (masalan: Batafsil)"
+              style={{ padding: '9px 12px', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+            <input value={btnUrl} onChange={(e) => setBtnUrl(e.target.value)} placeholder="https://..."
+              style={{ padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${btnUrl && !btnUrl.startsWith('http') ? '#fca5a5' : '#e2e8f0'}`, fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+          </div>
+        )}
+      </div>
+
+      {/* Jonli preview — Telegramda qanday ko'rinadi */}
+      {text.trim() && (
+        <div style={{ background: '#e7ebf0', borderRadius: 14, padding: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', marginBottom: 8 }}>👁 TELEGRAMDA KO'RINISHI</div>
+          <div style={{ background: '#fff', borderRadius: '4px 14px 14px 14px', padding: '9px 12px', maxWidth: '92%', boxShadow: '0 1px 2px rgba(0,0,0,.08)' }}>
+            <div style={{ fontSize: 13.5, lineHeight: 1.45, color: '#0f172a', wordBreak: 'break-word' }}
+              dangerouslySetInnerHTML={{ __html: '📢 <b>E\'lon</b><br/><br/>' + tgPreviewHtml(text) }} />
+            <div style={{ fontSize: 9, color: '#94a3b8', textAlign: 'right', marginTop: 3 }}>{new Date().toTimeString().slice(0, 5)}</div>
+          </div>
+          {button && (
+            <div style={{ maxWidth: '92%', marginTop: 4, background: 'rgba(255,255,255,.75)', borderRadius: 10, padding: '8px 0', textAlign: 'center', fontSize: 12.5, fontWeight: 600, color: '#3b82f6' }}>
+              {button === 'app' ? '📒 Ilovani ochish' : button.text}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Progress */}
+      {progress && (
+        <div style={{ background: '#fff', borderRadius: 14, padding: 14, boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
+            <span>{progress.done ? '✅ Yuborildi' : '📤 Yuborilmoqda...'}</span>
+            <span>{progress.sent + progress.failed}/{progress.total}</span>
+          </div>
+          <div style={{ height: 8, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#22c55e,#16a34a)', borderRadius: 6, transition: 'width .6s' }} />
+          </div>
+          <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11, color: '#64748b' }}>
+            <span>✅ Yetkazildi: <b style={{ color: '#16a34a' }}>{progress.sent}</b></span>
+            <span>🚫 Bloklagan: <b style={{ color: '#ef4444' }}>{progress.failed}</b></span>
+          </div>
+        </div>
+      )}
+
+      {done && <div style={{ padding: '10px 12px', background: done.startsWith('⚠') ? '#fef2f2' : '#f0fdf4', borderRadius: 10, fontSize: 13, color: done.startsWith('⚠') ? '#ef4444' : '#16a34a' }}>{done}</div>}
+
+      {/* Amallar */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => send(true)} disabled={busy || !text.trim()} style={{
+          flex: 1, padding: '13px 8px', borderRadius: 14, border: '1.5px solid #e2e8f0',
+          background: '#fff', color: text.trim() ? '#334155' : '#cbd5e1', fontFamily: 'inherit',
+          fontSize: 13, fontWeight: 700, cursor: text.trim() ? 'pointer' : 'default', opacity: busy ? 0.6 : 1,
+        }}>🧪 O'zimga sinab</button>
+        <button onClick={() => send(false)} disabled={busy || !text.trim() || text.length > 4000} style={{
+          flex: 2, padding: '13px 8px', borderRadius: 14, border: 'none', fontFamily: 'inherit',
+          background: text.trim() ? 'linear-gradient(135deg,#22c55e,#16a34a)' : '#cbd5e1', color: '#fff',
+          fontSize: 14, fontWeight: 700, cursor: text.trim() ? 'pointer' : 'default', opacity: busy ? 0.6 : 1,
+        }}>{busy ? 'Yuborilmoqda...' : '📢 Hammaga yuborish'}</button>
+      </div>
     </div>
   )
 }

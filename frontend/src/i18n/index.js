@@ -220,6 +220,12 @@ export const translations = {
     pay_note: '💬 Izoh (ixtiyoriy)',
     pay_method_ph: "Masalan: naqd, karta...",
     mark_paid: "To'landi deb belgilash",
+
+    // Share (qarz kartochkasini ulashish)
+    share_remind_btn: 'Qarzdorga eslatma yuborish',
+    share_card_btn: 'Ulashish',
+    share_text_gave: "Assalomu alaykum! 👋\n\n📒 Eslatib o'taman: sizda mendan olgan {amount} qarz bor. Iloji bo'lganda qaytarsangiz xursand bo'laman 🙂\n\nMen qarzlarimni «Qarz Yordamchi» botida yuritaman — bepul va qulay. Siz ham sinab ko'ring:",
+    share_text_got: "Assalomu alaykum! 👋\n\n📒 Sizdan olgan {amount} qarzim yodimda — albatta qaytaraman 🙂\n\nMen qarzlarimni «Qarz Yordamchi» botida yuritaman — bepul va qulay. Siz ham sinab ko'ring:",
   },
 
   ru: {
@@ -423,6 +429,12 @@ export const translations = {
     save_changes: 'Сохранить изменения',
     err_amount_lt_paid: 'Сумма меньше уже оплаченной',
     already_paid: 'Оплачено',
+
+    // Share (поделиться карточкой долга)
+    share_remind_btn: 'Отправить напоминание должнику',
+    share_card_btn: 'Поделиться',
+    share_text_gave: 'Здравствуйте! 👋\n\n📒 Напоминаю: за вами долг {amount}. Буду рад, если вернёте при возможности 🙂\n\nЯ веду свои долги в боте «Qarz Yordamchi» — бесплатно и удобно. Попробуйте и вы:',
+    share_text_got: 'Здравствуйте! 👋\n\n📒 Помню про долг {amount}, обязательно верну 🙂\n\nЯ веду свои долги в боте «Qarz Yordamchi» — бесплатно и удобно. Попробуйте и вы:',
   },
 }
 

@@ -140,30 +140,99 @@ def admin_user_debts(request, user_id):
     })
 
 
+# Broadcast progresslari (xotirada; restart bo'lsa tarix yo'qoladi — muammo emas)
+_BROADCASTS = {}
+
+
+def _broadcast_markup(button):
+    """button: None | {'text','url'} | 'app' — inline tugma yasaydi."""
+    if not button:
+        return None
+    if button == 'app' or (isinstance(button, dict) and button.get('app')):
+        url = getattr(settings, 'WEBAPP_URL', '') or ''
+        if not url:
+            return None
+        return {'inline_keyboard': [[{'text': '📒 Ilovani ochish', 'web_app': {'url': url}}]]}
+    text = (button.get('text') or '').strip()
+    url = (button.get('url') or '').strip()
+    if not text or not url.startswith('http'):
+        return None
+    return {'inline_keyboard': [[{'text': text, 'url': url}]]}
+
+
+def _send_broadcast_msg(chat_id, text, markup):
+    """Bitta foydalanuvchiga yuboradi; ok bool qaytaradi (bloklaganlar hisobi uchun)."""
+    import requests, json
+    token = settings.BOT_TOKEN
+    if not token:
+        return False
+    payload = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
+    if markup:
+        payload['reply_markup'] = json.dumps(markup)
+    try:
+        r = requests.post(f'https://api.telegram.org/bot{token}/sendMessage',
+                          data=payload, timeout=10)
+        return r.json().get('ok', False)
+    except Exception:
+        return False
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def admin_broadcast(request):
-    """Barcha foydalanuvchilarga Telegram orqali xabar yuboradi (fonda)."""
+    """Barcha foydalanuvchilarga Telegram orqali xabar yuboradi (fonda).
+
+    Body: {text, button: null|'app'|{text,url}, test: bool}
+    test=true — faqat adminning o'ziga yuboriladi (ko'rib olish uchun).
+    Javob: {ok, broadcast_id, total} — progress /broadcast-status/ dan olinadi.
+    """
     deny = _admin_or_403(request)
     if deny:
         return deny
     text = (request.data.get('text') or '').strip()
     if not text:
         return Response({'error': 'Matn bo\'sh'}, status=400)
+    if len(text) > 4000:
+        return Response({'error': 'Matn juda uzun (maks. 4000 belgi)'}, status=400)
+
+    markup = _broadcast_markup(request.data.get('button'))
+    full_text = f'📢 <b>E\'lon</b>\n\n{text}'
+
+    # Test rejimi — faqat adminga
+    if request.data.get('test'):
+        ok = _send_broadcast_msg(request.user.telegram_id, full_text, markup)
+        return Response({'ok': ok, 'test': True})
 
     targets = list(User.objects.filter(telegram_id__isnull=False)
                    .values_list('telegram_id', flat=True))
 
-    def _send_all():
-        from apps.notifications.bot import send
-        import time
-        for tid in targets:
-            try:
-                send(tid, f'📢 <b>E\'lon</b>\n\n{text}')
-                time.sleep(0.05)   # Telegram rate-limit (~20/s)
-            except Exception:
-                pass
+    import uuid, threading, time
+    bc_id = uuid.uuid4().hex[:12]
+    _BROADCASTS[bc_id] = {'total': len(targets), 'sent': 0, 'failed': 0,
+                          'done': False, 'started': timezone.now().isoformat()}
 
-    import threading
+    def _send_all():
+        st = _BROADCASTS[bc_id]
+        for tid in targets:
+            if _send_broadcast_msg(tid, full_text, markup):
+                st['sent'] += 1
+            else:
+                st['failed'] += 1   # bloklagan yoki o'chirgan foydalanuvchilar
+            time.sleep(0.05)   # Telegram rate-limit (~20/s)
+        st['done'] = True
+
     threading.Thread(target=_send_all, daemon=True).start()
-    return Response({'ok': True, 'sent_to': len(targets)})
+    return Response({'ok': True, 'broadcast_id': bc_id, 'total': len(targets)})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_broadcast_status(request, bc_id):
+    """Broadcast progressi — frontend poll qiladi."""
+    deny = _admin_or_403(request)
+    if deny:
+        return deny
+    st = _BROADCASTS.get(bc_id)
+    if not st:
+        return Response({'error': 'Topilmadi'}, status=404)
+    return Response(st)

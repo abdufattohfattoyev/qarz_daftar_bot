@@ -71,6 +71,93 @@ def tg(method, payload):
 
 INTRO_GIF = os.path.join(os.path.dirname(__file__), 'assets', 'intro.mp4')
 _intro_file_id = None
+_awaiting_ad = False   # admin /reklama bosgach, keyingi xabar = reklama
+_pending_ad = None     # tasdiqlanmagan reklama: {'from_chat', 'message_id'}
+
+
+def tg_send(chat_id, text):
+    """Xabar yuborib, message_id ni qaytaradi (progress'ni tahrirlash uchun)."""
+    try:
+        r = requests.post(f'{API}/sendMessage', json={'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}, timeout=10)
+        return (r.json().get('result') or {}).get('message_id')
+    except Exception as e:
+        log.error(f'tg_send: {e}')
+        return None
+
+
+def get_all_users():
+    try:
+        r = requests.post(f'{BACKEND_URL}/api/auth/bot-users/', headers=HDRS, timeout=15)
+        return r.json().get('users', [])
+    except Exception as e:
+        log.error(f'get_all_users: {e}')
+        return []
+
+
+def copy_message(to_chat, from_chat, message_id, reply_markup=None):
+    try:
+        payload = {'chat_id': to_chat, 'from_chat_id': from_chat, 'message_id': message_id}
+        if reply_markup:
+            payload['reply_markup'] = json.dumps(reply_markup)
+        r = requests.post(f'{API}/copyMessage', json=payload, timeout=15)
+        return r.json().get('ok', False)
+    except Exception:
+        return False
+
+
+def app_button():
+    return {'inline_keyboard': [[{'text': '📒 Ilovani ochish', 'web_app': {'url': WEBAPP_URL}}]]}
+
+
+def show_ad_preview(admin_chat):
+    """Reklama nusxasini adminга qaytarib, tasdiqlash tugmalarini ko'rsatadi."""
+    global _pending_ad
+    if not _pending_ad:
+        return
+    total = len(get_all_users())
+    copy_message(admin_chat, _pending_ad['from_chat'], _pending_ad['message_id'])
+    markup = {'inline_keyboard': [
+        [{'text': f"✅ Yuborish ({total} kishi)",          'callback_data': 'ad_send'}],
+        [{'text': "📒 «Ilovani ochish» tugmasi bilan",     'callback_data': 'ad_send_btn'}],
+        [{'text': "❌ Bekor qilish",                       'callback_data': 'ad_cancel'}],
+    ]}
+    tg('sendMessage', {'chat_id': admin_chat, 'parse_mode': 'HTML',
+                       'reply_markup': json.dumps(markup),
+                       'text': ("👆 <b>Xabar shunday ko'rinadi.</b>\n\n"
+                                f"👥 Qabul qiluvchilar: <b>{total} ta</b>\n\n"
+                                "Yuborishni tasdiqlaysizmi?")})
+
+
+def broadcast(admin_chat, from_chat, message_id, reply_markup=None):
+    """Reklamani barcha foydalanuvchiga yuborish — real vaqt progress bilan."""
+    users = get_all_users()
+    total = len(users)
+    if total == 0:
+        tg('sendMessage', {'chat_id': admin_chat, 'text': 'Foydalanuvchi topilmadi.'})
+        return
+    status_id = tg_send(admin_chat, f"📤 Yuborilmoqda... 0/{total}")
+    sent = failed = 0
+    for idx, uid in enumerate(users, 1):
+        if copy_message(uid, from_chat, message_id, reply_markup):
+            sent += 1
+        else:
+            failed += 1
+        if status_id and (idx % 15 == 0 or idx == total):
+            tg('editMessageText', {
+                'chat_id': admin_chat, 'message_id': status_id, 'parse_mode': 'HTML',
+                'text': (f"📤 <b>Reklama yuborilmoqda...</b>\n\n"
+                         f"✅ Yuborildi: <b>{sent}</b>\n"
+                         f"❌ Yuborilmadi: <b>{failed}</b>\n"
+                         f"📊 {idx}/{total}")})
+        time.sleep(0.05)   # Telegram limitiga urilmaslik uchun (~20/sek)
+    final = (f"✅ <b>Reklama tugadi!</b>\n\n"
+             f"✅ Yetkazildi: <b>{sent}</b>\n"
+             f"🚫 Yetmadi (bloklagan): <b>{failed}</b>\n"
+             f"📊 Jami: <b>{total}</b>")
+    if status_id:
+        tg('editMessageText', {'chat_id': admin_chat, 'message_id': status_id, 'parse_mode': 'HTML', 'text': final})
+    else:
+        tg('sendMessage', {'chat_id': admin_chat, 'text': final, 'parse_mode': 'HTML'})
 
 
 def send_intro(chat_id, caption, reply_markup):
@@ -149,7 +236,8 @@ def toggle_notif(telegram_id):
         return None
 
 
-def register_user(tg_user):
+def register_user(tg_user, ref=None):
+    """Userni bazaga saqlaydi. created bool qaytaradi (referral uchun)."""
     try:
         uid = tg_user.get('id')
         full_name = f"{tg_user.get('first_name', '')} {tg_user.get('last_name', '')}".strip()
@@ -158,15 +246,18 @@ def register_user(tg_user):
                           json={'telegram_id': uid, 'full_name': full_name, 'username': username},
                           headers=HDRS, timeout=8)
         data = r.json()
-        log.info(f'User saqlandi: {uid} {full_name} (yangi={data.get("created")})')
+        log.info(f'User saqlandi: {uid} {full_name} (yangi={data.get("created")}, ref={ref})')
         if data.get('created'):
             uname = f'@{username}' if username else 'username yo\'q'
             total = data.get('total')
             tail = f'\n\n👥 Jami: <b>{total}-foydalanuvchi</b>' if total else ''
+            via = f'\n🔗 Taklif: <code>{ref}</code>' if ref else ''
             notify_admin(f'🆕 <b>Yangi foydalanuvchi!</b>\n\n'
-                         f'👤 {full_name or "—"}\n🔗 {uname}\n🆔 <code>{uid}</code>{tail}')
+                         f'👤 {full_name or "—"}\n🔗 {uname}\n🆔 <code>{uid}</code>{via}{tail}')
+        return data.get('created', False)
     except Exception as e:
         log.error(f'register_user xato: {e}')
+        return False
 
 
 def notify_admin(text):
@@ -381,8 +472,16 @@ def help_text():
 
 # ── Handlers ─────────────────────────────────────────────────────────────────
 
-def handle_start(chat_id, from_user):
-    register_user(from_user)
+def handle_start(chat_id, from_user, payload=''):
+    # Deep-link: qarz kartochkasi ulashilganda havola ref_<taklif qilgan id> bo'ladi
+    ref = payload[4:] if payload.startswith('ref_') else None
+    created = register_user(from_user, ref)
+    if created and ref and str(ref) != str(chat_id):
+        # Taklif qilgan foydalanuvchiga suyunchi — ulashish odat bo'lsin
+        name = f"{from_user.get('first_name', '')} {from_user.get('last_name', '')}".strip() or 'Do\'stingiz'
+        tg('sendMessage', {'chat_id': ref, 'parse_mode': 'HTML',
+                           'text': f"🎉 Siz ulashgan havola orqali <b>{name}</b> botga qo'shildi!\n\n"
+                                   f"Ulashishda davom eting — qarzlaringiz hech qachon unutilmaydi 😉"})
     state = get_state(chat_id)
     if state.get('exists'):
         caption = start_text(state)
@@ -482,6 +581,27 @@ def handle_callback(cb):
             tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Xatolik'})
             edit("⚠️ To'lovda xatolik. Qaytadan urinib ko'ring.", None)
 
+    elif action in ('ad_send', 'ad_send_btn', 'ad_cancel'):
+        global _pending_ad
+        if not is_admin(chat_id):
+            tg('answerCallbackQuery', {'callback_query_id': cb_id})
+            return
+        if action == 'ad_cancel':
+            _pending_ad = None
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Bekor qilindi'})
+            edit('❌ Reklama bekor qilindi.', None)
+            return
+        ad = _pending_ad
+        _pending_ad = None
+        if not ad:
+            tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Muddati o\'tdi'})
+            edit('⌛️ Bu reklama eskirgan. /reklama bilan qaytadan boshlang.', None)
+            return
+        tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': '📤 Yuborish boshlandi'})
+        edit('📤 Yuborish boshlandi...', None)
+        markup = app_button() if action == 'ad_send_btn' else None
+        broadcast(chat_id, ad['from_chat'], ad['message_id'], markup)
+
     elif action == 'debt_no':
         PENDING_DEBTS.pop(chat_id, None)
         tg('answerCallbackQuery', {'callback_query_id': cb_id, 'text': 'Bekor qilindi'})
@@ -494,6 +614,7 @@ def handle_callback(cb):
 # ── Main loop ────────────────────────────────────────────────────────────────
 
 def main():
+    global _awaiting_ad
     if not TOKEN:
         log.error('BOT_TOKEN topilmadi!')
         return
@@ -524,8 +645,28 @@ def main():
                         f"| is_admin={is_admin(chat_id)} | OPENAI={'bor' if OPENAI_API_KEY else 'YO‘Q!'}")
 
                 if text.startswith('/start'):
-                    log.info(f'/start → {chat_id}')
-                    handle_start(chat_id, msg.get('from', {}))
+                    parts = text.split(maxsplit=1)
+                    payload = parts[1].strip() if len(parts) > 1 else ''
+                    log.info(f'/start → {chat_id} (payload={payload or "-"})')
+                    handle_start(chat_id, msg.get('from', {}), payload)
+
+                elif is_admin(chat_id) and text.strip() == '/reklama':
+                    _awaiting_ad = True
+                    tg('sendMessage', {'chat_id': chat_id, 'parse_mode': 'HTML',
+                        'text': ("📣 <b>Reklama yuborish</b>\n\n"
+                                 "Endi yubormoqchi bo'lgan xabarni jo'nating — <b>video, rasm yoki matn</b> "
+                                 "(matn caption bilan birga bo'lsa ham bo'ladi).\n\n"
+                                 "Avval sizga <b>ko'rinishi</b> qaytariladi — tasdiqlasangizgina hammaga ketadi.\n\n"
+                                 "Bekor qilish: /bekor")})
+
+                elif is_admin(chat_id) and text.strip() == '/bekor':
+                    _awaiting_ad = False
+                    tg('sendMessage', {'chat_id': chat_id, 'text': "❌ Bekor qilindi"})
+
+                elif is_admin(chat_id) and _awaiting_ad:
+                    _awaiting_ad = False
+                    globals()['_pending_ad'] = {'from_chat': chat_id, 'message_id': msg['message_id']}
+                    show_ad_preview(chat_id)
 
                 elif is_admin(chat_id) and voice:
                     # 🎤 Admin ovozli xabar yubordi — Whisper → parse → tasdiqlash

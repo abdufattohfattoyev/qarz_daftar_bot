@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDebtStore, useAuthStore } from '../store'
+import { authAPI } from '../api'
 import { fmtDate, fmtTime, initials, avatarColor, haptic, daysUntil } from '../utils'
 import { ArrowUpIcon, ArrowDownIcon, ChevronRight } from '../components/Icons'
 import { useT, localeCode } from '../i18n'
@@ -14,8 +15,21 @@ export default function Home() {
   const { debts, loading, fetchDebts, groupedByDate } = useDebtStore()
   const [search, setSearch] = useState('')
   const [homeCurrency, setHomeCurrency] = useState(() => user?.currency || 'UZS')
+  // CBU kunlik USD kursi — sessiya davomida bir marta olinadi (flicker bo'lmasin)
+  const [usd, setUsd] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('usd_rate')) } catch { return null }
+  })
 
   useEffect(() => { fetchDebts() }, [])
+  useEffect(() => {
+    if (usd) return
+    authAPI.appMeta().then(({ data }) => {
+      if (data?.usd) {
+        setUsd(data.usd)
+        try { sessionStorage.setItem('usd_rate', JSON.stringify(data.usd)) } catch { /* private mode */ }
+      }
+    }).catch(() => {})
+  }, [])
   // user.currency o'zgarganda toggle ham yangilansin
   useEffect(() => { if (user?.currency) setHomeCurrency(user.currency) }, [user?.currency])
 
@@ -84,6 +98,26 @@ export default function Home() {
             {initials(user?.display_name || 'U')}
           </div>
         </div>
+
+        {/* 💵 CBU kunlik USD kursi */}
+        {usd?.rate > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+            background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.12)',
+            borderRadius: 10, padding: '5px 10px', width: 'fit-content',
+          }}>
+            <span style={{ fontSize: 11 }}>💵</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: '#fbbf24', letterSpacing: -.2 }}>
+              1 $ = {n(usd.rate)} {t('cur_som').toLowerCase()}
+            </span>
+            {usd.diff !== 0 && (
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: usd.diff > 0 ? '#4ade80' : '#f87171' }}>
+                {usd.diff > 0 ? '▲' : '▼'} {n(Math.abs(usd.diff))}
+              </span>
+            )}
+            <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,.45)', fontWeight: 600 }}>CBU · {usd.date}</span>
+          </div>
+        )}
 
         {/* balance glass card */}
         <div style={{

@@ -70,6 +70,41 @@ def telegram_auth(request):
     })
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def app_meta(request):
+    """Ilova uchun meta ma'lumot: bot username (share deep-link uchun) va
+    CBU kunlik USD kursi. Ikkalasi ham Redis'da keshlanadi."""
+    import requests as rq
+    from django.core.cache import cache
+
+    # Bot username — getMe orqali, 1 kun kesh
+    bot_username = cache.get('bot_username')
+    if not bot_username and settings.BOT_TOKEN:
+        try:
+            r = rq.get(f'https://api.telegram.org/bot{settings.BOT_TOKEN}/getMe', timeout=6)
+            bot_username = (r.json().get('result') or {}).get('username')
+            if bot_username:
+                cache.set('bot_username', bot_username, 86400)
+        except Exception as e:
+            logger.warning('getMe: %s', e)
+
+    # CBU USD kursi — 6 soat kesh
+    usd = cache.get('usd_rate')
+    if usd is None:
+        try:
+            r = rq.get('https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/', timeout=8)
+            row = (r.json() or [{}])[0]
+            rate = float(row.get('Rate') or 0)
+            if rate > 0:
+                usd = {'rate': rate, 'diff': float(row.get('Diff') or 0), 'date': row.get('Date', '')}
+                cache.set('usd_rate', usd, 6 * 3600)
+        except Exception as e:
+            logger.warning('CBU kursi olinmadi: %s', e)
+
+    return Response({'bot_username': bot_username, 'usd': usd})
+
+
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def me(request):
@@ -390,6 +425,17 @@ def bot_pay_debt(request):
         'currency': currency,
         'net': net,                   # to'lovdan keyingi balans
     })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def bot_users(request):
+    """Reklama (broadcast) uchun barcha telegram_id lar — bot ishlatadi."""
+    if request.headers.get('X-Bot-Secret', '') != settings.BOT_TOKEN:
+        return Response({'error': 'Ruxsat yo\'q'}, status=403)
+    ids = list(User.objects.filter(telegram_id__isnull=False)
+               .values_list('telegram_id', flat=True))
+    return Response({'users': ids, 'total': len(ids)})
 
 
 @api_view(['POST'])

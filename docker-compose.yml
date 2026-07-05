@@ -93,6 +93,9 @@ services:
     command: >
       sh -c "while true; do
                python manage.py send_reminders || true;
+               if [ \"$$(date +%u)\" = \"1\" ]; then
+                 python manage.py send_weekly_report || true;
+               fi;
                sleep 86400;
              done"
     networks:
