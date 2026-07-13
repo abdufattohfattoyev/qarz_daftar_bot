@@ -14,6 +14,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('phone', help='Qabul qiluvchi raqam, masalan +998901234567')
         parser.add_argument('--text', default='Test SMS — Qarz Yordamchi (TextUP ulandi)')
+        parser.add_argument('--template-id', default=None, help='TextUP shablon UUID (ixtiyoriy)')
 
     def handle(self, *args, **opts):
         if not sms.is_configured():
@@ -21,7 +22,8 @@ class Command(BaseCommand):
                 "TEXTUP_EMAIL / TEXTUP_PASSWORD .env faylda o'rnatilmagan"))
             return
         try:
-            sms_id = sms.send_sms(opts['phone'], opts['text'], name='test-sms')
+            sms_id = sms.send_sms(opts['phone'], opts['text'], name='test-sms',
+                                  template_id=opts['template_id'])
         except sms.SmsError as e:
             self.stderr.write(self.style.ERROR(f'Xato: {e}'))
             return

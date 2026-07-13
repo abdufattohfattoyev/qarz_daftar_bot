@@ -71,8 +71,9 @@ def _get_auth():
     return cache.get(CACHE_KEY) or _login()
 
 
-def send_sms(phone, message, name=None):
-    """Bitta raqamga SMS yuboradi. Muvaffaqiyatda smsId, xatoda SmsError."""
+def send_sms(phone, message, name=None, template_id=None):
+    """Bitta raqamga SMS yuboradi. Muvaffaqiyatda smsId, xatoda SmsError.
+    template_id berilsa settings.TEXTUP_TEMPLATE_ID o'rniga ishlatiladi."""
     if not is_configured():
         raise SmsError("SMS xizmati sozlanmagan (TEXTUP_EMAIL / TEXTUP_PASSWORD)")
 
@@ -86,8 +87,9 @@ def send_sms(phone, message, name=None):
         payload['name'] = name
     if settings.TEXTUP_NICKNAME_ID:
         payload['nicknameId'] = settings.TEXTUP_NICKNAME_ID
-    if settings.TEXTUP_TEMPLATE_ID:
-        payload['templateId'] = settings.TEXTUP_TEMPLATE_ID
+    template_id = template_id or settings.TEXTUP_TEMPLATE_ID
+    if template_id:
+        payload['templateId'] = template_id
 
     def _post():
         return requests.post(
