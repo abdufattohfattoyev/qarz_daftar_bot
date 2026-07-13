@@ -42,13 +42,9 @@ class DebtViewSet(viewsets.ModelViewSet):
         return DebtSerializer
 
     def perform_create(self, serializer):
-        debt = serializer.save(user=self.request.user)
-        # Telegram bildirishnoma yuborish (async)
-        try:
-            from apps.notifications.tasks import notify_debt_created
-            notify_debt_created(debt.id)
-        except Exception:
-            pass
+        # Qarzni o'zi yaratgan foydalanuvchiga Telegram xabari YUBORILMAYDI —
+        # natijani ilovada darhol ko'radi, ortiqcha xabar bo'lmasin.
+        serializer.save(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
         """Yaratgandan keyin TO'LIQ qarz obyektini qaytaramiz (id, created_at,
@@ -93,13 +89,8 @@ class DebtViewSet(viewsets.ModelViewSet):
         except Debt.DoesNotExist:
             return Response({'error': 'Qarz topilmadi'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Telegram bildirishnoma (fonda, so'rovni bloklamaydi)
-        try:
-            from apps.notifications.tasks import notify_payment_made
-            notify_payment_made(payment.id)
-        except Exception:
-            pass
-
+        # To'lovni o'zi qilgan foydalanuvchiga Telegram xabari yuborilmaydi —
+        # natija ilovada ko'rinadi (ortiqcha xabarlarni kamaytiramiz).
         debt.refresh_from_db()
         return Response({
             'payment': PaymentSerializer(payment).data,

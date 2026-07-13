@@ -258,20 +258,66 @@ def notify_payment_made(payment):
     send(user.telegram_id, '\n'.join(lines), reply_markup=open_app_btn())
 
 
-def notify_overdue(debt):
-    if not debt.user.telegram_id or not debt.user.notifications_enabled:
-        return
-    from datetime import date
-    days = (date.today() - debt.due_date).days
-    label = 'Menga qaytarishi kerak' if debt.debt_type == 'gave' else 'Men qaytaraman'
-    text = (
-        f"⚠️ <b>Qarz muddati o'tdi!</b>\n\n"
-        f"👤 <b>{debt.contact.name}</b>\n"
-        f"💰 <b>{fmt_amount(debt.remaining_amount, debt.currency)}</b>\n"
-        f"📅 Muddat: {fmt_date(debt.due_date)} (<b>{days} kun oldin</b>)\n"
-        f"📌 {label}"
-    )
-    send(debt.user.telegram_id, text, reply_markup=open_app_btn())
+def send_due_digest(user_obj):
+    """Kunlik YIG'MA eslatma — muddati o'tgan / bugun / ertaga muddatli qarzlarni
+    BITTA xabarda yuboradi (har qarzga alohida xabar EMAS — spam bo'lmasin).
+
+    Muddati o'tgan qarzlar har kuni takrorlanmaydi: faqat 1, 3, 7, 14-kunlarda,
+    undan keyin haftada bir marta qo'shiladi. Jadval to'liq due_date'dan
+    hisoblanadi — qo'shimcha DB maydoni yoki kesh kerak emas.
+    Xabar yuborilgan bo'lsa True qaytaradi."""
+    if not user_obj.telegram_id or not user_obj.notifications_enabled:
+        return False
+
+    from datetime import date, timedelta
+    from apps.debts.models import Debt
+
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+    active = Debt.objects.filter(
+        user=user_obj, status__in=['active', 'partial'], due_date__isnull=False
+    ).select_related('contact')
+
+    overdue, due_today, due_tmrw = [], [], []
+    for d in active:
+        if d.due_date == today:
+            due_today.append(d)
+        elif d.due_date == tomorrow:
+            due_tmrw.append(d)
+        elif d.due_date < today:
+            days = (today - d.due_date).days
+            # Takrorlash jadvali — eski qarzlar har kuni bezovta qilmasin
+            if days in (1, 3, 7, 14) or (days > 14 and days % 7 == 0):
+                overdue.append((d, days))
+
+    if not overdue and not due_today and not due_tmrw:
+        return False   # bugun eslatadigan narsa yo'q — jim turamiz
+
+    def line(debt, suffix=''):
+        arrow = '↗️' if debt.debt_type == 'gave' else '↙️'
+        return f"{arrow} <b>{debt.contact.name}</b> — {fmt_amount(debt.remaining_amount, debt.currency)}{suffix}"
+
+    lines = ["🔔 <b>Qarz eslatmasi</b>\n"]
+    if overdue:
+        lines.append(f"⚠️ <b>Muddati o'tgan ({len(overdue)} ta):</b>")
+        for d, days in sorted(overdue, key=lambda x: -x[1]):
+            lines.append(line(d, f"  <i>({days} kun o'tdi)</i>"))
+        lines.append("")
+    if due_today:
+        lines.append(f"⏰ <b>Bugun muddati ({len(due_today)} ta):</b>")
+        for d in due_today:
+            lines.append(line(d))
+        lines.append("")
+    if due_tmrw:
+        lines.append(f"📅 <b>Ertaga muddati ({len(due_tmrw)} ta):</b>")
+        for d in due_tmrw:
+            lines.append(line(d))
+        lines.append("")
+
+    lines.append("<i>↗️ menga qaytarishi kerak · ↙️ men qaytaraman</i>")
+
+    send(user_obj.telegram_id, '\n'.join(lines), reply_markup=open_app_btn('📒 Batafsil ko\'rish'))
+    return True
 
 
 def send_weekly_report(user_obj):
@@ -335,24 +381,3 @@ def send_weekly_report(user_obj):
 
     send(user_obj.telegram_id, '\n'.join(lines), reply_markup=open_app_btn('📒 Batafsil ko\'rish'))
     return True
-
-
-def notify_due_soon(debt, days_left: int):
-    """Bugun (0) yoki ertaga (1) muddati tugaydigan qarzlar uchun eslatma."""
-    if not debt.user.telegram_id or not debt.user.notifications_enabled:
-        return
-    label = 'Menga qaytarishi kerak' if debt.debt_type == 'gave' else 'Men qaytaraman'
-    if days_left == 0:
-        title = "⏰ <b>Bugun muddat!</b>"
-        when = "Bugun so'nggi kun"
-    else:
-        title = "📅 <b>Ertaga muddat!</b>"
-        when = "Ertaga so'nggi kun"
-    text = (
-        f"{title}\n\n"
-        f"👤 <b>{debt.contact.name}</b>\n"
-        f"💰 <b>{fmt_amount(debt.remaining_amount, debt.currency)}</b>\n"
-        f"📅 {when}: {fmt_date(debt.due_date)}\n"
-        f"📌 {label}"
-    )
-    send(debt.user.telegram_id, text, reply_markup=open_app_btn('📒 Ko\'rish'))

@@ -65,37 +65,27 @@ def _notify_payment_made(payment_id: int):
 
 
 def _send_overdue_reminders():
+    """Har foydalanuvchiga BITTA yig'ma eslatma yuboradi (bot.send_due_digest
+    o'zi jadval bo'yicha kimga nima yuborishni hal qiladi). Ilgari har qarzga
+    alohida xabar ketardi — xabarlar to'lib ketardi."""
     try:
-        from datetime import timedelta
-        from django.utils import timezone
-        from apps.debts.models import Debt
+        import time
+        from apps.users.models import User
         from apps.notifications import bot
 
-        today = timezone.now().date()
-        tomorrow = today + timedelta(days=1)
-
-        base = Debt.objects.filter(
-            status__in=['active', 'partial'],
-            user__notifications_enabled=True,
-            user__telegram_id__isnull=False,
-        ).select_related('user', 'contact')
-
-        jobs = [
-            (base.filter(due_date__lt=today),    'overdue',   lambda d: bot.notify_overdue(d)),
-            (base.filter(due_date=today),         'due_today', lambda d: bot.notify_due_soon(d, 0)),
-            (base.filter(due_date=tomorrow),      'due_tmrw',  lambda d: bot.notify_due_soon(d, 1)),
-        ]
-
+        users = User.objects.filter(
+            telegram_id__isnull=False, notifications_enabled=True,
+        )
         sent = 0
-        for qs, tag, fn in jobs:
-            for debt in qs:
-                try:
-                    fn(debt)
+        for u in users:
+            try:
+                if bot.send_due_digest(u):
                     sent += 1
-                except Exception as e:
-                    logger.error('%s (debt=%s): %s', tag, debt.id, e)
+                    time.sleep(0.05)   # Telegram rate-limit (~20/s)
+            except Exception as e:
+                logger.error('due digest (user=%s): %s', u.id, e)
 
-        logger.info('Due reminders sent: %s', sent)
+        logger.info('Due digests sent: %s', sent)
     except Exception as e:
         logger.error('send_overdue_reminders: %s', e)
 
