@@ -176,3 +176,4 @@ ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '')
 TEXTUP_EMAIL = os.environ.get('TEXTUP_EMAIL', '')
 TEXTUP_PASSWORD = os.environ.get('TEXTUP_PASSWORD', '')      # saytdagi "Yashirin kalit"
 TEXTUP_NICKNAME_ID = os.environ.get('TEXTUP_NICKNAME_ID', '')  # ixtiyoriy — alpha name (nik)
+TEXTUP_TEMPLATE_ID = os.environ.get('TEXTUP_TEMPLATE_ID', '')  # tasdiqlangan shablon ID (moderatsiya shart)

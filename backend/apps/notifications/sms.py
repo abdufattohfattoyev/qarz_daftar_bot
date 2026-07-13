@@ -86,6 +86,8 @@ def send_sms(phone, message, name=None):
         payload['name'] = name
     if settings.TEXTUP_NICKNAME_ID:
         payload['nicknameId'] = settings.TEXTUP_NICKNAME_ID
+    if settings.TEXTUP_TEMPLATE_ID:
+        payload['templateId'] = settings.TEXTUP_TEMPLATE_ID
 
     def _post():
         return requests.post(
@@ -108,6 +110,9 @@ def send_sms(phone, message, name=None):
 
     if resp.status_code not in (200, 201):
         logger.error('TextUP send failed [%s]: %s', resp.status_code, resp.text[:300])
+        if 'template' in resp.text.lower():
+            raise SmsError("SMS yuborilmadi — matn TextUP'da tasdiqlangan shablonga mos emas "
+                           "(kabinetda shablon yarating va moderatsiyadan o'tkazing)")
         raise SmsError("SMS yuborilmadi — balans yoki sozlamalarni tekshiring")
 
     sms_id = (resp.json() or {}).get('smsId')
