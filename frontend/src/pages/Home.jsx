@@ -4,6 +4,7 @@ import { useDebtStore, useAuthStore } from '../store'
 import { authAPI } from '../api'
 import { fmtDate, fmtTime, initials, avatarColor, haptic, daysUntil } from '../utils'
 import { ArrowUpIcon, ArrowDownIcon, ChevronRight } from '../components/Icons'
+import DebtSheet from '../components/DebtSheet'
 import { useT, localeCode } from '../i18n'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(parseFloat(v || 0)))
@@ -14,6 +15,7 @@ export default function Home() {
   const { user } = useAuthStore()
   const { debts, loading, fetchDebts, groupedByDate } = useDebtStore()
   const [search, setSearch] = useState('')
+  const [sheetDebt, setSheetDebt] = useState(null)   // bosilgan qarz — modal (bottom sheet)
   const [homeCurrency, setHomeCurrency] = useState(() => user?.currency || 'UZS')
   // CBU kunlik USD kursi — sessiya davomida bir marta olinadi (flicker bo'lmasin)
   const [usd, setUsd] = useState(() => {
@@ -255,7 +257,7 @@ export default function Home() {
                   : today ? t('due_today_label')
                   : t('days_left', { n: d._days })
                 return (
-                  <div key={d.id} onClick={() => { haptic('light'); navigate(`/debt/${d.id}`) }} className="list-item" style={{
+                  <div key={d.id} onClick={() => { haptic('light'); setSheetDebt(d) }} className="list-item" style={{
                     minWidth: 156, flexShrink: 0, background: '#fff', borderRadius: 16, padding: 12,
                     border: `1.5px solid ${color}33`, boxShadow: '0 2px 8px rgba(0,0,0,.05)', cursor: 'pointer',
                   }}>
@@ -354,7 +356,7 @@ export default function Home() {
                 const isPaid = debt.status === 'paid'
                 const av = avatarColor(debt.contact_name)
                 return (
-                  <div key={debt.id} onClick={() => { haptic('light'); navigate(`/debt/${debt.id}`) }} className="list-item" style={{
+                  <div key={debt.id} onClick={() => { haptic('light'); setSheetDebt(debt) }} className="list-item" style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer',
                     borderBottom: idx < group.debts.length - 1 ? '1px solid #f8fafc' : 'none',
                     background: isPaid ? '#fafafa' : 'transparent',
@@ -408,6 +410,9 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* Qarz detali — bottom sheet modal */}
+      {sheetDebt && <DebtSheet debt={sheetDebt} onClose={() => setSheetDebt(null)} />}
     </div>
   )
 }
