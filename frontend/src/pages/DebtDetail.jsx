@@ -24,6 +24,7 @@ export function DebtDetail() {
   const [loading, setLoading] = useState(true)
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [smsState, setSmsState] = useState({ status: 'idle', msg: '' }) // idle|sending|sent|error
 
   useEffect(() => {
     debtsAPI.get(id).then(({ data }) => { setDebt(data); setLoading(false) })
@@ -55,6 +56,22 @@ export function DebtDetail() {
     const twa = window.Telegram?.WebApp
     if (twa?.openTelegramLink) twa.openTelegramLink(shareUrl)
     else window.open(shareUrl, '_blank')
+  }
+
+  // Qarzdorga SMS eslatma (TextUP) — pullik, shuning uchun faqat tugma bosilganda
+  const sendSms = async () => {
+    if (smsState.status === 'sending' || smsState.status === 'sent') return
+    haptic('light')
+    setSmsState({ status: 'sending', msg: '' })
+    try {
+      await debtsAPI.sendSms(id)
+      haptic('success')
+      setSmsState({ status: 'sent', msg: '' })
+    } catch (e) {
+      haptic('error')
+      const msg = e.response?.data?.error || t('sms_err')
+      setSmsState({ status: 'error', msg })
+    }
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 60, color: '#aaa' }}>{t('loading')}</div>
@@ -135,6 +152,33 @@ export function DebtDetail() {
               </svg>
               {t(isGave ? 'share_remind_btn' : 'share_card_btn')}
             </button>
+          )}
+          {/* SMS eslatma — kontakt telefoniga TextUP orqali (faqat men bergan qarzlar).
+              HOZIRCHA TEST: faqat admin ko'radi — hammaga ochish uchun user?.is_admin shartini olib tashlang */}
+          {user?.is_admin && debt.status !== 'paid' && isGave && debt.contact_detail?.phone && (
+            <>
+              <button onClick={sendSms} className="pill-btn" disabled={smsState.status === 'sending'} style={{
+                width: '100%', padding: '13px 10px', borderRadius: 14,
+                border: '1.5px solid #fde68a',
+                background: smsState.status === 'sent' ? '#f0fdf4' : '#fffbeb',
+                color: smsState.status === 'sent' ? '#16a34a' : '#b45309',
+                fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                opacity: smsState.status === 'sending' ? 0.7 : 1,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                  <path d="M2.5 4.5h13v9h-13z M2.5 5l6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </svg>
+                {smsState.status === 'sending' ? t('sms_sending')
+                  : smsState.status === 'sent' ? t('sms_sent')
+                  : t('sms_remind_btn')}
+              </button>
+              {smsState.status === 'error' && (
+                <div style={{ padding: '9px 14px', background: '#fef2f2', borderRadius: 12, border: '1px solid #fecaca', fontSize: 12.5, color: '#ef4444', lineHeight: 1.4 }}>
+                  {smsState.msg}
+                </div>
+              )}
+            </>
           )}
           {/* Yana qarz + Tahrirlash + O'chirish */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>

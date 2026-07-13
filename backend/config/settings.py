@@ -171,3 +171,8 @@ WEBAPP_URL = os.environ.get('WEBAPP_URL', 'https://nasiya-karta.uz')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 # AI qarz kiritish faqat shu Telegram ID uchun ishlaydi (admin)
 ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '')
+
+# TextUP SMS shlyuz (https://textup.uz) — qarzdorga SMS eslatma yuborish
+TEXTUP_EMAIL = os.environ.get('TEXTUP_EMAIL', '')
+TEXTUP_PASSWORD = os.environ.get('TEXTUP_PASSWORD', '')      # saytdagi "Yashirin kalit"
+TEXTUP_NICKNAME_ID = os.environ.get('TEXTUP_NICKNAME_ID', '')  # ixtiyoriy — alpha name (nik)

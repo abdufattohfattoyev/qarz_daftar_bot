@@ -106,6 +106,55 @@ class DebtViewSet(viewsets.ModelViewSet):
             'debt': DebtSerializer(debt, context={'request': request}).data,
         })
 
+    @action(detail=True, methods=['post'], url_path='send_sms')
+    def send_sms(self, request, pk=None):
+        """Qarzdorga SMS eslatma (TextUP). Spam bo'lmasin — har qarzga 5 daqiqada 1 ta.
+
+        HOZIRCHA TEST REJIMI: faqat admin (ADMIN_CHAT_ID) ishlatadi — hammaga
+        ochish uchun quyidagi admin tekshiruvini olib tashlash kifoya."""
+        from django.conf import settings as dj_settings
+        from django.core.cache import cache
+        from apps.notifications import sms
+
+        admin = str(getattr(dj_settings, 'ADMIN_CHAT_ID', '') or '').strip()
+        if not admin or str(request.user.telegram_id) != admin:
+            return Response({'error': 'SMS eslatma hozircha test rejimida — faqat admin uchun'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        debt = self.get_object()
+
+        if debt.debt_type != 'gave':
+            return Response({'error': "SMS eslatma faqat siz bergan qarzlar uchun"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if debt.status == 'paid':
+            return Response({'error': "Bu qarz allaqachon to'langan"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not debt.contact.phone:
+            return Response({'error': "Kontaktda telefon raqami yo'q — avval kontaktga raqam qo'shing"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        rl_key = f'sms_rl:{debt.id}'
+        if cache.get(rl_key):
+            return Response({'error': "SMS yaqinda yuborilgan — 5 daqiqadan keyin qayta urinib ko'ring"},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        owner = request.user.full_name or request.user.telegram_username or ''
+        amount = f"{debt.remaining_amount:,.0f}".replace(',', ' ') + f" {debt.currency}"
+        text = f"Assalomu alaykum, {debt.contact.name}! Eslatma: sizda"
+        text += f" {owner} oldida" if owner else ''
+        text += f" {amount} qarz bor."
+        if debt.due_date:
+            text += f" Muddat: {debt.due_date.strftime('%d.%m.%Y')}."
+        text += " (Qarz Yordamchi)"
+
+        try:
+            sms_id = sms.send_sms(debt.contact.phone, text, name=f'debt-{debt.id}')
+        except sms.SmsError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        cache.set(rl_key, 1, 300)
+        return Response({'ok': True, 'sms_id': sms_id, 'text': text})
+
     @action(detail=True, methods=['get'])
     def payments(self, request, pk=None):
         """Qarz to'lov tarixi"""
