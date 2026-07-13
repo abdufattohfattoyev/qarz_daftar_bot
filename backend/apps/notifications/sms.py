@@ -160,8 +160,10 @@ def send_sms(phone, message, name=None, template_id=None):
     if resp.status_code not in (200, 201):
         logger.error('TextUP send failed [%s]: %s', resp.status_code, resp.text[:300])
         if 'template' in resp.text.lower():
-            raise SmsError("SMS yuborilmadi — matn TextUP'da tasdiqlangan shablonga mos emas "
+            err = SmsError("SMS yuborilmadi — matn TextUP'da tasdiqlangan shablonga mos emas "
                            "(kabinetda shablon yarating va moderatsiyadan o'tkazing)")
+            err.template_error = True   # chaqiruvchi boshqa matn bilan retry qilishi mumkin
+            raise err
         raise SmsError("SMS yuborilmadi — balans yoki sozlamalarni tekshiring")
 
     sms_id = (resp.json() or {}).get('smsId')

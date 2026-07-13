@@ -142,17 +142,28 @@ class DebtViewSet(viewsets.ModelViewSet):
         owner = sms.person_name(request.user.full_name or request.user.telegram_username or '')
         contact_name = sms.person_name(debt.contact.name)
         amount = f"{debt.remaining_amount:,.0f}".replace(',', ' ') + f" {debt.currency}"
-        text = f"Assalomu alaykum, {contact_name}! Eslatma: sizda"
-        text += f" {owner} oldida" if owner else ''
-        text += f" {amount} qarz bor."
-        if debt.due_date:
-            text += f" Muddat: {debt.due_date.strftime('%d.%m.%Y')}."
-        text += " (Qarz Yordamchi)"
+        base = f"Assalomu alaykum, {contact_name}! Eslatma: sizda"
+        base += f" {owner} oldida" if owner else ''
+        base += f" {amount} qarz bor."
 
-        try:
-            sms_id = sms.send_sms(debt.contact.phone, text, name=f'debt-{debt.id}')
-        except sms.SmsError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        # Avval muddatli variant, shablon validatsiyadan o'tmasa muddatsiz retry
+        # (TextUP'da "muddat bilan" shablon maskasi hozircha nosoz)
+        variants = [base + " (Qarz Yordamchi)"]
+        if debt.due_date:
+            variants.insert(0, base + f" Muddat: {debt.due_date.strftime('%d.%m.%Y')}. (Qarz Yordamchi)")
+
+        sms_id, text, last_err = None, None, None
+        for candidate in variants:
+            try:
+                sms_id = sms.send_sms(debt.contact.phone, candidate, name=f'debt-{debt.id}')
+                text = candidate
+                break
+            except sms.SmsError as e:
+                last_err = e
+                if not getattr(e, 'template_error', False):
+                    break   # shablon xatosi emas — boshqa variant ham o'tmaydi
+        if sms_id is None:
+            return Response({'error': str(last_err)}, status=status.HTTP_400_BAD_REQUEST)
 
         cache.set(rl_key, 1, 300)
         return Response({'ok': True, 'sms_id': sms_id, 'text': text})
