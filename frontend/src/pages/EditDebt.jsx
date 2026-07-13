@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { debtsAPI } from '../api'
+import { debtsAPI, contactsAPI } from '../api'
 import { useDebtStore } from '../store'
 import { haptic } from '../utils'
 import { useT } from '../i18n'
@@ -31,6 +31,8 @@ export default function EditDebt() {
   const [currency, setCurrency] = useState('UZS')
   const [note, setNote] = useState('')
   const [dueDate, setDueDate] = useState('')
+  const [phone, setPhone] = useState('')
+  const [phone0, setPhone0] = useState('')   // asl qiymat — o'zgarganda kontaktga PATCH
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -46,6 +48,8 @@ export default function EditDebt() {
       setCurrency(data.currency)
       setNote(data.note || '')
       setDueDate(data.due_date || '')
+      const ph = data.contact_detail?.phone || ''
+      setPhone(ph); setPhone0(ph)
     }).catch(() => {})
   }, [id])
 
@@ -64,6 +68,10 @@ export default function EditDebt() {
         debt_type: debtType, amount, currency,
         note, due_date: dueDate || null,
       })
+      // Telefon o'zgargan bo'lsa kontaktni ham yangilaymiz (SMS eslatma uchun kerak)
+      if (phone.trim() !== phone0) {
+        try { await contactsAPI.update(debt.contact, { phone: phone.trim() }) } catch {}
+      }
       haptic('success')
       navigate(`/debt/${id}`)
     } catch (e) {
@@ -147,6 +155,19 @@ export default function EditDebt() {
             <NoteIcon /> {t('note_optional')}
           </label>
           <input type="text" placeholder={t('note_ph')} value={note} onChange={(e) => setNote(e.target.value)}
+            style={{ width: '100%', padding: '13px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 14, color: '#111', background: '#fff', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+
+        {/* Kontakt telefoni — SMS eslatma yuborish uchun kerak */}
+        <div style={{ padding: '0 14px', marginBottom: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path d="M3.5 2h2.6l1.2 3-1.7 1.3a10 10 0 004.1 4.1L11 8.7l3 1.2v2.6a1.5 1.5 0 01-1.6 1.5C6.6 13.5 2.5 9.4 2 3.6A1.5 1.5 0 013.5 2z" stroke="#64748b" strokeWidth="1.3" strokeLinejoin="round"/>
+            </svg>
+            {t('phone_optional')}
+          </label>
+          <input type="tel" inputMode="tel" placeholder="+998 90 123 45 67" value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ]/g, ''))}
             style={{ width: '100%', padding: '13px 14px', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 14, fontSize: 14, color: '#111', background: '#fff', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
         </div>
 
