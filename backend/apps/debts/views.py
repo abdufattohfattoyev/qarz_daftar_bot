@@ -138,9 +138,11 @@ class DebtViewSet(viewsets.ModelViewSet):
             return Response({'error': "SMS yaqinda yuborilgan — 5 daqiqadan keyin qayta urinib ko'ring"},
                             status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        owner = request.user.full_name or request.user.telegram_username or ''
+        # Ismlarni lotinchaga o'giramiz — TextUP shabloni lotin matn bilan tasdiqlangan
+        owner = sms.person_name(request.user.full_name or request.user.telegram_username or '')
+        contact_name = sms.person_name(debt.contact.name)
         amount = f"{debt.remaining_amount:,.0f}".replace(',', ' ') + f" {debt.currency}"
-        text = f"Assalomu alaykum, {debt.contact.name}! Eslatma: sizda"
+        text = f"Assalomu alaykum, {contact_name}! Eslatma: sizda"
         text += f" {owner} oldida" if owner else ''
         text += f" {amount} qarz bor."
         if debt.due_date:
