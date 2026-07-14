@@ -182,7 +182,10 @@ def send_otp(phone, code):
     """Telefonni tasdiqlash uchun 4 xonali kod yuboradi.
     Matn TextUP'da "Tasdiqlash kodi" shabloni sifatida tasdiqlangan bo'lishi shart
     (Punkt 2: resurs nomi + maqsad ko'rsatilishi majburiy)."""
-    text = (f"Qarz Yordamchi ilovasi uchun tasdiqlash kodingiz: {code}. "
+    # DIQQAT: TextUP saqlashda "{kod}. " ni "{kod}<2 bo'sh joy>\n" ga o'zgartiradi
+    # (raqamdan keyingi nuqtani yangi qatorga aylantiradi). Shablon aynan shu
+    # ko'rinishda tasdiqlanadi, shuning uchun backend ham aynan shunday yuboradi.
+    text = (f"Qarz Yordamchi ilovasi uchun tasdiqlash kodingiz: {code}  \n"
             f"Kod 1 daqiqa amal qiladi. t.me/Qarz_Yordamchi_Bot")
     return send_sms(phone, text, name='otp',
                     template_id=settings.TEXTUP_OTP_TEMPLATE_ID or None)
