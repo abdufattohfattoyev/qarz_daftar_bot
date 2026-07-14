@@ -153,9 +153,9 @@ export function DebtDetail() {
               {t(isGave ? 'share_remind_btn' : 'share_card_btn')}
             </button>
           )}
-          {/* SMS eslatma — kontakt telefoniga TextUP orqali (faqat men bergan qarzlar).
+          {/* SMS eslatma — global yoqilgan bo'lsa (admin boshqaradi).
               Telefoni tasdiqlanmagan bo'lsa backend Sozlamalarga yo'naltiradi. */}
-          {debt.status !== 'paid' && isGave && (
+          {debt.status !== 'paid' && isGave && user?.sms_enabled && (
             <>
               <button onClick={sendSms} className="pill-btn" disabled={smsState.status === 'sending'} style={{
                 width: '100%', padding: '13px 10px', borderRadius: 14,

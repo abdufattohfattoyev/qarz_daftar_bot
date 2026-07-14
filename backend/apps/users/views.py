@@ -543,6 +543,24 @@ def verify_phone_code(request):
     return Response(UserSerializer(request.user).data)
 
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def sms_toggle(request):
+    """SMS eslatma xizmatini global yoqish/o'chirish — FAQAT admin.
+    GET holatni qaytaradi, POST {enabled: bool} o'zgartiradi."""
+    from apps.notifications.models import AppConfig
+
+    admin = str(getattr(settings, 'ADMIN_CHAT_ID', '') or '').strip()
+    if not admin or str(request.user.telegram_id) != admin:
+        return Response({'error': 'Faqat admin uchun'}, status=403)
+
+    cfg = AppConfig.get()
+    if request.method == 'POST':
+        cfg.sms_enabled = bool(request.data.get('enabled'))
+        cfg.save(update_fields=['sms_enabled', 'updated_at'])
+    return Response({'sms_enabled': cfg.sms_enabled})
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def token_refresh_view(request):

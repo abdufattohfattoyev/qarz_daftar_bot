@@ -56,6 +56,7 @@ class UserSerializer(serializers.ModelSerializer):
     has_pin = serializers.SerializerMethodField()
     is_admin = serializers.SerializerMethodField()
     require_phone_verify = serializers.SerializerMethodField()
+    sms_enabled = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -64,7 +65,7 @@ class UserSerializer(serializers.ModelSerializer):
             'full_name', 'display_name', 'phone',
             'photo_url', 'currency', 'language',
             'notifications_enabled', 'has_pin', 'is_admin',
-            'phone_verified', 'require_phone_verify', 'created_at'
+            'phone_verified', 'require_phone_verify', 'sms_enabled', 'created_at'
         ]
         read_only_fields = ['id', 'telegram_id', 'created_at']
 
@@ -75,6 +76,11 @@ class UserSerializer(serializers.ModelSerializer):
         # Global sozlama — ilovaga kirish uchun telefon tasdiqlash majburiymi
         from django.conf import settings
         return bool(getattr(settings, 'REQUIRE_PHONE_VERIFICATION', False))
+
+    def get_sms_enabled(self, obj):
+        # Global admin tugmasi — SMS eslatma xizmati yoqilganmi (standart: ochiq)
+        from apps.notifications.models import AppConfig
+        return AppConfig.get().sms_enabled
 
     def get_is_admin(self, obj):
         from django.conf import settings

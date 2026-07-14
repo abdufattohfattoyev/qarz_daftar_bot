@@ -249,6 +249,11 @@ export const translations = {
     phone_verifying: 'Tekshirilmoqda...',
     phone_mandatory_note: 'Ilovadan foydalanish uchun telefoningizni tasdiqlang',
     phone_help: 'Kod kelmadimi? Yordam olish',
+
+    // Admin: SMS xizmati
+    admin_sms_section: 'Admin — SMS xizmati',
+    admin_sms_toggle: 'SMS eslatma yoqilgan',
+    admin_sms_hint: "O'chirsangiz, hech kim qarzdorga SMS eslatma yubora olmaydi. Standart — yoqiq.",
   },
 
   ru: {
@@ -481,6 +486,11 @@ export const translations = {
     phone_verifying: 'Проверка...',
     phone_mandatory_note: 'Подтвердите телефон, чтобы пользоваться приложением',
     phone_help: 'Код не пришёл? Получить помощь',
+
+    // Админ: SMS-сервис
+    admin_sms_section: 'Админ — SMS-сервис',
+    admin_sms_toggle: 'SMS-напоминания включены',
+    admin_sms_hint: 'Если выключить, никто не сможет отправлять SMS должникам. По умолчанию — включено.',
   },
 }
 

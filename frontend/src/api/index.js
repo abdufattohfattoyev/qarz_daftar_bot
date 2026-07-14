@@ -73,6 +73,8 @@ export const adminAPI = {
   overview: () => api.get('/auth/admin/overview/'),
   users: (q) => api.get('/auth/admin/users/', { params: q ? { q } : {} }),
   userDebts: (id) => api.get(`/auth/admin/user/${id}/debts/`),
+  smsToggle: () => api.get('/auth/admin/sms-toggle/'),
+  setSmsToggle: (enabled) => api.post('/auth/admin/sms-toggle/', { enabled }),
   broadcast: (payload) => api.post('/auth/admin/broadcast/', payload),
   broadcastStatus: (id) => api.get(`/auth/admin/broadcast/${id}/status/`),
 }

@@ -28,5 +28,6 @@ urlpatterns = [
     path('pin/disable/', views.disable_pin, name='pin-disable'),
     path('phone/send-code/', views.send_phone_code, name='phone-send-code'),
     path('phone/verify-code/', views.verify_phone_code, name='phone-verify-code'),
+    path('admin/sms-toggle/', views.sms_toggle, name='admin-sms-toggle'),
     path('refresh/', views.token_refresh_view, name='token-refresh'),
 ]

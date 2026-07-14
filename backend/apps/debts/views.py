@@ -105,7 +105,12 @@ class DebtViewSet(viewsets.ModelViewSet):
         (Sozlamalar → Telefonni tasdiqlash)."""
         from django.core.cache import cache
         from apps.notifications import sms
+        from apps.notifications.models import AppConfig
 
+        # Global admin tugmasi — o'chirilgan bo'lsa hech kim yubora olmaydi
+        if not AppConfig.get().sms_enabled:
+            return Response({'error': "SMS eslatma xizmati vaqtincha o'chirilgan"},
+                            status=status.HTTP_403_FORBIDDEN)
         if not request.user.phone_verified:
             return Response({'error': "SMS yuborish uchun avval telefoningizni tasdiqlang (Sozlamalar)"},
                             status=status.HTTP_403_FORBIDDEN)

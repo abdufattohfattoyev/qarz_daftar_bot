@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore, useDebtStore, useContactStore } from '../store'
 import { initials, haptic } from '../utils'
-import { statsAPI, authAPI } from '../api'
+import { statsAPI, authAPI, adminAPI } from '../api'
 import { CurrencyIcon, GlobeIcon, BellIcon, ExcelIcon, DeleteAllIcon } from '../components/Icons'
 import PinPad from '../components/PinPad'
 import PhoneVerify from '../components/PhoneVerify'
@@ -21,6 +21,21 @@ export default function Settings() {
   const [pinErr, setPinErr] = useState('')
   const [pinBusy, setPinBusy] = useState(false)
   const [phoneVerify, setPhoneVerify] = useState(false)
+  const [smsOn, setSmsOn] = useState(!!user?.sms_enabled)
+
+  // Admin: SMS xizmatini global yoqish/o'chirish (barcha foydalanuvchilar uchun)
+  const toggleSms = async () => {
+    haptic('light')
+    const next = !smsOn
+    setSmsOn(next)   // optimistic
+    try {
+      const { data } = await adminAPI.setSmsToggle(next)
+      setSmsOn(data.sms_enabled)
+      useAuthStore.setState({ user: { ...user, sms_enabled: data.sms_enabled } })
+    } catch {
+      setSmsOn(!next); haptic('error')
+    }
+  }
 
   const closePin = () => { setPinMode(null); setNewPin(''); setPinErr(''); setPinBusy(false) }
 
@@ -186,6 +201,23 @@ export default function Settings() {
             </div>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="rgba(255,255,255,.6)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
+        )}
+
+        {/* Admin: SMS xizmati global tugmasi */}
+        {user?.is_admin && (
+          <>
+            <SectionLabel>{t('admin_sms_section')}</SectionLabel>
+            <Card>
+              <ToggleRow
+                icon={<SmsIcon />} label={t('admin_sms_toggle')}
+                checked={smsOn}
+                onChange={toggleSms}
+              />
+              <div style={{ padding: '0 16px 12px', fontSize: 11.5, color: '#94a3b8', lineHeight: 1.5 }}>
+                {t('admin_sms_hint')}
+              </div>
+            </Card>
+          </>
         )}
 
         {/* App settings */}
@@ -356,6 +388,15 @@ function LockIcon() {
       <rect x="4" y="9" width="12" height="8" rx="2.5" stroke="#16a34a" strokeWidth="1.5"/>
       <path d="M6.5 9V6.5a3.5 3.5 0 017 0V9" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
       <circle cx="10" cy="13" r="1.2" fill="#16a34a"/>
+    </svg>
+  )
+}
+
+function SmsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M3 4.5h14v9H8l-3.5 3v-3H3z" stroke="#16a34a" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M6.5 9h7M6.5 6.5h7" stroke="#16a34a" strokeWidth="1.4" strokeLinecap="round"/>
     </svg>
   )
 }

@@ -161,7 +161,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
                   </button>
                 )}
                 {!isPaid && (
-                  <div style={{ display: 'grid', gridTemplateColumns: isGave ? '1fr 1fr' : '1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: (isGave && user?.sms_enabled) ? '1fr 1fr' : '1fr', gap: 8 }}>
                     <button onClick={shareDebt} className="pill-btn" style={{
                       padding: '12px 8px', borderRadius: 14,
                       border: '1.5px solid #bfdbfe', background: '#eff6ff', color: '#2563eb',
@@ -173,9 +173,9 @@ export default function DebtSheet({ debt: initial, onClose }) {
                       </svg>
                       {t(isGave ? 'share_remind_btn' : 'share_card_btn')}
                     </button>
-                    {/* SMS eslatma — telefoni tasdiqlangan foydalanuvchilar uchun
-                        (tasdiqlanmagan bo'lsa backend Sozlamalarga yo'naltiradi) */}
-                    {isGave && (
+                    {/* SMS eslatma — global yoqilgan bo'lsa (admin boshqaradi).
+                        Tasdiqlanmagan bo'lsa backend Sozlamalarga yo'naltiradi. */}
+                    {isGave && user?.sms_enabled && (
                       <button onClick={sendSms} className="pill-btn" disabled={smsState.status === 'sending'} style={{
                         padding: '12px 8px', borderRadius: 14,
                         border: '1.5px solid #fde68a',
