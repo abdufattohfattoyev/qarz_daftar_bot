@@ -63,10 +63,8 @@ export function DebtDetail() {
   }
 
   // Qarzdorga SMS eslatma (TextUP) — pullik, shuning uchun faqat tugma bosilganda
-  const sendSms = async () => {
+  const doSendSms = async () => {
     if (smsState.status === 'sending' || smsState.status === 'sent') return
-    if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
-    if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
     haptic('light')
     setSmsState({ status: 'sending', msg: '' })
     try {
@@ -80,6 +78,12 @@ export function DebtDetail() {
       if (d?.need_verify) { setShowVerify(true); setSmsState({ status: 'idle', msg: '' }); return }
       setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
     }
+  }
+
+  const sendSms = () => {
+    if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
+    if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
+    doSendSms()
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 60, color: '#aaa' }}>{t('loading')}</div>
@@ -262,7 +266,7 @@ export function DebtDetail() {
         <PhoneVerify
           initialPhone={user?.phone || ''}
           onClose={() => setShowVerify(false)}
-          onVerified={(u) => { useAuthStore.setState({ user: { ...user, ...u } }); setShowVerify(false) }}
+          onVerified={(u) => { useAuthStore.getState().setVerified(u); setShowVerify(false); doSendSms() }}
         />
       )}
     </div>

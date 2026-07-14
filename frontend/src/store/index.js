@@ -14,6 +14,18 @@ const savePrefs = (updates) => {
   localStorage.setItem('prefs', JSON.stringify(prefs))
 }
 
+// Telefon tasdig'i — bir marta tasdiqlangach lokal eslab qolamiz, shunda ilova
+// qayta ochilganda (server javobini kutguncha) qayta so'ramaydi. Server javobi
+// baribir asosiy manba — kelganda sinxronlaymiz.
+const wasVerified = () => { try { return localStorage.getItem('phone_verified') === '1' } catch { return false } }
+const syncVerified = (u) => {
+  try {
+    if (u && u.phone_verified) localStorage.setItem('phone_verified', '1')
+    else if (u && u.phone_verified === false) localStorage.removeItem('phone_verified')
+  } catch { /* private mode */ }
+  return u
+}
+
 // Auth store
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -31,14 +43,15 @@ export const useAuthStore = create((set, get) => ({
         const tgUser = tg.initDataUnsafe?.user
         if (tgUser) {
           const display_name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ')
-          set({ user: { display_name, telegram_username: tgUser.username || '', full_name: display_name, ...loadPrefs() }, loading: false })
+          // Optimistik: oldin tasdiqlangan bo'lsa darhol phone_verified=true qo'yamiz
+          set({ user: { display_name, telegram_username: tgUser.username || '', full_name: display_name, phone_verified: wasVerified(), ...loadPrefs() }, loading: false })
         }
 
         const { data } = await authAPI.telegramAuth(tg.initData)
         localStorage.setItem('access_token', data.tokens.access)
         localStorage.setItem('refresh_token', data.tokens.refresh)
         // Lokal tanlovni server qiymati ustiga qo'yamiz (server saqlamagan bo'lsa ham qoladi)
-        set({ user: { ...data.user, ...loadPrefs() }, loading: false })
+        set({ user: { ...syncVerified(data.user), ...loadPrefs() }, loading: false })
         return
       }
 
@@ -47,7 +60,7 @@ export const useAuthStore = create((set, get) => ({
       if (saved) {
         try {
           const { data } = await authAPI.me()
-          set({ user: { ...data, ...loadPrefs() }, loading: false })
+          set({ user: { ...syncVerified(data), ...loadPrefs() }, loading: false })
           return
         } catch {
           // FAQAT tokenlarni o'chiramiz — til/valyuta prefs saqlanib qoladi
@@ -76,8 +89,14 @@ export const useAuthStore = create((set, get) => ({
     const { data } = await authAPI.codeLogin(code)
     localStorage.setItem('access_token', data.tokens.access)
     localStorage.setItem('refresh_token', data.tokens.refresh)
-    set({ user: { ...data.user, ...loadPrefs() }, needDevLogin: false })
+    set({ user: { ...syncVerified(data.user), ...loadPrefs() }, needDevLogin: false })
     return data.user
+  },
+
+  // Telefon tasdiqlangach chaqiriladi — lokal eslab, store'ni yangilaymiz
+  setVerified: (u) => {
+    syncVerified(u && u.phone_verified ? u : { phone_verified: true })
+    set((s) => ({ user: { ...s.user, ...u, phone_verified: true } }))
   },
 
   updateUser: async (updates) => {

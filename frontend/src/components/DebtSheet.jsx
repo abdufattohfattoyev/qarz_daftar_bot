@@ -55,12 +55,9 @@ export default function DebtSheet({ debt: initial, onClose }) {
     else window.open(shareUrl, '_blank')
   }
 
-  const sendSms = async () => {
+  // Haqiqiy yuborish (tekshiruvlardan keyin yoki tasdiqlashdan so'ng chaqiriladi)
+  const doSendSms = async () => {
     if (smsState.status === 'sending' || smsState.status === 'sent') return
-    // Ruxsat yo'q → adminga murojaat
-    if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
-    // Telefon tasdiqlanmagan → to'g'ridan-to'g'ri tasdiqlash oynasi
-    if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
     haptic('light')
     setSmsState({ status: 'sending', msg: '' })
     try {
@@ -74,6 +71,12 @@ export default function DebtSheet({ debt: initial, onClose }) {
       if (d?.need_verify) { setShowVerify(true); setSmsState({ status: 'idle', msg: '' }); return }
       setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
     }
+  }
+
+  const sendSms = () => {
+    if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
+    if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
+    doSendSms()
   }
 
   const handleDelete = async () => {
@@ -263,7 +266,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
         <PhoneVerify
           initialPhone={user?.phone || ''}
           onClose={() => setShowVerify(false)}
-          onVerified={(u) => { useAuthStore.setState({ user: { ...user, ...u } }); setShowVerify(false) }}
+          onVerified={(u) => { useAuthStore.getState().setVerified(u); setShowVerify(false); doSendSms() }}
         />
       )}
     </div>

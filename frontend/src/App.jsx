@@ -76,7 +76,7 @@ export default function App() {
     <PhoneVerify
       mandatory
       initialPhone={user.phone || ''}
-      onVerified={(u) => useAuthStore.setState({ user: { ...user, ...u } })}
+      onVerified={(u) => useAuthStore.getState().setVerified(u)}
     />
   )
 

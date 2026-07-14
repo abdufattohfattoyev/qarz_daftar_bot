@@ -333,7 +333,7 @@ export default function Settings() {
           initialPhone={user?.phone || ''}
           onClose={() => setPhoneVerify(false)}
           onVerified={(u) => {
-            useAuthStore.setState({ user: { ...user, ...u } })
+            useAuthStore.getState().setVerified(u)
             setPhoneVerify(false)
             haptic('success'); setToast(t('phone_verified_toast'))
             setTimeout(() => setToast(''), 2500)
