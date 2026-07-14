@@ -31,11 +31,18 @@ export default function Settings() {
     setSmsMode(mode)   // optimistic
     try {
       const { data } = await adminAPI.setSmsMode(mode)
-      setSmsMode(data.sms_mode)
-      useAuthStore.setState({ user: { ...user, sms_mode: data.sms_mode } })
+      if (data?.sms_mode) {
+        setSmsMode(data.sms_mode)
+        useAuthStore.setState({ user: { ...user, sms_mode: data.sms_mode } })
+        haptic('success'); setToast(t('saved'))
+      } else {
+        // Eski backend — sms_mode qaytmadi: serverni yangilash kerak
+        setSmsMode(prev); haptic('error'); setToast(t('backend_update_needed'))
+      }
     } catch {
-      setSmsMode(prev); haptic('error')
+      setSmsMode(prev); haptic('error'); setToast(t('save_failed'))
     }
+    setTimeout(() => setToast(''), 2600)
   }
 
   const closePin = () => { setPinMode(null); setNewPin(''); setPinErr(''); setPinBusy(false) }

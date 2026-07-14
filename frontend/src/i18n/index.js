@@ -264,6 +264,9 @@ export const translations = {
     sms_need_admin_desc: 'Bu funksiya admin tomonidan boshqariladi. Yoqish uchun adminga murojaat qiling.',
     sms_contact_admin_btn: 'Adminga yozish',
     close: 'Yopish',
+    saved: 'Saqlandi ✓',
+    save_failed: 'Saqlanmadi — qayta urinib ko\'ring',
+    backend_update_needed: 'Server yangilanishi kerak (backend rebuild)',
   },
 
   ru: {
@@ -511,6 +514,9 @@ export const translations = {
     sms_need_admin_desc: 'Эта функция управляется админом. Для включения обратитесь к админу.',
     sms_contact_admin_btn: 'Написать админу',
     close: 'Закрыть',
+    saved: 'Сохранено ✓',
+    save_failed: 'Не сохранено — попробуйте снова',
+    backend_update_needed: 'Нужно обновить сервер (backend rebuild)',
   },
 }
 
