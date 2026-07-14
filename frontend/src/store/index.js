@@ -39,17 +39,21 @@ export const useAuthStore = create((set, get) => ({
         tg.ready()
         tg.expand()
 
-        // Telegram dan darhol user ma'lumotini olamiz (backend javobini kutmasdan)
+        // DIQQAT: loading=true saqlanadi — token o'rnatilmasdan Home qarz so'ramasin
+        // (aks holda eski/boshqa akkaunt tokeni bilan boshqa kishining qarzlari chiqardi).
+        // Faqat display uchun optimistik user (loading o'zgarmaydi):
         const tgUser = tg.initDataUnsafe?.user
         if (tgUser) {
           const display_name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ')
-          // Optimistik: oldin tasdiqlangan bo'lsa darhol phone_verified=true qo'yamiz
-          set({ user: { display_name, telegram_username: tgUser.username || '', full_name: display_name, phone_verified: wasVerified(), ...loadPrefs() }, loading: false })
+          set({ user: { display_name, telegram_username: tgUser.username || '', full_name: display_name, phone_verified: wasVerified(), ...loadPrefs() } })
         }
 
         const { data } = await authAPI.telegramAuth(tg.initData)
         localStorage.setItem('access_token', data.tokens.access)
         localStorage.setItem('refresh_token', data.tokens.refresh)
+        // Eski sessiyadan qolgan ma'lumotni tozalaymiz (boshqa akkaunt bo'lishi mumkin)
+        useDebtStore.setState({ debts: [] })
+        useContactStore.setState({ contacts: [] })
         // Lokal tanlovni server qiymati ustiga qo'yamiz (server saqlamagan bo'lsa ham qoladi)
         set({ user: { ...syncVerified(data.user), ...loadPrefs() }, loading: false })
         return
