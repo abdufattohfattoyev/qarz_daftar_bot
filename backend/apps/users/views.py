@@ -490,6 +490,10 @@ def send_phone_code(request):
     if not to:
         return Response({'error': "Telefon raqami noto'g'ri (masalan: +998901234567)"}, status=400)
 
+    # Bu raqam boshqa akkauntga biriktirilganmi? (raqam bitta TG akkauntga bog'lanadi)
+    if User.objects.filter(phone=to, phone_verified=True).exclude(id=request.user.id).exists():
+        return Response({'error': "Bu raqam boshqa Telegram akkauntga biriktirilgan"}, status=400)
+
     rl_key = f'otp_rl:{request.user.id}'
     if cache.get(rl_key):
         return Response({'error': "Kod yaqinda yuborildi — 1 daqiqadan keyin qayta urinib ko'ring"},
@@ -542,6 +546,11 @@ def verify_phone_code(request):
         # Muddatni uzaytirmaymiz — o'sha expires_at saqlanadi
         cache.set(key, data, 120)
         return Response({'error': "Kod noto'g'ri", 'attempts_left': 5 - data['attempts']}, status=400)
+
+    # Poyga himoyasi — kod tekshirilguncha boshqa akkaunt biriktirmaganini tasdiqlaymiz
+    if User.objects.filter(phone=data['phone'], phone_verified=True).exclude(id=request.user.id).exists():
+        cache.delete(key)
+        return Response({'error': "Bu raqam boshqa Telegram akkauntga biriktirilgan"}, status=400)
 
     # Muvaffaqiyat — telefonni saqlab, tasdiqlangan deb belgilaymiz
     request.user.phone = data['phone']
