@@ -182,6 +182,7 @@ def send_otp(phone, code):
     """Telefonni tasdiqlash uchun 4 xonali kod yuboradi.
     Matn TextUP'da "Tasdiqlash kodi" shabloni sifatida tasdiqlangan bo'lishi shart
     (Punkt 2: resurs nomi + maqsad ko'rsatilishi majburiy)."""
-    text = f"Qarz Yordamchi ilovasi uchun tasdiqlash kodingiz: {code}"
+    text = (f"Qarz Yordamchi ilovasi uchun tasdiqlash kodingiz: {code}. "
+            f"Kod 1 daqiqa amal qiladi. t.me/Qarz_Yordamchi_Bot")
     return send_sms(phone, text, name='otp',
                     template_id=settings.TEXTUP_OTP_TEMPLATE_ID or None)

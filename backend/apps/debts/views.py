@@ -127,14 +127,16 @@ class DebtViewSet(viewsets.ModelViewSet):
             return Response({'error': "SMS yaqinda yuborilgan — 5 daqiqadan keyin qayta urinib ko'ring"},
                             status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        # Kreditor ismini lotinchaga o'giramiz — TextUP shabloni lotin matn bilan tasdiqlangan
-        owner = sms.person_name(
+        # Kreditor ISMI (faqat birinchi so'z) — lotinchaga o'giramiz, TextUP shabloni
+        # lotin matn bilan tasdiqlangan
+        owner_full = sms.person_name(
             request.user.full_name or request.user.telegram_username or '',
-            fallback='qarz beruvchi')
+            fallback="Do'stingiz")
+        owner = owner_full.split()[0]   # faqat ism, familiya emas
         amount = f"{debt.remaining_amount:,.0f}".replace(',', ' ') + f" {debt.currency}"
         text = (f"Assalomu alaykum! Eslatib o'tamiz, {owner}ga {amount} miqdoridagi "
                 f"qarzingiz mavjud. Iltimos, to'lovni belgilangan muddatda amalga "
-                f"oshiring. Rahmat! (Qarz Yordamchi)")
+                f"oshiring. Rahmat! t.me/Qarz_Yordamchi_Bot")
 
         try:
             sms_id = sms.send_sms(debt.contact.phone, text, name=f'debt-{debt.id}')

@@ -480,7 +480,8 @@ def disable_pin(request):
 @permission_classes([IsAuthenticated])
 def send_phone_code(request):
     """Foydalanuvchi kiritgan raqamga 4 xonali tasdiqlash kodi yuboradi.
-    Kod Redis'da 5 daqiqa saqlanadi; 1 daqiqada 1 martadan ko'p yuborilmaydi."""
+    Kod aniq 1 daqiqa amal qiladi; 1 daqiqada 1 martadan ko'p yuborilmaydi."""
+    import time
     import random
     from django.core.cache import cache
     from apps.notifications import sms
@@ -500,8 +501,12 @@ def send_phone_code(request):
     except sms.SmsError as e:
         return Response({'error': str(e)}, status=400)
 
-    cache.set(f'otp:{request.user.id}', {'code': code, 'phone': to, 'attempts': 0}, 300)
-    cache.set(rl_key, 1, 60)
+    # expires_at — aniq muddatni saqlaymiz; kesh TTL biroz uzunroq (xato urinishda
+    # muddat uzaymasin uchun tekshiruv shu vaqt bo'yicha bo'ladi)
+    cache.set(f'otp:{request.user.id}',
+              {'code': code, 'phone': to, 'attempts': 0, 'expires_at': time.time() + 60},
+              120)
+    cache.set(rl_key, 1, 60)   # 60s dan keyin qayta yuborish mumkin
     return Response({'ok': True, 'phone': to})
 
 
@@ -509,12 +514,14 @@ def send_phone_code(request):
 @permission_classes([IsAuthenticated])
 def verify_phone_code(request):
     """Kiritilgan kodni tekshiradi; to'g'ri bo'lsa telefon tasdiqlanadi.
-    5 marta xato kiritilsa kod bekor bo'ladi."""
+    Kod 1 daqiqadan keyin yoki 5 marta xato kiritilsa bekor bo'ladi."""
+    import time
     from django.core.cache import cache
 
     key = f'otp:{request.user.id}'
     data = cache.get(key)
-    if not data:
+    if not data or time.time() > data.get('expires_at', 0):
+        cache.delete(key)
         return Response({'error': "Kod eskirgan — qaytadan yuboring"}, status=400)
 
     if data.get('attempts', 0) >= 5:
@@ -524,7 +531,8 @@ def verify_phone_code(request):
     code = str(request.data.get('code', '')).strip()
     if code != data['code']:
         data['attempts'] = data.get('attempts', 0) + 1
-        cache.set(key, data, 300)
+        # Muddatni uzaytirmaymiz — o'sha expires_at saqlanadi
+        cache.set(key, data, 120)
         return Response({'error': "Kod noto'g'ri", 'attempts_left': 5 - data['attempts']}, status=400)
 
     # Muvaffaqiyat — telefonni saqlab, tasdiqlangan deb belgilaymiz
