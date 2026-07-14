@@ -249,6 +249,8 @@ export const translations = {
     phone_verifying: 'Tekshirilmoqda...',
     phone_mandatory_note: 'Ilovadan foydalanish uchun telefoningizni tasdiqlang',
     phone_help: 'Kod kelmadimi? Yordam olish',
+    phone_hint_incomplete: "Raqamni to'liq kiriting: +998 XX XXX XX XX",
+    phone_hint_ok: "Raqam to'g'ri",
 
     // Admin: SMS xizmati
     admin_sms_section: 'Admin — SMS xizmati',
@@ -499,6 +501,8 @@ export const translations = {
     phone_verifying: 'Проверка...',
     phone_mandatory_note: 'Подтвердите телефон, чтобы пользоваться приложением',
     phone_help: 'Код не пришёл? Получить помощь',
+    phone_hint_incomplete: 'Введите номер полностью: +998 XX XXX XX XX',
+    phone_hint_ok: 'Номер верный',
 
     // Админ: SMS-сервис
     admin_sms_section: 'Админ — SMS-сервис',

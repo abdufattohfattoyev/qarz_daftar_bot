@@ -16,6 +16,9 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
   const [resendIn, setResendIn] = useState(0)
   const codeRef = useRef(null)
 
+  const normalized = normPhone(phone)            // to'g'ri bo'lsa +998XXXXXXXXX, aks holda null
+  const typedDigits = phone.replace(/\D/g, '').length
+
   // Qayta yuborish taymeri
   useEffect(() => {
     if (resendIn <= 0) return
@@ -89,12 +92,21 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
             <input
               type="tel" inputMode="tel" autoFocus
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ]/g, ''))}
+              onChange={(e) => { setPhone(e.target.value.replace(/[^\d+ ]/g, '')); if (error) setError('') }}
               placeholder="+998 90 123 45 67"
-              style={{ width: '100%', maxWidth: 340, padding: '15px 18px', borderRadius: 16, border: '2px solid #16a34a', background: '#fff', fontSize: 20, fontWeight: 700, color: '#0f172a', textAlign: 'center', letterSpacing: 1, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', maxWidth: 340, padding: '15px 18px', borderRadius: 16, background: '#fff', fontSize: 20, fontWeight: 700, color: '#0f172a', textAlign: 'center', letterSpacing: 1, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                border: `2px solid ${typedDigits >= 3 ? (normalized ? '#16a34a' : '#f59e0b') : '#e5e7eb'}` }}
             />
-            {error && <div style={{ marginTop: 14, fontSize: 13, color: '#ef4444', textAlign: 'center' }}>{error}</div>}
-            <button onClick={sendCode} disabled={busy} style={btn(busy)}>
+            {/* Yozayotganda darhol izoh — pastida */}
+            {typedDigits >= 3 && !error && (
+              <div style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, textAlign: 'center', color: normalized ? '#16a34a' : '#b45309', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {normalized
+                  ? <><span>✓</span> {fmtNice(normalized)}</>
+                  : t('phone_hint_incomplete')}
+              </div>
+            )}
+            {error && <div style={{ marginTop: 12, fontSize: 13, color: '#ef4444', textAlign: 'center', lineHeight: 1.4 }}>{error}</div>}
+            <button onClick={sendCode} disabled={busy || !normalized} style={btn(busy || !normalized)}>
               {busy ? t('phone_sending') : t('phone_send_code')}
             </button>
           </>
@@ -136,6 +148,18 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
       </div>
     </div>
   )
+}
+
+// Backend normalize_phone bilan bir xil mantiq — to'g'ri bo'lsa +998XXXXXXXXX, aks holda null
+function normPhone(raw) {
+  let d = (raw || '').replace(/\D/g, '')
+  if (d.length === 9) d = '998' + d
+  return (d.length === 12 && d.startsWith('998')) ? '+' + d : null
+}
+// +998901234567 → +998 90 123 45 67
+function fmtNice(n) {
+  const d = n.slice(4)
+  return `+998 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7, 9)}`
 }
 
 const btn = (disabled) => ({
