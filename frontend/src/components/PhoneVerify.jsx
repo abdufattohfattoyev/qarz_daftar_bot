@@ -6,7 +6,7 @@ import { authAPI } from '../api'
 import { haptic } from '../utils'
 import { useT } from '../i18n'
 
-export default function PhoneVerify({ initialPhone = '', onClose, onVerified }) {
+export default function PhoneVerify({ initialPhone = '', onClose, onVerified, mandatory = false }) {
   const t = useT()
   const [step, setStep] = useState('phone')   // 'phone' | 'code'
   const [phone, setPhone] = useState(initialPhone || '+998 ')
@@ -55,12 +55,14 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified }) 
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#F0F2F5', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
+      {/* Header — majburiy rejimda 'phone' bosqichida yopish tugmasi yo'q */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', gap: 10, flexShrink: 0 }}>
-        <button onClick={step === 'code' ? () => { setStep('phone'); setError('') } : onClose}
-          style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,.08)' }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="#64748b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
+        {(step === 'code' || !mandatory) && (
+          <button onClick={step === 'code' ? () => { setStep('phone'); setError('') } : onClose}
+            style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,.08)' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="#64748b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+        )}
         <div style={{ fontSize: 16, fontWeight: 800, color: '#111' }}>{t('phone_verify_row')}</div>
       </div>
 
@@ -72,6 +74,11 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified }) 
         {step === 'phone' ? (
           <>
             <div style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', marginBottom: 6, textAlign: 'center' }}>{t('phone_enter_title')}</div>
+            {mandatory && (
+              <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 700, marginBottom: 8, textAlign: 'center', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '7px 14px' }}>
+                {t('phone_mandatory_note')}
+              </div>
+            )}
             <div style={{ fontSize: 13.5, color: '#6b7280', marginBottom: 22, textAlign: 'center', lineHeight: 1.5, maxWidth: 300 }}>{t('phone_enter_sub')}</div>
             <input
               type="tel" inputMode="tel" autoFocus
@@ -108,6 +115,17 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified }) 
               {resendIn > 0 ? `${t('phone_resend')} (${resendIn})` : t('phone_resend')}
             </button>
           </>
+        )}
+
+        {/* Majburiy rejimda: kod kelmasa yordam (o'zini tuzoqqa tushgandek his qilmasin) */}
+        {mandatory && (
+          <button onClick={() => {
+            const url = 'https://t.me/fattoyev_a'
+            const tg = window.Telegram?.WebApp
+            if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank')
+          }} style={{ marginTop: 28, background: 'none', border: 'none', color: '#94a3b8', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+            {t('phone_help')}
+          </button>
         )}
       </div>
     </div>

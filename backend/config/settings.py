@@ -178,3 +178,8 @@ TEXTUP_PASSWORD = os.environ.get('TEXTUP_PASSWORD', '')      # saytdagi "Yashiri
 TEXTUP_NICKNAME_ID = os.environ.get('TEXTUP_NICKNAME_ID', '')  # ixtiyoriy — alpha name (nik)
 TEXTUP_TEMPLATE_ID = os.environ.get('TEXTUP_TEMPLATE_ID', '')  # qarz eslatma shabloni ID (moderatsiya shart)
 TEXTUP_OTP_TEMPLATE_ID = os.environ.get('TEXTUP_OTP_TEMPLATE_ID', '')  # tasdiqlash kodi shabloni ID
+
+# Ilovaga kirish uchun telefon tasdiqlash MAJBURIYmi? Standart — O'CHIQ.
+# DIQQAT: faqat OTP shabloni TextUP'da TASDIQLANGANDAN keyin yoqing, aks holda
+# hech kim (siz ham) ilovaga kira olmaydi (kod SMS'i kelmaydi).
+REQUIRE_PHONE_VERIFICATION = os.environ.get('REQUIRE_PHONE_VERIFICATION', '0') == '1'

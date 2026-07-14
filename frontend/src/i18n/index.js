@@ -247,6 +247,8 @@ export const translations = {
     phone_change: "Raqamni o'zgartirish",
     phone_sending: 'Yuborilmoqda...',
     phone_verifying: 'Tekshirilmoqda...',
+    phone_mandatory_note: 'Ilovadan foydalanish uchun telefoningizni tasdiqlang',
+    phone_help: 'Kod kelmadimi? Yordam olish',
   },
 
   ru: {
@@ -477,6 +479,8 @@ export const translations = {
     phone_change: 'Изменить номер',
     phone_sending: 'Отправка...',
     phone_verifying: 'Проверка...',
+    phone_mandatory_note: 'Подтвердите телефон, чтобы пользоваться приложением',
+    phone_help: 'Код не пришёл? Получить помощь',
   },
 }
 

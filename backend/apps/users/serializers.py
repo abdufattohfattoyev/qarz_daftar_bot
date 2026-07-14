@@ -55,6 +55,7 @@ class UserSerializer(serializers.ModelSerializer):
     display_name = serializers.ReadOnlyField()
     has_pin = serializers.SerializerMethodField()
     is_admin = serializers.SerializerMethodField()
+    require_phone_verify = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -63,12 +64,17 @@ class UserSerializer(serializers.ModelSerializer):
             'full_name', 'display_name', 'phone',
             'photo_url', 'currency', 'language',
             'notifications_enabled', 'has_pin', 'is_admin',
-            'phone_verified', 'created_at'
+            'phone_verified', 'require_phone_verify', 'created_at'
         ]
         read_only_fields = ['id', 'telegram_id', 'created_at']
 
     def get_has_pin(self, obj):
         return bool(obj.pin_code)
+
+    def get_require_phone_verify(self, obj):
+        # Global sozlama — ilovaga kirish uchun telefon tasdiqlash majburiymi
+        from django.conf import settings
+        return bool(getattr(settings, 'REQUIRE_PHONE_VERIFICATION', False))
 
     def get_is_admin(self, obj):
         from django.conf import settings

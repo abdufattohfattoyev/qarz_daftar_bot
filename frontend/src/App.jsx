@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store'
 import { authAPI } from './api'
 import PinPad from './components/PinPad'
+import PhoneVerify from './components/PhoneVerify'
 import Onboarding from './components/Onboarding'
 import { useT } from './i18n'
 import Home from './pages/Home'
@@ -67,6 +68,16 @@ export default function App() {
   // ── Onboarding (faqat birinchi kirishda) ──
   if (user && !onboarded) return (
     <Onboarding onDone={() => { localStorage.setItem('onboarded', '1'); setOnboarded(true) }} />
+  )
+
+  // ── Telefonni tasdiqlash (MAJBURIY — REQUIRE_PHONE_VERIFICATION yoqilganda) ──
+  // Yangi ham, oldin kirgan ham: phone_verified bo'lmaguncha ilovaga o'tolmaydi.
+  if (user && user.require_phone_verify && !user.phone_verified) return (
+    <PhoneVerify
+      mandatory
+      initialPhone={user.phone || ''}
+      onVerified={(u) => useAuthStore.setState({ user: { ...user, ...u } })}
+    />
   )
 
   // ── PIN qulf ──
