@@ -56,7 +56,8 @@ class UserSerializer(serializers.ModelSerializer):
     has_pin = serializers.SerializerMethodField()
     is_admin = serializers.SerializerMethodField()
     require_phone_verify = serializers.SerializerMethodField()
-    sms_enabled = serializers.SerializerMethodField()
+    sms_mode = serializers.SerializerMethodField()
+    can_send_sms = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -65,7 +66,8 @@ class UserSerializer(serializers.ModelSerializer):
             'full_name', 'display_name', 'phone',
             'photo_url', 'currency', 'language',
             'notifications_enabled', 'has_pin', 'is_admin',
-            'phone_verified', 'require_phone_verify', 'sms_enabled', 'created_at'
+            'phone_verified', 'require_phone_verify',
+            'sms_mode', 'can_send_sms', 'created_at'
         ]
         read_only_fields = ['id', 'telegram_id', 'created_at']
 
@@ -77,10 +79,15 @@ class UserSerializer(serializers.ModelSerializer):
         from django.conf import settings
         return bool(getattr(settings, 'REQUIRE_PHONE_VERIFICATION', False))
 
-    def get_sms_enabled(self, obj):
-        # Global admin tugmasi — SMS eslatma xizmati yoqilganmi (standart: ochiq)
+    def get_sms_mode(self, obj):
+        # Global rejim — 'all' | 'selected' | 'off' (admin UI uchun)
         from apps.notifications.models import AppConfig
-        return AppConfig.get().sms_enabled
+        return AppConfig.get().sms_mode
+
+    def get_can_send_sms(self, obj):
+        # Shu foydalanuvchi SMS yubora oladimi (rejim + shaxsiy ruxsat)
+        from apps.notifications.models import AppConfig
+        return AppConfig.get().user_can_send(obj)
 
     def get_is_admin(self, obj):
         from django.conf import settings

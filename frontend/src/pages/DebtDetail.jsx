@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { debtsAPI, authAPI } from '../api'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmt, fmtDate, fmtDateTime, nowTashkent, initials, avatarColor, haptic } from '../utils'
+import PhoneVerify from '../components/PhoneVerify'
+import ContactAdminModal from '../components/ContactAdminModal'
 import { useT, getLang } from '../i18n'
 
 // app-meta bir marta olinadi (bot username backend'da ham keshlangan)
@@ -25,6 +27,8 @@ export function DebtDetail() {
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [smsState, setSmsState] = useState({ status: 'idle', msg: '' }) // idle|sending|sent|error
+  const [showContactAdmin, setShowContactAdmin] = useState(false)
+  const [showVerify, setShowVerify] = useState(false)
 
   useEffect(() => {
     debtsAPI.get(id).then(({ data }) => { setDebt(data); setLoading(false) })
@@ -61,6 +65,8 @@ export function DebtDetail() {
   // Qarzdorga SMS eslatma (TextUP) — pullik, shuning uchun faqat tugma bosilganda
   const sendSms = async () => {
     if (smsState.status === 'sending' || smsState.status === 'sent') return
+    if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
+    if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
     haptic('light')
     setSmsState({ status: 'sending', msg: '' })
     try {
@@ -69,8 +75,10 @@ export function DebtDetail() {
       setSmsState({ status: 'sent', msg: '' })
     } catch (e) {
       haptic('error')
-      const msg = e.response?.data?.error || t('sms_err')
-      setSmsState({ status: 'error', msg })
+      const d = e.response?.data
+      if (d?.contact_admin) { setShowContactAdmin(true); setSmsState({ status: 'idle', msg: '' }); return }
+      if (d?.need_verify) { setShowVerify(true); setSmsState({ status: 'idle', msg: '' }); return }
+      setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
     }
   }
 
@@ -153,9 +161,8 @@ export function DebtDetail() {
               {t(isGave ? 'share_remind_btn' : 'share_card_btn')}
             </button>
           )}
-          {/* SMS eslatma — global yoqilgan bo'lsa (admin boshqaradi).
-              Telefoni tasdiqlanmagan bo'lsa backend Sozlamalarga yo'naltiradi. */}
-          {debt.status !== 'paid' && isGave && user?.sms_enabled && (
+          {/* SMS eslatma — rejim 'off' bo'lmasa ko'rinadi; ruxsat/tasdiq bosilganda tekshiriladi */}
+          {debt.status !== 'paid' && isGave && user?.sms_mode !== 'off' && (
             <>
               <button onClick={sendSms} className="pill-btn" disabled={smsState.status === 'sending'} style={{
                 width: '100%', padding: '13px 10px', borderRadius: 14,
@@ -246,6 +253,17 @@ export function DebtDetail() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* SMS: ruxsat yo'q → adminga murojaat */}
+      {showContactAdmin && <ContactAdminModal onClose={() => setShowContactAdmin(false)} />}
+      {/* SMS: telefon tasdiqlanmagan → to'g'ridan-to'g'ri tasdiqlash (X close bilan) */}
+      {showVerify && (
+        <PhoneVerify
+          initialPhone={user?.phone || ''}
+          onClose={() => setShowVerify(false)}
+          onVerified={(u) => { useAuthStore.setState({ user: { ...user, ...u } }); setShowVerify(false) }}
+        />
       )}
     </div>
   )

@@ -7,7 +7,8 @@ const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(Math.abs(parse
 
 const TABS = [
   { key: 'stats', label: '📊 Statistika' },
-  { key: 'users', label: '👥 Foydalanuvchilar' },
+  { key: 'users', label: '👥 Userlar' },
+  { key: 'sms',   label: '📩 SMS' },
   { key: 'send',  label: '📢 Xabar' },
 ]
 
@@ -44,6 +45,7 @@ export default function AdminPanel() {
       <div style={{ padding: '14px 14px 90px' }}>
         {tab === 'stats' && <StatsTab />}
         {tab === 'users' && <UsersTab navigate={navigate} />}
+        {tab === 'sms'   && <SmsTab />}
         {tab === 'send'  && <SendTab />}
       </div>
     </div>
@@ -112,6 +114,16 @@ function UsersTab({ navigate }) {
     catch { setSel({ u, debts: [] }) }
   }
 
+  // SMS ruxsatini yoqish/o'chirish ('selected' rejim uchun)
+  const toggleSms = async (u, e) => {
+    e.stopPropagation()
+    haptic('light')
+    try {
+      const { data: r } = await adminAPI.userSmsAllow(u.id, !u.sms_allowed)
+      setData((prev) => ({ ...prev, users: prev.users.map((x) => x.id === u.id ? { ...x, sms_allowed: r.sms_allowed } : x) }))
+    } catch { haptic('error') }
+  }
+
   if (sel) return <UserDebts sel={sel} onBack={() => setSel(null)} />
 
   return (
@@ -131,6 +143,14 @@ function UsersTab({ navigate }) {
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
                     <div style={{ fontSize: 11, color: '#94a3b8' }}>{u.username ? `@${u.username}` : u.phone || `ID ${u.telegram_id}`} · {u.debts} qarz</div>
                   </div>
+                  {/* SMS ruxsati chipi — bosilганда yoqiladi/o'chadi */}
+                  <button onClick={(e) => toggleSms(u, e)} title="SMS ruxsati" style={{
+                    flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, padding: '5px 9px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800,
+                    border: u.sms_allowed ? '1.5px solid #bbf7d0' : '1.5px solid #e5e7eb',
+                    background: u.sms_allowed ? '#f0fdf4' : '#fff', color: u.sms_allowed ? '#16a34a' : '#94a3b8',
+                  }}>
+                    📩 {u.sms_allowed ? 'ON' : 'OFF'}
+                  </button>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     {u.net_uzs !== 0 && <div style={{ fontSize: 13, fontWeight: 800, color: u.net_uzs > 0 ? '#16a34a' : '#ef4444' }}>{u.net_uzs > 0 ? '+' : '−'}{n(u.net_uzs)} <span style={{ fontSize: 8, color: '#cbd5e1' }}>UZS</span></div>}
                     {u.net_usd !== 0 && <div style={{ fontSize: 12, fontWeight: 800, color: u.net_usd > 0 ? '#16a34a' : '#ef4444' }}>{u.net_usd > 0 ? '+' : '−'}{n(u.net_usd)} <span style={{ fontSize: 8, color: '#cbd5e1' }}>$</span></div>}
@@ -178,6 +198,99 @@ function UserDebts({ sel, onBack }) {
     </div>
   )
 }
+
+// ── SMS STATISTIKA ──
+function SmsTab() {
+  const [d, setD] = useState(null)
+  const [detail, setDetail] = useState(null)   // ochilgan log yozuvi
+
+  useEffect(() => { adminAPI.smsLogs().then((r) => setD(r.data)).catch(() => setD(false)) }, [])
+  if (d === null) return <Spinner />
+  if (d === false) return <Empty text="SMS statistikasi yuklanmadi" />
+
+  const kindBadge = (k) => k === 'otp'
+    ? { t: 'Kod', bg: '#eff6ff', c: '#2563eb' }
+    : { t: 'Eslatma', bg: '#f0fdf4', c: '#16a34a' }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Umumiy raqamlar */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <Metric label="Jami SMS" value={d.summary.total} sub={`${d.summary.week} (7 kun)`} color="#16a34a" />
+        <Metric label="Qarz eslatma" value={d.summary.reminders} sub="qarzdorlarga" color="#3b82f6" />
+        <Metric label="Tasdiqlash kodi" value={d.summary.otp} sub="ro'yxatdan o'tish" color="#8b5cf6" />
+        <Metric label="So'nggi 7 kun" value={d.summary.week} sub="SMS" color="#f59e0b" />
+      </div>
+
+      {/* Kim nechta yuborgan */}
+      <div style={{ background: '#fff', borderRadius: 16, padding: 14, boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 10 }}>Kim nechta yuborgan</div>
+        {d.senders.length === 0 ? <div style={{ fontSize: 12, color: '#94a3b8' }}>Hali SMS yuborilmagan</div> : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {d.senders.map((s, i) => {
+              const av = avatarColor(s.name)
+              return (
+                <div key={s.user_id || i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 9, background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(s.name)}</div>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#16a34a' }}>{s.count} <span style={{ fontSize: 9, color: '#cbd5e1' }}>SMS</span></div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* So'nggi yuborilgan SMS'lar */}
+      <div style={{ background: '#fff', borderRadius: 16, padding: 14, boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 10 }}>So'nggi yuborilgan SMS'lar</div>
+        {d.logs.length === 0 ? <div style={{ fontSize: 12, color: '#94a3b8' }}>Yozuvlar yo'q</div> : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {d.logs.map((l) => {
+              const b = kindBadge(l.kind)
+              return (
+                <div key={l.id} onClick={() => { haptic('light'); setDetail(l) }} className="list-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 12, background: '#f8fafc', cursor: 'pointer' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {l.sender} <span style={{ color: '#cbd5e1' }}>→</span> {l.recipient || l.phone}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: '#94a3b8' }}>{l.phone} · {l.created}</div>
+                  </div>
+                  <span style={{ fontSize: 9.5, fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: b.bg, color: b.c, flexShrink: 0 }}>{b.t}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Batafsil modal */}
+      {detail && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setDetail(null) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(15,23,42,.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div className="sheet-anim" style={{ background: '#fff', borderRadius: '22px 22px 0 0', width: '100%', maxWidth: 520, padding: '18px 18px', paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
+            <div style={{ width: 40, height: 4.5, borderRadius: 3, background: '#e5e7eb', margin: '0 auto 16px' }} />
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>SMS tafsiloti</div>
+            <DetailRow k="Yuboruvchi" v={detail.sender} />
+            <DetailRow k="Qabul qiluvchi" v={detail.recipient || '—'} />
+            <DetailRow k="Telefon" v={detail.phone} />
+            <DetailRow k="Turi" v={detail.kind === 'otp' ? 'Tasdiqlash kodi' : 'Qarz eslatma'} />
+            <DetailRow k="Vaqt" v={detail.created} />
+            <div style={{ marginTop: 10, padding: 12, background: '#f8fafc', borderRadius: 12, fontSize: 13, color: '#334155', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{detail.message}</div>
+            <button onClick={() => setDetail(null)} style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 14, border: 'none', background: '#f3f4f6', color: '#111', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Yopish</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const DetailRow = ({ k, v }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderBottom: '0.5px solid #f1f5f9' }}>
+    <span style={{ fontSize: 12.5, color: '#94a3b8' }}>{k}</span>
+    <span style={{ fontSize: 12.5, fontWeight: 600, color: '#0f172a', textAlign: 'right', wordBreak: 'break-word' }}>{v}</span>
+  </div>
+)
 
 // ── XABAR YUBORISH (reklama / e'lon) ──
 const AD_TEMPLATES = [

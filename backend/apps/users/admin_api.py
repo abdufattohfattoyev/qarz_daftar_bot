@@ -107,6 +107,8 @@ def admin_users(request):
             'net_usd': g_usd - r_usd,
             'joined': u.created_at.strftime('%d.%m.%Y'),
             'notifications': u.notifications_enabled,
+            'sms_allowed': u.sms_allowed,
+            'phone_verified': u.phone_verified,
         })
     return Response({'count': users.count(), 'users': out})
 
@@ -236,3 +238,63 @@ def admin_broadcast_status(request, bc_id):
     if not st:
         return Response({'error': 'Topilmadi'}, status=404)
     return Response(st)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_sms_logs(request):
+    """SMS statistika: jami, turlar bo'yicha, kim nechta yuborgan + so'nggi yozuvlar."""
+    deny = _admin_or_403(request)
+    if deny:
+        return deny
+
+    from apps.notifications.models import SmsLog
+
+    qs = SmsLog.objects.select_related('sender').all()
+    week_ago = timezone.now() - timedelta(days=7)
+
+    summary = {
+        'total': qs.count(),
+        'reminders': qs.filter(kind='reminder').count(),
+        'otp': qs.filter(kind='otp').count(),
+        'week': qs.filter(created_at__gte=week_ago).count(),
+    }
+
+    # Kim nechta yuborgan (eng faol yuboruvchilar)
+    per_user = (qs.values('sender', 'sender__full_name', 'sender__telegram_username')
+                .annotate(c=Count('id')).order_by('-c')[:50])
+    senders = [{
+        'user_id': r['sender'],
+        'name': r['sender__full_name'] or r['sender__telegram_username'] or "Noma'lum",
+        'count': r['c'],
+    } for r in per_user]
+
+    # So'nggi 100 ta yozuv (batafsil)
+    logs = [{
+        'id': l.id,
+        'sender': l.sender.display_name if l.sender else "Noma'lum",
+        'recipient': l.recipient_name,
+        'phone': l.recipient_phone,
+        'kind': l.kind,
+        'status': l.status,
+        'message': l.message,
+        'created': timezone.localtime(l.created_at).strftime('%d.%m.%Y %H:%M'),
+    } for l in qs[:100]]
+
+    return Response({'summary': summary, 'senders': senders, 'logs': logs})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_user_sms_allow(request, user_id):
+    """Bitta foydalanuvchiga SMS ruxsatini yoqish/o'chirish ('selected' rejim uchun)."""
+    deny = _admin_or_403(request)
+    if deny:
+        return deny
+    try:
+        u = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'Topilmadi'}, status=404)
+    u.sms_allowed = bool(request.data.get('allowed'))
+    u.save(update_fields=['sms_allowed'])
+    return Response({'id': u.id, 'sms_allowed': u.sms_allowed})

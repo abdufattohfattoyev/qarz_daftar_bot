@@ -55,15 +55,21 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#F0F2F5', display: 'flex', flexDirection: 'column' }}>
-      {/* Header — majburiy rejimda 'phone' bosqichida yopish tugmasi yo'q */}
+      {/* Header — chapda ortga (kod bosqichida), o'ngda X yopish (majburiy bo'lmasa) */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', gap: 10, flexShrink: 0 }}>
-        {(step === 'code' || !mandatory) && (
-          <button onClick={step === 'code' ? () => { setStep('phone'); setError('') } : onClose}
+        {step === 'code' ? (
+          <button onClick={() => { setStep('phone'); setError('') }}
             style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,.08)' }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="#64748b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
-        )}
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#111' }}>{t('phone_verify_row')}</div>
+        ) : <div style={{ width: 34 }} />}
+        <div style={{ flex: 1, fontSize: 16, fontWeight: 800, color: '#111', textAlign: 'center' }}>{t('phone_verify_row')}</div>
+        {!mandatory ? (
+          <button onClick={onClose}
+            style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,.08)' }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="#64748b" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          </button>
+        ) : <div style={{ width: 34 }} />}
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

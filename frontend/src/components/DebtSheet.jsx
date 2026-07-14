@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom'
 import { debtsAPI, authAPI } from '../api'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmt, fmtDate, fmtDateTime, initials, haptic } from '../utils'
+import PhoneVerify from './PhoneVerify'
+import ContactAdminModal from './ContactAdminModal'
 import { useT } from '../i18n'
 
 // app-meta bir marta olinadi (DebtDetail bilan bir xil naqsh)
@@ -25,6 +27,8 @@ export default function DebtSheet({ debt: initial, onClose }) {
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [smsState, setSmsState] = useState({ status: 'idle', msg: '' })
+  const [showContactAdmin, setShowContactAdmin] = useState(false)
+  const [showVerify, setShowVerify] = useState(false)
 
   // Ro'yxatdagi obyekt bilan darhol ochamiz, fonda yangilaymiz (payments/holat eskirgan bo'lishi mumkin)
   useEffect(() => {
@@ -53,6 +57,10 @@ export default function DebtSheet({ debt: initial, onClose }) {
 
   const sendSms = async () => {
     if (smsState.status === 'sending' || smsState.status === 'sent') return
+    // Ruxsat yo'q → adminga murojaat
+    if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
+    // Telefon tasdiqlanmagan → to'g'ridan-to'g'ri tasdiqlash oynasi
+    if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
     haptic('light')
     setSmsState({ status: 'sending', msg: '' })
     try {
@@ -61,7 +69,10 @@ export default function DebtSheet({ debt: initial, onClose }) {
       setSmsState({ status: 'sent', msg: '' })
     } catch (e) {
       haptic('error')
-      setSmsState({ status: 'error', msg: e.response?.data?.error || t('sms_err') })
+      const d = e.response?.data
+      if (d?.contact_admin) { setShowContactAdmin(true); setSmsState({ status: 'idle', msg: '' }); return }
+      if (d?.need_verify) { setShowVerify(true); setSmsState({ status: 'idle', msg: '' }); return }
+      setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
     }
   }
 
@@ -161,7 +172,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
                   </button>
                 )}
                 {!isPaid && (
-                  <div style={{ display: 'grid', gridTemplateColumns: (isGave && user?.sms_enabled) ? '1fr 1fr' : '1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: (isGave && user?.sms_mode !== 'off') ? '1fr 1fr' : '1fr', gap: 8 }}>
                     <button onClick={shareDebt} className="pill-btn" style={{
                       padding: '12px 8px', borderRadius: 14,
                       border: '1.5px solid #bfdbfe', background: '#eff6ff', color: '#2563eb',
@@ -173,9 +184,9 @@ export default function DebtSheet({ debt: initial, onClose }) {
                       </svg>
                       {t(isGave ? 'share_remind_btn' : 'share_card_btn')}
                     </button>
-                    {/* SMS eslatma — global yoqilgan bo'lsa (admin boshqaradi).
-                        Tasdiqlanmagan bo'lsa backend Sozlamalarga yo'naltiradi. */}
-                    {isGave && user?.sms_enabled && (
+                    {/* SMS eslatma — rejim 'off' bo'lmasa ko'rinadi; ruxsat/tasdiq
+                        holatini bosilганда tekshiramiz (modal ochiladi) */}
+                    {isGave && user?.sms_mode !== 'off' && (
                       <button onClick={sendSms} className="pill-btn" disabled={smsState.status === 'sending'} style={{
                         padding: '12px 8px', borderRadius: 14,
                         border: '1.5px solid #fde68a',
@@ -244,6 +255,17 @@ export default function DebtSheet({ debt: initial, onClose }) {
           )}
         </div>
       </div>
+
+      {/* SMS: ruxsat yo'q → adminga murojaat */}
+      {showContactAdmin && <ContactAdminModal onClose={() => setShowContactAdmin(false)} />}
+      {/* SMS: telefon tasdiqlanmagan → to'g'ridan-to'g'ri tasdiqlash (X close bilan) */}
+      {showVerify && (
+        <PhoneVerify
+          initialPhone={user?.phone || ''}
+          onClose={() => setShowVerify(false)}
+          onVerified={(u) => { useAuthStore.setState({ user: { ...user, ...u } }); setShowVerify(false) }}
+        />
+      )}
     </div>
   )
 }

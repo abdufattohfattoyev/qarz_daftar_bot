@@ -107,13 +107,17 @@ class DebtViewSet(viewsets.ModelViewSet):
         from apps.notifications import sms
         from apps.notifications.models import AppConfig
 
-        # Global admin tugmasi — o'chirilgan bo'lsa hech kim yubora olmaydi
-        if not AppConfig.get().sms_enabled:
+        cfg = AppConfig.get()
+        # Rejim: off (hech kim) / selected (faqat ruxsatlilar) / all (hamma)
+        if cfg.sms_mode == 'off':
             return Response({'error': "SMS eslatma xizmati vaqtincha o'chirilgan"},
                             status=status.HTTP_403_FORBIDDEN)
+        if not cfg.user_can_send(request.user):
+            return Response({'error': "SMS yuborish uchun adminga murojaat qiling",
+                             'contact_admin': True}, status=status.HTTP_403_FORBIDDEN)
         if not request.user.phone_verified:
-            return Response({'error': "SMS yuborish uchun avval telefoningizni tasdiqlang (Sozlamalar)"},
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': "Avval telefoningizni tasdiqlang",
+                             'need_verify': True}, status=status.HTTP_403_FORBIDDEN)
 
         debt = self.get_object()
 
@@ -148,6 +152,13 @@ class DebtViewSet(viewsets.ModelViewSet):
         except sms.SmsError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Statistika uchun yozib qo'yamiz (kim, kimga, qaysi qarz)
+        from apps.notifications.models import SmsLog
+        SmsLog.objects.create(
+            sender=request.user, debt=debt,
+            recipient_name=debt.contact.name, recipient_phone=debt.contact.phone,
+            message=text, kind='reminder', status='sent', sms_id=sms_id or '',
+        )
         cache.set(rl_key, 1, 300)
         return Response({'ok': True, 'sms_id': sms_id, 'text': text})
 

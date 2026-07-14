@@ -501,6 +501,14 @@ def send_phone_code(request):
     except sms.SmsError as e:
         return Response({'error': str(e)}, status=400)
 
+    # Statistika uchun yozib qo'yamiz (OTP — o'z raqamiga)
+    from apps.notifications.models import SmsLog
+    SmsLog.objects.create(
+        sender=request.user, recipient_name=request.user.display_name,
+        recipient_phone=to, kind='otp', status='sent',
+        message='Tasdiqlash kodi (yashirin)',
+    )
+
     # expires_at — aniq muddatni saqlaymiz; kesh TTL biroz uzunroq (xato urinishda
     # muddat uzaymasin uchun tekshiruv shu vaqt bo'yicha bo'ladi)
     cache.set(f'otp:{request.user.id}',
@@ -546,8 +554,8 @@ def verify_phone_code(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def sms_toggle(request):
-    """SMS eslatma xizmatini global yoqish/o'chirish — FAQAT admin.
-    GET holatni qaytaradi, POST {enabled: bool} o'zgartiradi."""
+    """SMS xizmati rejimini o'zgartirish — FAQAT admin.
+    GET holatni qaytaradi, POST {mode: 'all'|'selected'|'off'} o'zgartiradi."""
     from apps.notifications.models import AppConfig
 
     admin = str(getattr(settings, 'ADMIN_CHAT_ID', '') or '').strip()
@@ -556,9 +564,11 @@ def sms_toggle(request):
 
     cfg = AppConfig.get()
     if request.method == 'POST':
-        cfg.sms_enabled = bool(request.data.get('enabled'))
-        cfg.save(update_fields=['sms_enabled', 'updated_at'])
-    return Response({'sms_enabled': cfg.sms_enabled})
+        mode = request.data.get('mode')
+        if mode in ('all', 'selected', 'off'):
+            cfg.sms_mode = mode
+            cfg.save(update_fields=['sms_mode', 'updated_at'])
+    return Response({'sms_mode': cfg.sms_mode})
 
 
 @api_view(['POST'])

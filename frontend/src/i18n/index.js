@@ -252,8 +252,18 @@ export const translations = {
 
     // Admin: SMS xizmati
     admin_sms_section: 'Admin — SMS xizmati',
-    admin_sms_toggle: 'SMS eslatma yoqilgan',
-    admin_sms_hint: "O'chirsangiz, hech kim qarzdorga SMS eslatma yubora olmaydi. Standart — yoqiq.",
+    admin_sms_toggle: 'SMS yuborish ruxsati',
+    sms_mode_all: 'Hammaga',
+    sms_mode_selected: 'Tanlangan',
+    sms_mode_off: "O'chiq",
+    admin_sms_hint_all: 'Barcha foydalanuvchilar (telefoni tasdiqlangan) SMS yubora oladi.',
+    admin_sms_hint_selected: "Faqat siz tanlagan userlar yubora oladi — «Admin panel → Userlar» bo'limida yoqing.",
+    admin_sms_hint_off: 'Hech kim SMS yubora olmaydi.',
+    // SMS — adminga murojaat modali
+    sms_need_admin_title: 'SMS yuborish uchun ruxsat kerak',
+    sms_need_admin_desc: 'Bu funksiya admin tomonidan boshqariladi. Yoqish uchun adminga murojaat qiling.',
+    sms_contact_admin_btn: 'Adminga yozish',
+    close: 'Yopish',
   },
 
   ru: {
@@ -489,8 +499,18 @@ export const translations = {
 
     // Админ: SMS-сервис
     admin_sms_section: 'Админ — SMS-сервис',
-    admin_sms_toggle: 'SMS-напоминания включены',
-    admin_sms_hint: 'Если выключить, никто не сможет отправлять SMS должникам. По умолчанию — включено.',
+    admin_sms_toggle: 'Право отправки SMS',
+    sms_mode_all: 'Всем',
+    sms_mode_selected: 'Выбранным',
+    sms_mode_off: 'Выкл',
+    admin_sms_hint_all: 'Все пользователи (с подтверждённым телефоном) могут отправлять SMS.',
+    admin_sms_hint_selected: 'Только выбранные вами пользователи — включите в «Админ → Пользователи».',
+    admin_sms_hint_off: 'Никто не может отправлять SMS.',
+    // SMS — обращение к админу
+    sms_need_admin_title: 'Нужно разрешение на отправку SMS',
+    sms_need_admin_desc: 'Эта функция управляется админом. Для включения обратитесь к админу.',
+    sms_contact_admin_btn: 'Написать админу',
+    close: 'Закрыть',
   },
 }
 

@@ -21,19 +21,20 @@ export default function Settings() {
   const [pinErr, setPinErr] = useState('')
   const [pinBusy, setPinBusy] = useState(false)
   const [phoneVerify, setPhoneVerify] = useState(false)
-  const [smsOn, setSmsOn] = useState(!!user?.sms_enabled)
+  const [smsMode, setSmsMode] = useState(user?.sms_mode || 'all')
 
-  // Admin: SMS xizmatini global yoqish/o'chirish (barcha foydalanuvchilar uchun)
-  const toggleSms = async () => {
+  // Admin: SMS rejimini o'zgartirish — 'all' | 'selected' | 'off'
+  const changeSmsMode = async (mode) => {
+    if (mode === smsMode) return
     haptic('light')
-    const next = !smsOn
-    setSmsOn(next)   // optimistic
+    const prev = smsMode
+    setSmsMode(mode)   // optimistic
     try {
-      const { data } = await adminAPI.setSmsToggle(next)
-      setSmsOn(data.sms_enabled)
-      useAuthStore.setState({ user: { ...user, sms_enabled: data.sms_enabled } })
+      const { data } = await adminAPI.setSmsMode(mode)
+      setSmsMode(data.sms_mode)
+      useAuthStore.setState({ user: { ...user, sms_mode: data.sms_mode } })
     } catch {
-      setSmsOn(!next); haptic('error')
+      setSmsMode(prev); haptic('error')
     }
   }
 
@@ -203,18 +204,37 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Admin: SMS xizmati global tugmasi */}
+        {/* Admin: SMS rejimi (Hammaga / Tanlangan / O'chiq) */}
         {user?.is_admin && (
           <>
             <SectionLabel>{t('admin_sms_section')}</SectionLabel>
             <Card>
-              <ToggleRow
-                icon={<SmsIcon />} label={t('admin_sms_toggle')}
-                checked={smsOn}
-                onChange={toggleSms}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px 10px' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><SmsIcon /></div>
+                <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#111' }}>{t('admin_sms_toggle')}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, padding: '0 16px 10px' }}>
+                {[
+                  { v: 'all', label: t('sms_mode_all') },
+                  { v: 'selected', label: t('sms_mode_selected') },
+                  { v: 'off', label: t('sms_mode_off') },
+                ].map((o) => {
+                  const on = smsMode === o.v
+                  const col = o.v === 'off' ? '#ef4444' : '#16a34a'
+                  return (
+                    <button key={o.v} onClick={() => changeSmsMode(o.v)} className="pill-btn" style={{
+                      padding: '9px 4px', borderRadius: 11, fontFamily: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                      border: on ? `1.5px solid ${col}` : '1.5px solid #e5e7eb',
+                      background: on ? (o.v === 'off' ? '#fef2f2' : '#f0fdf4') : '#fff',
+                      color: on ? col : '#64748b',
+                    }}>{o.label}</button>
+                  )
+                })}
+              </div>
               <div style={{ padding: '0 16px 12px', fontSize: 11.5, color: '#94a3b8', lineHeight: 1.5 }}>
-                {t('admin_sms_hint')}
+                {smsMode === 'selected' ? t('admin_sms_hint_selected')
+                  : smsMode === 'off' ? t('admin_sms_hint_off')
+                  : t('admin_sms_hint_all')}
               </div>
             </Card>
           </>

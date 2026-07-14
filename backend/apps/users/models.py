@@ -9,6 +9,7 @@ class User(AbstractUser):
     full_name = models.CharField(max_length=200, blank=True)
     phone = models.CharField(max_length=20, blank=True)
     phone_verified = models.BooleanField(default=False, verbose_name='Telefon tasdiqlangan')
+    sms_allowed = models.BooleanField(default=False, verbose_name='SMS yuborishga ruxsat (tanlangan rejim)')
     photo_url = models.URLField(blank=True)
     currency = models.CharField(
         max_length=3,
