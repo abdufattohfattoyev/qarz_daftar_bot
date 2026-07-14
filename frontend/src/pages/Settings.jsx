@@ -5,6 +5,7 @@ import { initials, haptic } from '../utils'
 import { statsAPI, authAPI } from '../api'
 import { CurrencyIcon, GlobeIcon, BellIcon, ExcelIcon, DeleteAllIcon } from '../components/Icons'
 import PinPad from '../components/PinPad'
+import PhoneVerify from '../components/PhoneVerify'
 import { useT } from '../i18n'
 
 export default function Settings() {
@@ -19,6 +20,7 @@ export default function Settings() {
   const [newPin, setNewPin] = useState('')
   const [pinErr, setPinErr] = useState('')
   const [pinBusy, setPinBusy] = useState(false)
+  const [phoneVerify, setPhoneVerify] = useState(false)
 
   const closePin = () => { setPinMode(null); setNewPin(''); setPinErr(''); setPinBusy(false) }
 
@@ -207,6 +209,14 @@ export default function Settings() {
             checked={!!user?.has_pin}
             onChange={handlePinToggle}
           />
+          <Divider />
+          <Row
+            icon={<PhoneIcon />} label={t('phone_verify_row')}
+            value={user?.phone_verified
+              ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✓ {t('phone_verified_badge')}</span>
+              : (user?.phone || '—')}
+            onClick={() => { haptic('light'); setPhoneVerify(true) }}
+          />
         </Card>
 
         {/* Data */}
@@ -263,6 +273,20 @@ export default function Settings() {
             />
           </div>
         </div>
+      )}
+
+      {/* TELEFON TASDIQLASH */}
+      {phoneVerify && (
+        <PhoneVerify
+          initialPhone={user?.phone || ''}
+          onClose={() => setPhoneVerify(false)}
+          onVerified={(u) => {
+            useAuthStore.setState({ user: { ...user, ...u } })
+            setPhoneVerify(false)
+            haptic('success'); setToast(t('phone_verified_toast'))
+            setTimeout(() => setToast(''), 2500)
+          }}
+        />
       )}
 
       {/* MODALS */}
@@ -332,6 +356,15 @@ function LockIcon() {
       <rect x="4" y="9" width="12" height="8" rx="2.5" stroke="#16a34a" strokeWidth="1.5"/>
       <path d="M6.5 9V6.5a3.5 3.5 0 017 0V9" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
       <circle cx="10" cy="13" r="1.2" fill="#16a34a"/>
+    </svg>
+  )
+}
+
+function PhoneIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <rect x="6" y="2.5" width="8" height="15" rx="2.5" stroke="#16a34a" strokeWidth="1.5"/>
+      <path d="M9 15h2" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }

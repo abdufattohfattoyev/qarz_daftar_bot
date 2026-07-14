@@ -474,6 +474,67 @@ def disable_pin(request):
     return Response({'ok': True, 'has_pin': False})
 
 
+# ── Telefonni tasdiqlash (SMS orqali 4 xonali kod) ──────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_phone_code(request):
+    """Foydalanuvchi kiritgan raqamga 4 xonali tasdiqlash kodi yuboradi.
+    Kod Redis'da 5 daqiqa saqlanadi; 1 daqiqada 1 martadan ko'p yuborilmaydi."""
+    import random
+    from django.core.cache import cache
+    from apps.notifications import sms
+
+    to = sms.normalize_phone(request.data.get('phone', ''))
+    if not to:
+        return Response({'error': "Telefon raqami noto'g'ri (masalan: +998901234567)"}, status=400)
+
+    rl_key = f'otp_rl:{request.user.id}'
+    if cache.get(rl_key):
+        return Response({'error': "Kod yaqinda yuborildi — 1 daqiqadan keyin qayta urinib ko'ring"},
+                        status=429)
+
+    code = f'{random.randint(0, 9999):04d}'
+    try:
+        sms.send_otp(to, code)
+    except sms.SmsError as e:
+        return Response({'error': str(e)}, status=400)
+
+    cache.set(f'otp:{request.user.id}', {'code': code, 'phone': to, 'attempts': 0}, 300)
+    cache.set(rl_key, 1, 60)
+    return Response({'ok': True, 'phone': to})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_phone_code(request):
+    """Kiritilgan kodni tekshiradi; to'g'ri bo'lsa telefon tasdiqlanadi.
+    5 marta xato kiritilsa kod bekor bo'ladi."""
+    from django.core.cache import cache
+
+    key = f'otp:{request.user.id}'
+    data = cache.get(key)
+    if not data:
+        return Response({'error': "Kod eskirgan — qaytadan yuboring"}, status=400)
+
+    if data.get('attempts', 0) >= 5:
+        cache.delete(key)
+        return Response({'error': "Juda ko'p urinish — kodni qaytadan yuboring"}, status=400)
+
+    code = str(request.data.get('code', '')).strip()
+    if code != data['code']:
+        data['attempts'] = data.get('attempts', 0) + 1
+        cache.set(key, data, 300)
+        return Response({'error': "Kod noto'g'ri", 'attempts_left': 5 - data['attempts']}, status=400)
+
+    # Muvaffaqiyat — telefonni saqlab, tasdiqlangan deb belgilaymiz
+    request.user.phone = data['phone']
+    request.user.phone_verified = True
+    request.user.save(update_fields=['phone', 'phone_verified'])
+    cache.delete(key)
+    return Response(UserSerializer(request.user).data)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def token_refresh_view(request):

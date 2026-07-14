@@ -154,9 +154,8 @@ export function DebtDetail() {
             </button>
           )}
           {/* SMS eslatma — kontakt telefoniga TextUP orqali (faqat men bergan qarzlar).
-              Telefon yo'qligini backend tekshiradi — tugma bosilganda aniq xato ko'rinadi.
-              HOZIRCHA TEST: faqat admin ko'radi — hammaga ochish uchun user?.is_admin shartini olib tashlang */}
-          {user?.is_admin && debt.status !== 'paid' && isGave && (
+              Telefoni tasdiqlanmagan bo'lsa backend Sozlamalarga yo'naltiradi. */}
+          {debt.status !== 'paid' && isGave && (
             <>
               <button onClick={sendSms} className="pill-btn" disabled={smsState.status === 'sending'} style={{
                 width: '100%', padding: '13px 10px', borderRadius: 14,

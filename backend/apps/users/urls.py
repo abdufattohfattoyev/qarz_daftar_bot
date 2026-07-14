@@ -26,5 +26,7 @@ urlpatterns = [
     path('pin/set/', views.set_pin, name='pin-set'),
     path('pin/verify/', views.verify_pin, name='pin-verify'),
     path('pin/disable/', views.disable_pin, name='pin-disable'),
+    path('phone/send-code/', views.send_phone_code, name='phone-send-code'),
+    path('phone/verify-code/', views.verify_phone_code, name='phone-verify-code'),
     path('refresh/', views.token_refresh_view, name='token-refresh'),
 ]

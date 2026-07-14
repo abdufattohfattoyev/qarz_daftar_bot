@@ -101,15 +101,13 @@ class DebtViewSet(viewsets.ModelViewSet):
     def send_sms(self, request, pk=None):
         """Qarzdorga SMS eslatma (TextUP). Spam bo'lmasin — har qarzga 5 daqiqada 1 ta.
 
-        HOZIRCHA TEST REJIMI: faqat admin (ADMIN_CHAT_ID) ishlatadi — hammaga
-        ochish uchun quyidagi admin tekshiruvini olib tashlash kifoya."""
-        from django.conf import settings as dj_settings
+        Faqat telefoni tasdiqlangan foydalanuvchi yuborishi mumkin
+        (Sozlamalar → Telefonni tasdiqlash)."""
         from django.core.cache import cache
         from apps.notifications import sms
 
-        admin = str(getattr(dj_settings, 'ADMIN_CHAT_ID', '') or '').strip()
-        if not admin or str(request.user.telegram_id) != admin:
-            return Response({'error': 'SMS eslatma hozircha test rejimida — faqat admin uchun'},
+        if not request.user.phone_verified:
+            return Response({'error': "SMS yuborish uchun avval telefoningizni tasdiqlang (Sozlamalar)"},
                             status=status.HTTP_403_FORBIDDEN)
 
         debt = self.get_object()
@@ -129,32 +127,19 @@ class DebtViewSet(viewsets.ModelViewSet):
             return Response({'error': "SMS yaqinda yuborilgan — 5 daqiqadan keyin qayta urinib ko'ring"},
                             status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        # Ismlarni lotinchaga o'giramiz — TextUP shabloni lotin matn bilan tasdiqlangan
-        owner = sms.person_name(request.user.full_name or request.user.telegram_username or '')
-        contact_name = sms.person_name(debt.contact.name)
+        # Kreditor ismini lotinchaga o'giramiz — TextUP shabloni lotin matn bilan tasdiqlangan
+        owner = sms.person_name(
+            request.user.full_name or request.user.telegram_username or '',
+            fallback='qarz beruvchi')
         amount = f"{debt.remaining_amount:,.0f}".replace(',', ' ') + f" {debt.currency}"
-        base = f"Assalomu alaykum, {contact_name}! Eslatma: sizda"
-        base += f" {owner} oldida" if owner else ''
-        base += f" {amount} qarz bor."
+        text = (f"Assalomu alaykum! Eslatib o'tamiz, {owner}ga {amount} miqdoridagi "
+                f"qarzingiz mavjud. Iltimos, to'lovni belgilangan muddatda amalga "
+                f"oshiring. Rahmat! (Qarz Yordamchi)")
 
-        # Avval muddatli variant, shablon validatsiyadan o'tmasa muddatsiz retry
-        # (TextUP'da "muddat bilan" shablon maskasi hozircha nosoz)
-        variants = [base + " (Qarz Yordamchi)"]
-        if debt.due_date:
-            variants.insert(0, base + f" Muddat: {debt.due_date.strftime('%d.%m.%Y')}. (Qarz Yordamchi)")
-
-        sms_id, text, last_err = None, None, None
-        for candidate in variants:
-            try:
-                sms_id = sms.send_sms(debt.contact.phone, candidate, name=f'debt-{debt.id}')
-                text = candidate
-                break
-            except sms.SmsError as e:
-                last_err = e
-                if not getattr(e, 'template_error', False):
-                    break   # shablon xatosi emas — boshqa variant ham o'tmaydi
-        if sms_id is None:
-            return Response({'error': str(last_err)}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            sms_id = sms.send_sms(debt.contact.phone, text, name=f'debt-{debt.id}')
+        except sms.SmsError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         cache.set(rl_key, 1, 300)
         return Response({'ok': True, 'sms_id': sms_id, 'text': text})

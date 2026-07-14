@@ -67,10 +67,15 @@ def to_latin(text):
     return ''.join(out)
 
 
-def person_name(raw):
-    """Ismni SMS uchun tayyorlaydi: lotinchaga o'girib, KATTA HARFLARDA
-    yozilgan bo'lsa chiroyli Bosh Harfga keltiradi."""
+def person_name(raw, fallback=''):
+    """Ismni SMS uchun tayyorlaydi: lotinchaga o'giradi, shablon maskasini
+    buzadigan belgilarni (emoji, raqam, simvol) olib tashlaydi, KATTA HARFLARDA
+    yozilgan bo'lsa chiroyli Bosh Harfga keltiradi. Bo'sh qolsa fallback."""
     name = to_latin((raw or '').strip())
+    name = re.sub(r"[^A-Za-z'’`ʻ.\- ]", '', name)   # faqat lotin harf va ism belgilari
+    name = re.sub(r'\s+', ' ', name).strip(" .-'’`ʻ")
+    if not name:
+        return fallback
     if name.isupper():
         name = ' '.join(w.capitalize() for w in name.split())
     return name
@@ -134,7 +139,9 @@ def send_sms(phone, message, name=None, template_id=None):
         payload['name'] = name
     if settings.TEXTUP_NICKNAME_ID:
         payload['nicknameId'] = settings.TEXTUP_NICKNAME_ID
-    template_id = template_id or settings.TEXTUP_TEMPLATE_ID
+    # templateId ixtiyoriy — TextUP matnni baribir tasdiqlangan shablonlar bilan
+    # solishtiradi. Har chaqiruvchi o'z shablon ID'sini beradi (fallback yo'q —
+    # aks holda OTP matni qarz shabloniga tushib qolardi).
     if template_id:
         payload['templateId'] = template_id
 
@@ -169,3 +176,12 @@ def send_sms(phone, message, name=None, template_id=None):
     sms_id = (resp.json() or {}).get('smsId')
     logger.info('SMS sent to %s (smsId=%s)', to, sms_id)
     return sms_id
+
+
+def send_otp(phone, code):
+    """Telefonni tasdiqlash uchun 4 xonali kod yuboradi.
+    Matn TextUP'da "Tasdiqlash kodi" shabloni sifatida tasdiqlangan bo'lishi shart
+    (Punkt 2: resurs nomi + maqsad ko'rsatilishi majburiy)."""
+    text = f"Qarz Yordamchi ilovasi uchun tasdiqlash kodingiz: {code}"
+    return send_sms(phone, text, name='otp',
+                    template_id=settings.TEXTUP_OTP_TEMPLATE_ID or None)

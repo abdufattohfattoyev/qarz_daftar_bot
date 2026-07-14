@@ -232,6 +232,21 @@ export const translations = {
     sms_sending: 'Yuborilmoqda...',
     sms_sent: 'SMS yuborildi ✓',
     sms_err: 'SMS yuborilmadi',
+
+    // Telefonni tasdiqlash (OTP)
+    phone_verify_row: 'Telefonni tasdiqlash',
+    phone_verified_badge: 'Tasdiqlangan',
+    phone_enter_title: 'Telefon raqamingiz',
+    phone_enter_sub: 'Ushbu raqamga 4 xonali tasdiqlash kodi yuboramiz',
+    phone_send_code: 'Kod yuborish',
+    phone_code_title: 'Tasdiqlash kodi',
+    phone_code_sub: '{phone} raqamiga yuborilgan kodni kiriting',
+    phone_verify_btn: 'Tasdiqlash',
+    phone_resend: 'Kodni qayta yuborish',
+    phone_verified_toast: 'Telefon tasdiqlandi ✓',
+    phone_change: "Raqamni o'zgartirish",
+    phone_sending: 'Yuborilmoqda...',
+    phone_verifying: 'Tekshirilmoqda...',
   },
 
   ru: {
@@ -447,6 +462,21 @@ export const translations = {
     sms_sending: 'Отправка...',
     sms_sent: 'SMS отправлено ✓',
     sms_err: 'SMS не отправлено',
+
+    // Подтверждение телефона (OTP)
+    phone_verify_row: 'Подтвердить телефон',
+    phone_verified_badge: 'Подтверждён',
+    phone_enter_title: 'Ваш номер телефона',
+    phone_enter_sub: 'На этот номер отправим 4-значный код',
+    phone_send_code: 'Отправить код',
+    phone_code_title: 'Код подтверждения',
+    phone_code_sub: 'Введите код, отправленный на {phone}',
+    phone_verify_btn: 'Подтвердить',
+    phone_resend: 'Отправить код заново',
+    phone_verified_toast: 'Телефон подтверждён ✓',
+    phone_change: 'Изменить номер',
+    phone_sending: 'Отправка...',
+    phone_verifying: 'Проверка...',
   },
 }
 
