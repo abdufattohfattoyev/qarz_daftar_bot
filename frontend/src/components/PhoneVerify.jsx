@@ -3,7 +3,7 @@
 // 2) Kodni kiritish → tasdiqlanadi (backend user.phone_verified = true qiladi)
 import React, { useEffect, useRef, useState } from 'react'
 import { authAPI } from '../api'
-import { haptic } from '../utils'
+import { haptic, normPhone, fmtPhone } from '../utils'
 import { useT } from '../i18n'
 
 export default function PhoneVerify({ initialPhone = '', onClose, onVerified, mandatory = false }) {
@@ -101,7 +101,7 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
             {typedDigits >= 3 && !error && (
               <div style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, textAlign: 'center', color: normalized ? '#16a34a' : '#b45309', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {normalized
-                  ? <><span>✓</span> {fmtNice(normalized)}</>
+                  ? <><span>✓</span> {fmtPhone(normalized)}</>
                   : t('phone_hint_incomplete')}
               </div>
             )}
@@ -148,18 +148,6 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
       </div>
     </div>
   )
-}
-
-// Backend normalize_phone bilan bir xil mantiq — to'g'ri bo'lsa +998XXXXXXXXX, aks holda null
-function normPhone(raw) {
-  let d = (raw || '').replace(/\D/g, '')
-  if (d.length === 9) d = '998' + d
-  return (d.length === 12 && d.startsWith('998')) ? '+' + d : null
-}
-// +998901234567 → +998 90 123 45 67
-function fmtNice(n) {
-  const d = n.slice(4)
-  return `+998 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7, 9)}`
 }
 
 const btn = (disabled) => ({

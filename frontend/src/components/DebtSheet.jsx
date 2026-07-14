@@ -3,11 +3,12 @@
 // To'lash/Tahrirlash kabi murakkab formalar o'z sahifalariga olib boradi.
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { debtsAPI, authAPI } from '../api'
+import { debtsAPI, authAPI, contactsAPI } from '../api'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmt, fmtDate, fmtDateTime, initials, haptic } from '../utils'
 import PhoneVerify from './PhoneVerify'
 import ContactAdminModal from './ContactAdminModal'
+import AskPhoneSheet from './AskPhoneSheet'
 import { useT } from '../i18n'
 
 // app-meta bir marta olinadi (DebtDetail bilan bir xil naqsh)
@@ -29,6 +30,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
   const [smsState, setSmsState] = useState({ status: 'idle', msg: '' })
   const [showContactAdmin, setShowContactAdmin] = useState(false)
   const [showVerify, setShowVerify] = useState(false)
+  const [showAskPhone, setShowAskPhone] = useState(false)
 
   // Ro'yxatdagi obyekt bilan darhol ochamiz, fonda yangilaymiz (payments/holat eskirgan bo'lishi mumkin)
   useEffect(() => {
@@ -69,6 +71,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
       const d = e.response?.data
       if (d?.contact_admin) { setShowContactAdmin(true); setSmsState({ status: 'idle', msg: '' }); return }
       if (d?.need_verify) { setShowVerify(true); setSmsState({ status: 'idle', msg: '' }); return }
+      if (d?.need_phone) { setShowAskPhone(true); setSmsState({ status: 'idle', msg: '' }); return }
       setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
     }
   }
@@ -76,6 +79,15 @@ export default function DebtSheet({ debt: initial, onClose }) {
   const sendSms = () => {
     if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
     if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
+    if (!debt.contact_detail?.phone) { haptic('light'); setShowAskPhone(true); return }
+    doSendSms()
+  }
+
+  // Qarzdor raqamini kontaktga saqlab, keyin SMS yuboradi
+  const saveContactPhoneAndSend = async (normalized) => {
+    await contactsAPI.update(debt.contact, { phone: normalized })
+    setDebt((d) => ({ ...d, contact_detail: { ...(d.contact_detail || {}), phone: normalized } }))
+    setShowAskPhone(false)
     doSendSms()
   }
 
@@ -267,6 +279,14 @@ export default function DebtSheet({ debt: initial, onClose }) {
           initialPhone={user?.phone || ''}
           onClose={() => setShowVerify(false)}
           onVerified={(u) => { useAuthStore.getState().setVerified(u); setShowVerify(false); doSendSms() }}
+        />
+      )}
+      {/* SMS: qarzdorda raqam yo'q → shu yerda kiritiladi */}
+      {showAskPhone && (
+        <AskPhoneSheet
+          contactName={debt.contact_name}
+          onClose={() => setShowAskPhone(false)}
+          onSubmit={saveContactPhoneAndSend}
         />
       )}
     </div>

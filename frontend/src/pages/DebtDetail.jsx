@@ -1,11 +1,12 @@
 // DebtDetail page
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { debtsAPI, authAPI } from '../api'
+import { debtsAPI, authAPI, contactsAPI } from '../api'
 import { useDebtStore, useAuthStore } from '../store'
 import { fmt, fmtDate, fmtDateTime, nowTashkent, initials, avatarColor, haptic } from '../utils'
 import PhoneVerify from '../components/PhoneVerify'
 import ContactAdminModal from '../components/ContactAdminModal'
+import AskPhoneSheet from '../components/AskPhoneSheet'
 import { useT, getLang } from '../i18n'
 
 // app-meta bir marta olinadi (bot username backend'da ham keshlangan)
@@ -29,6 +30,7 @@ export function DebtDetail() {
   const [smsState, setSmsState] = useState({ status: 'idle', msg: '' }) // idle|sending|sent|error
   const [showContactAdmin, setShowContactAdmin] = useState(false)
   const [showVerify, setShowVerify] = useState(false)
+  const [showAskPhone, setShowAskPhone] = useState(false)
 
   useEffect(() => {
     debtsAPI.get(id).then(({ data }) => { setDebt(data); setLoading(false) })
@@ -76,6 +78,7 @@ export function DebtDetail() {
       const d = e.response?.data
       if (d?.contact_admin) { setShowContactAdmin(true); setSmsState({ status: 'idle', msg: '' }); return }
       if (d?.need_verify) { setShowVerify(true); setSmsState({ status: 'idle', msg: '' }); return }
+      if (d?.need_phone) { setShowAskPhone(true); setSmsState({ status: 'idle', msg: '' }); return }
       setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
     }
   }
@@ -83,6 +86,14 @@ export function DebtDetail() {
   const sendSms = () => {
     if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
     if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
+    if (!debt.contact_detail?.phone) { haptic('light'); setShowAskPhone(true); return }
+    doSendSms()
+  }
+
+  const saveContactPhoneAndSend = async (normalized) => {
+    await contactsAPI.update(debt.contact, { phone: normalized })
+    setDebt((d) => ({ ...d, contact_detail: { ...(d.contact_detail || {}), phone: normalized } }))
+    setShowAskPhone(false)
     doSendSms()
   }
 
@@ -267,6 +278,14 @@ export function DebtDetail() {
           initialPhone={user?.phone || ''}
           onClose={() => setShowVerify(false)}
           onVerified={(u) => { useAuthStore.getState().setVerified(u); setShowVerify(false); doSendSms() }}
+        />
+      )}
+      {/* SMS: qarzdorda raqam yo'q → shu yerda kiritiladi */}
+      {showAskPhone && (
+        <AskPhoneSheet
+          contactName={debt.contact_name}
+          onClose={() => setShowAskPhone(false)}
+          onSubmit={saveContactPhoneAndSend}
         />
       )}
     </div>

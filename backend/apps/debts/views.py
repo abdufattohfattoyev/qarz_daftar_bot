@@ -128,7 +128,7 @@ class DebtViewSet(viewsets.ModelViewSet):
             return Response({'error': "Bu qarz allaqachon to'langan"},
                             status=status.HTTP_400_BAD_REQUEST)
         if not debt.contact.phone:
-            return Response({'error': "Kontaktda telefon raqami yo'q — avval kontaktga raqam qo'shing"},
+            return Response({'error': "Kontaktda telefon raqami yo'q", 'need_phone': True},
                             status=status.HTTP_400_BAD_REQUEST)
 
         rl_key = f'sms_rl:{debt.id}'

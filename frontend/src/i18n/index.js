@@ -251,6 +251,9 @@ export const translations = {
     phone_help: 'Kod kelmadimi? Yordam olish',
     phone_hint_incomplete: "Raqamni to'liq kiriting: +998 XX XXX XX XX",
     phone_hint_ok: "Raqam to'g'ri",
+    ask_phone_title: 'Qarzdorning telefon raqami',
+    ask_phone_sub: "{name} uchun raqam yo'q. SMS yuborish uchun raqamni kiriting — kontaktga saqlanadi.",
+    ask_phone_save_send: 'Saqlash va yuborish',
 
     // Admin: SMS xizmati
     admin_sms_section: 'Admin — SMS xizmati',
@@ -503,6 +506,9 @@ export const translations = {
     phone_help: 'Код не пришёл? Получить помощь',
     phone_hint_incomplete: 'Введите номер полностью: +998 XX XXX XX XX',
     phone_hint_ok: 'Номер верный',
+    ask_phone_title: 'Номер телефона должника',
+    ask_phone_sub: 'У {name} нет номера. Введите номер для отправки SMS — он сохранится в контакт.',
+    ask_phone_save_send: 'Сохранить и отправить',
 
     // Админ: SMS-сервис
     admin_sms_section: 'Админ — SMS-сервис',
