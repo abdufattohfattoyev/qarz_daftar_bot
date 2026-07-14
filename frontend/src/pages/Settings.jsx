@@ -269,13 +269,25 @@ export default function Settings() {
             onChange={handlePinToggle}
           />
           <Divider />
-          <Row
-            icon={<PhoneIcon />} label={t('phone_verify_row')}
-            value={user?.phone_verified
-              ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✓ {t('phone_verified_badge')}</span>
-              : (user?.phone || '—')}
-            onClick={() => { haptic('light'); setPhoneVerify(true) }}
-          />
+          {user?.phone_verified ? (
+            /* Tasdiqlangan — faqat raqam + ✓ ko'rsatamiz, qayta so'ramaymiz */
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><PhoneIcon /></div>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#111' }}>{t('phone_verify_row')}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#111', whiteSpace: 'nowrap' }}>{user?.phone || '—'}</span>
+                <span style={{ width: 18, height: 18, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2.5 6l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+              </span>
+            </div>
+          ) : (
+            <Row
+              icon={<PhoneIcon />} label={t('phone_verify_row')}
+              value={user?.phone || '—'}
+              onClick={() => { haptic('light'); setPhoneVerify(true) }}
+            />
+          )}
         </Card>
 
         {/* Data */}
