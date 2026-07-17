@@ -104,6 +104,7 @@ export const debtsAPI = {
   update: (id, data) => api.patch(`/debts/${id}/`, data),
   delete: (id) => api.delete(`/debts/${id}/`),
   pay: (id, data) => api.post(`/debts/${id}/pay/`, data),
+  smsPreview: (id) => api.get(`/debts/${id}/sms_preview/`),
   sendSms: (id) => api.post(`/debts/${id}/send_sms/`),
   payments: (id) => api.get(`/debts/${id}/payments/`),
 }

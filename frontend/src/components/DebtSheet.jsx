@@ -10,6 +10,7 @@ import PhoneVerify from './PhoneVerify'
 import ContactAdminModal from './ContactAdminModal'
 import AskPhoneSheet from './AskPhoneSheet'
 import AskNameSheet from './AskNameSheet'
+import SmsConfirmSheet from './SmsConfirmSheet'
 import { useT } from '../i18n'
 
 // app-meta bir marta olinadi (DebtDetail bilan bir xil naqsh)
@@ -33,6 +34,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
   const [showVerify, setShowVerify] = useState(false)
   const [showAskPhone, setShowAskPhone] = useState(false)
   const [showAskName, setShowAskName] = useState(false)
+  const [preview, setPreview] = useState(null)   // {text, contact_name, phone}
 
   // Ro'yxatdagi obyekt bilan darhol ochamiz, fonda yangilaymiz (payments/holat eskirgan bo'lishi mumkin)
   useEffect(() => {
@@ -79,19 +81,43 @@ export default function DebtSheet({ debt: initial, onClose }) {
     }
   }
 
+  // Tugma bosilganda: tekshiruv -> backenddan preview -> tasdiqlash oynasi
+  const openConfirm = async () => {
+    if (smsState.status === 'sending') return
+    haptic('light')
+    try {
+      const { data } = await debtsAPI.smsPreview(debt.id)
+      setPreview(data)
+    } catch (e) {
+      haptic('error')
+      const d = e.response?.data
+      if (d?.contact_admin) { setShowContactAdmin(true); return }
+      if (d?.need_verify) { setShowVerify(true); return }
+      if (d?.need_name) { setShowAskName(true); return }
+      if (d?.need_phone) { setShowAskPhone(true); return }
+      setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
+    }
+  }
+
   const sendSms = () => {
     if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
     if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
     if (!user?.real_name) { haptic('light'); setShowAskName(true); return }
     if (!debt.contact_detail?.phone) { haptic('light'); setShowAskPhone(true); return }
-    doSendSms()
+    openConfirm()
+  }
+
+  // Tasdiqlangach yuboriladi
+  const confirmSend = async () => {
+    await doSendSms()
+    setPreview(null)
   }
 
   // Haqiqiy ismni saqlab, keyin SMS yuboradi
   const saveNameAndSend = async (name) => {
     await useAuthStore.getState().updateUser({ real_name: name })
     setShowAskName(false)
-    doSendSms()
+    openConfirm()
   }
 
   // Qarzdor raqamini kontaktga saqlab, keyin SMS yuboradi
@@ -99,7 +125,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
     await contactsAPI.update(debt.contact, { phone: normalized })
     setDebt((d) => ({ ...d, contact_detail: { ...(d.contact_detail || {}), phone: normalized } }))
     setShowAskPhone(false)
-    doSendSms()
+    openConfirm()
   }
 
   const handleDelete = async () => {
@@ -289,7 +315,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
         <PhoneVerify
           initialPhone={user?.phone || ''}
           onClose={() => setShowVerify(false)}
-          onVerified={(u) => { useAuthStore.getState().setVerified(u); setShowVerify(false); doSendSms() }}
+          onVerified={(u) => { useAuthStore.getState().setVerified(u); setShowVerify(false); openConfirm() }}
         />
       )}
       {/* SMS: qarzdorda raqam yo'q → shu yerda kiritiladi */}
@@ -298,6 +324,15 @@ export default function DebtSheet({ debt: initial, onClose }) {
           contactName={debt.contact_name}
           onClose={() => setShowAskPhone(false)}
           onSubmit={saveContactPhoneAndSend}
+        />
+      )}
+      {/* SMS: yuborishdan oldin tasdiqlash — kimga va qanday matn */}
+      {preview && (
+        <SmsConfirmSheet
+          preview={preview}
+          busy={smsState.status === 'sending'}
+          onClose={() => setPreview(null)}
+          onConfirm={confirmSend}
         />
       )}
       {/* SMS: o'z ismi yo'q → shu yerda so'raladi */}

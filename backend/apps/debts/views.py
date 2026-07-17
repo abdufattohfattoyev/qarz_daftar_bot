@@ -21,6 +21,51 @@ class DebtFilter(df_filters.FilterSet):
         fields = ['status', 'debt_type', 'currency', 'contact', 'date_from', 'date_to']
 
 
+def _reminder_text(user, debt):
+    """Qarzdorga ketadigan SMS matni. DIQQAT: tuzilishi TextUP'da tasdiqlangan
+    shablonga mos bo'lishi SHART — o'zgartirsangiz, avval moderatsiyadan o'tkazing.
+    Preview ham, yuborish ham shu funksiyadan foydalanadi (matn farq qilmasin)."""
+    from apps.notifications import sms
+    owner = sms.person_name(user.real_name or '').split()[0]   # faqat ism
+    amount = f"{debt.remaining_amount:,.0f}".replace(',', ' ') + f" {debt.currency}"
+    return (f"Assalomu alaykum! Eslatib o'tamiz, {owner}ga {amount} miqdoridagi "
+            f"qarzingiz mavjud. Iltimos, to'lovni belgilangan muddatda amalga "
+            f"oshiring. Rahmat! t.me/Qarz_Yordamchi_Bot")
+
+
+def _sms_check(user, debt):
+    """SMS yuborish shartlari. To'silsa Response, ruxsat bo'lsa None qaytadi.
+    Frontend javobdagi flag bo'yicha kerakli oynani ochadi."""
+    from apps.notifications import sms
+    from apps.notifications.models import AppConfig
+
+    cfg = AppConfig.get()
+    # Rejim: off (hech kim) / selected (faqat ruxsatlilar) / all (hamma)
+    if cfg.sms_mode == 'off':
+        return Response({'error': "SMS eslatma xizmati vaqtincha o'chirilgan"},
+                        status=status.HTTP_403_FORBIDDEN)
+    if not cfg.user_can_send(user):
+        return Response({'error': "SMS yuborish uchun adminga murojaat qiling",
+                         'contact_admin': True}, status=status.HTTP_403_FORBIDDEN)
+    if not user.phone_verified:
+        return Response({'error': "Avval telefoningizni tasdiqlang",
+                         'need_verify': True}, status=status.HTTP_403_FORBIDDEN)
+    # Telegram profil nomi taxallus bo'lishi mumkin — SMS uchun haqiqiy ism shart
+    if len(sms.person_name(user.real_name or '').replace(' ', '')) < 2:
+        return Response({'error': "SMS yuborish uchun ismingizni kiriting",
+                         'need_name': True}, status=status.HTTP_400_BAD_REQUEST)
+    if debt.debt_type != 'gave':
+        return Response({'error': "SMS eslatma faqat siz bergan qarzlar uchun"},
+                        status=status.HTTP_400_BAD_REQUEST)
+    if debt.status == 'paid':
+        return Response({'error': "Bu qarz allaqachon to'langan"},
+                        status=status.HTTP_400_BAD_REQUEST)
+    if not debt.contact.phone:
+        return Response({'error': "Kontaktda telefon raqami yo'q", 'need_phone': True},
+                        status=status.HTTP_400_BAD_REQUEST)
+    return None
+
+
 class DebtViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -97,56 +142,37 @@ class DebtViewSet(viewsets.ModelViewSet):
             'debt': DebtSerializer(debt, context={'request': request}).data,
         })
 
+    @action(detail=True, methods=['get'], url_path='sms_preview')
+    def sms_preview(self, request, pk=None):
+        """Yuborishdan oldingi ko'rinish: kimga va aynan qanday matn ketadi.
+        send_sms bilan bir xil tekshiruv va bir xil matn (bitta manba)."""
+        debt = self.get_object()
+        blocked = _sms_check(request.user, debt)
+        if blocked:
+            return blocked
+        return Response({
+            'text': _reminder_text(request.user, debt),
+            'contact_name': debt.contact.name,
+            'phone': debt.contact.phone,
+        })
+
     @action(detail=True, methods=['post'], url_path='send_sms')
     def send_sms(self, request, pk=None):
-        """Qarzdorga SMS eslatma (TextUP). Spam bo'lmasin — har qarzga 5 daqiqada 1 ta.
-
-        Faqat telefoni tasdiqlangan foydalanuvchi yuborishi mumkin
-        (Sozlamalar → Telefonni tasdiqlash)."""
+        """Qarzdorga SMS eslatma (TextUP). Spam bo'lmasin — har qarzga 5 daqiqada 1 ta."""
         from django.core.cache import cache
         from apps.notifications import sms
-        from apps.notifications.models import AppConfig
-
-        cfg = AppConfig.get()
-        # Rejim: off (hech kim) / selected (faqat ruxsatlilar) / all (hamma)
-        if cfg.sms_mode == 'off':
-            return Response({'error': "SMS eslatma xizmati vaqtincha o'chirilgan"},
-                            status=status.HTTP_403_FORBIDDEN)
-        if not cfg.user_can_send(request.user):
-            return Response({'error': "SMS yuborish uchun adminga murojaat qiling",
-                             'contact_admin': True}, status=status.HTTP_403_FORBIDDEN)
-        if not request.user.phone_verified:
-            return Response({'error': "Avval telefoningizni tasdiqlang",
-                             'need_verify': True}, status=status.HTTP_403_FORBIDDEN)
-        # Telegram profil nomi taxallus bo'lishi mumkin — SMS uchun haqiqiy ism shart
-        owner_full = sms.person_name(request.user.real_name or '')
-        if len(owner_full.replace(' ', '')) < 2:
-            return Response({'error': "SMS yuborish uchun ismingizni kiriting",
-                             'need_name': True}, status=status.HTTP_400_BAD_REQUEST)
 
         debt = self.get_object()
-
-        if debt.debt_type != 'gave':
-            return Response({'error': "SMS eslatma faqat siz bergan qarzlar uchun"},
-                            status=status.HTTP_400_BAD_REQUEST)
-        if debt.status == 'paid':
-            return Response({'error': "Bu qarz allaqachon to'langan"},
-                            status=status.HTTP_400_BAD_REQUEST)
-        if not debt.contact.phone:
-            return Response({'error': "Kontaktda telefon raqami yo'q", 'need_phone': True},
-                            status=status.HTTP_400_BAD_REQUEST)
+        blocked = _sms_check(request.user, debt)
+        if blocked:
+            return blocked
 
         rl_key = f'sms_rl:{debt.id}'
         if cache.get(rl_key):
             return Response({'error': "SMS yaqinda yuborilgan — 5 daqiqadan keyin qayta urinib ko'ring"},
                             status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        # Kreditor ISMI (faqat birinchi so'z) — yuqorida tekshirilgan real_name'dan
-        owner = owner_full.split()[0]   # faqat ism, familiya emas
-        amount = f"{debt.remaining_amount:,.0f}".replace(',', ' ') + f" {debt.currency}"
-        text = (f"Assalomu alaykum! Eslatib o'tamiz, {owner}ga {amount} miqdoridagi "
-                f"qarzingiz mavjud. Iltimos, to'lovni belgilangan muddatda amalga "
-                f"oshiring. Rahmat! t.me/Qarz_Yordamchi_Bot")
+        text = _reminder_text(request.user, debt)
 
         try:
             sms_id = sms.send_sms(debt.contact.phone, text, name=f'debt-{debt.id}')

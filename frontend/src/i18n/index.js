@@ -265,6 +265,12 @@ export const translations = {
     ask_name_sub: "SMS'da qarzdor kimga qarzdorligini bilishi uchun haqiqiy ismingiz kerak.",
     ask_name_save_send: 'Saqlash va yuborish',
 
+    // SMS tasdiqlash oynasi
+    sms_confirm_title: 'SMS yuborilsinmi?',
+    sms_confirm_to: 'Kimga',
+    sms_confirm_text: "Qarzdor o'qiydigan matn",
+    sms_confirm_send: 'Yuborish',
+
     // Admin: SMS xizmati
     admin_sms_section: 'Admin — SMS xizmati',
     admin_sms_toggle: 'SMS yuborish ruxsati',
@@ -529,6 +535,12 @@ export const translations = {
     ask_name_title: 'Введите ваше имя',
     ask_name_sub: 'Чтобы должник понял, кому он должен, нужно ваше настоящее имя.',
     ask_name_save_send: 'Сохранить и отправить',
+
+    // Окно подтверждения SMS
+    sms_confirm_title: 'Отправить SMS?',
+    sms_confirm_to: 'Кому',
+    sms_confirm_text: 'Текст, который прочитает должник',
+    sms_confirm_send: 'Отправить',
 
     // Админ: SMS-сервис
     admin_sms_section: 'Админ — SMS-сервис',
