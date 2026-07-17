@@ -255,6 +255,16 @@ export const translations = {
     ask_phone_sub: "{name} uchun raqam yo'q. SMS yuborish uchun raqamni kiriting — kontaktga saqlanadi.",
     ask_phone_save_send: 'Saqlash va yuborish',
 
+    // Haqiqiy ism (SMS uchun)
+    name_label: 'Ism va familiyangiz',
+    name_ph: 'Masalan: Abdufattoh Fattoyev',
+    name_hint: "Qarzdor SMS'da shu ismni ko'radi — haqiqiy ismingizni yozing",
+    name_hint_short: "Ismni to'liq kiriting (kamida 2 harf)",
+    phone_label_short: 'Telefon raqamingiz',
+    ask_name_title: 'Ismingizni kiriting',
+    ask_name_sub: "SMS'da qarzdor kimga qarzdorligini bilishi uchun haqiqiy ismingiz kerak.",
+    ask_name_save_send: 'Saqlash va yuborish',
+
     // Admin: SMS xizmati
     admin_sms_section: 'Admin — SMS xizmati',
     admin_sms_toggle: 'SMS yuborish ruxsati',
@@ -509,6 +519,16 @@ export const translations = {
     ask_phone_title: 'Номер телефона должника',
     ask_phone_sub: 'У {name} нет номера. Введите номер для отправки SMS — он сохранится в контакт.',
     ask_phone_save_send: 'Сохранить и отправить',
+
+    // Настоящее имя (для SMS)
+    name_label: 'Ваше имя и фамилия',
+    name_ph: 'Например: Abdufattoh Fattoyev',
+    name_hint: 'Должник увидит это имя в SMS — укажите настоящее имя',
+    name_hint_short: 'Введите имя полностью (минимум 2 буквы)',
+    phone_label_short: 'Ваш номер телефона',
+    ask_name_title: 'Введите ваше имя',
+    ask_name_sub: 'Чтобы должник понял, кому он должен, нужно ваше настоящее имя.',
+    ask_name_save_send: 'Сохранить и отправить',
 
     // Админ: SMS-сервис
     admin_sms_section: 'Админ — SMS-сервис',

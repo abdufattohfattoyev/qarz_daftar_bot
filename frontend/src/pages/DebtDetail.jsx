@@ -7,6 +7,7 @@ import { fmt, fmtDate, fmtDateTime, nowTashkent, initials, avatarColor, haptic }
 import PhoneVerify from '../components/PhoneVerify'
 import ContactAdminModal from '../components/ContactAdminModal'
 import AskPhoneSheet from '../components/AskPhoneSheet'
+import AskNameSheet from '../components/AskNameSheet'
 import { useT, getLang } from '../i18n'
 
 // app-meta bir marta olinadi (bot username backend'da ham keshlangan)
@@ -31,6 +32,7 @@ export function DebtDetail() {
   const [showContactAdmin, setShowContactAdmin] = useState(false)
   const [showVerify, setShowVerify] = useState(false)
   const [showAskPhone, setShowAskPhone] = useState(false)
+  const [showAskName, setShowAskName] = useState(false)
 
   useEffect(() => {
     debtsAPI.get(id).then(({ data }) => { setDebt(data); setLoading(false) })
@@ -79,6 +81,7 @@ export function DebtDetail() {
       if (d?.contact_admin) { setShowContactAdmin(true); setSmsState({ status: 'idle', msg: '' }); return }
       if (d?.need_verify) { setShowVerify(true); setSmsState({ status: 'idle', msg: '' }); return }
       if (d?.need_phone) { setShowAskPhone(true); setSmsState({ status: 'idle', msg: '' }); return }
+      if (d?.need_name) { setShowAskName(true); setSmsState({ status: 'idle', msg: '' }); return }
       setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
     }
   }
@@ -86,7 +89,14 @@ export function DebtDetail() {
   const sendSms = () => {
     if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
     if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
+    if (!user?.real_name) { haptic('light'); setShowAskName(true); return }
     if (!debt.contact_detail?.phone) { haptic('light'); setShowAskPhone(true); return }
+    doSendSms()
+  }
+
+  const saveNameAndSend = async (name) => {
+    await useAuthStore.getState().updateUser({ real_name: name })
+    setShowAskName(false)
     doSendSms()
   }
 
@@ -286,6 +296,14 @@ export function DebtDetail() {
           contactName={debt.contact_name}
           onClose={() => setShowAskPhone(false)}
           onSubmit={saveContactPhoneAndSend}
+        />
+      )}
+      {/* SMS: o'z ismi yo'q → shu yerda so'raladi */}
+      {showAskName && (
+        <AskNameSheet
+          initialName={user?.real_name || ''}
+          onClose={() => setShowAskName(false)}
+          onSubmit={saveNameAndSend}
         />
       )}
     </div>

@@ -552,10 +552,21 @@ def verify_phone_code(request):
         cache.delete(key)
         return Response({'error': "Bu raqam boshqa Telegram akkauntga biriktirilgan"}, status=400)
 
+    # Haqiqiy ism (ixtiyoriy yuboriladi — tasdiqlash oynasida so'raladi)
+    fields = ['phone', 'phone_verified']
+    raw_name = str(request.data.get('name', '')).strip()
+    if raw_name:
+        from apps.notifications import sms as sms_mod
+        clean = sms_mod.person_name(raw_name)
+        if len(clean.replace(' ', '')) < 2:
+            return Response({'error': "Ismni to'liq kiriting (kamida 2 harf)"}, status=400)
+        request.user.real_name = clean
+        fields.append('real_name')
+
     # Muvaffaqiyat — telefonni saqlab, tasdiqlangan deb belgilaymiz
     request.user.phone = data['phone']
     request.user.phone_verified = True
-    request.user.save(update_fields=['phone', 'phone_verified'])
+    request.user.save(update_fields=fields)
     cache.delete(key)
     return Response(UserSerializer(request.user).data)
 

@@ -65,7 +65,7 @@ export const authAPI = {
   verifyPin: (pin) => api.post('/auth/pin/verify/', { pin }),
   disablePin: (pin) => api.post('/auth/pin/disable/', { pin }),
   sendPhoneCode: (phone) => api.post('/auth/phone/send-code/', { phone }),
-  verifyPhoneCode: (phone, code) => api.post('/auth/phone/verify-code/', { phone, code }),
+  verifyPhoneCode: (phone, code, name) => api.post('/auth/phone/verify-code/', { phone, code, name }),
 }
 
 // Admin panel (faqat admin)

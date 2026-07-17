@@ -63,7 +63,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'telegram_id', 'telegram_username',
-            'full_name', 'display_name', 'phone',
+            'full_name', 'real_name', 'display_name', 'phone',
             'photo_url', 'currency', 'language',
             'notifications_enabled', 'has_pin', 'is_admin',
             'phone_verified', 'require_phone_verify',
@@ -98,4 +98,11 @@ class UserSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['currency', 'language', 'notifications_enabled', 'phone']
+        fields = ['currency', 'language', 'notifications_enabled', 'phone', 'real_name']
+
+    def validate_real_name(self, value):
+        from apps.notifications import sms
+        clean = sms.person_name(value)   # lotinchaga o'giradi + ortiqcha belgilarni olib tashlaydi
+        if len(clean.replace(' ', '')) < 2:
+            raise serializers.ValidationError("Ismni to'liq kiriting (kamida 2 harf)")
+        return clean

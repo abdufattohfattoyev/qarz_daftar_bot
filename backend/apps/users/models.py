@@ -6,7 +6,9 @@ class User(AbstractUser):
     """Telegram orqali kiruvchi foydalanuvchi"""
     telegram_id = models.BigIntegerField(unique=True, null=True, blank=True)
     telegram_username = models.CharField(max_length=100, blank=True)
-    full_name = models.CharField(max_length=200, blank=True)
+    full_name = models.CharField(max_length=200, blank=True)   # Telegram profil nomi (taxallus bo'lishi mumkin)
+    real_name = models.CharField(max_length=100, blank=True,
+                                 verbose_name='Haqiqiy ism (SMS uchun)')
     phone = models.CharField(max_length=20, blank=True)
     phone_verified = models.BooleanField(default=False, verbose_name='Telefon tasdiqlangan')
     sms_allowed = models.BooleanField(default=False, verbose_name='SMS yuborishga ruxsat (tanlangan rejim)')

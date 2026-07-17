@@ -76,9 +76,12 @@ def person_name(raw, fallback=''):
     name = re.sub(r'\s+', ' ', name).strip(" .-'’`ʻ")
     if not name:
         return fallback
-    if name.isupper():
-        name = ' '.join(w.capitalize() for w in name.split())
-    return name
+    # Har so'zni chiroyli Bosh harfga keltiramiz: "diyor"→"Diyor", "ФАТТОЕВ"→"Fattoyev"
+    def cap(w):
+        if not w:
+            return w
+        return w.capitalize() if w.isupper() else w[0].upper() + w[1:]
+    return ' '.join(cap(w) for w in name.split())
 
 
 def normalize_phone(raw):

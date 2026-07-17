@@ -6,9 +6,10 @@ import { authAPI } from '../api'
 import { haptic, normPhone, fmtPhone } from '../utils'
 import { useT } from '../i18n'
 
-export default function PhoneVerify({ initialPhone = '', onClose, onVerified, mandatory = false }) {
+export default function PhoneVerify({ initialPhone = '', initialName = '', onClose, onVerified, mandatory = false }) {
   const t = useT()
   const [step, setStep] = useState('phone')   // 'phone' | 'code'
+  const [name, setName] = useState(initialName || '')
   const [phone, setPhone] = useState(initialPhone || '+998 ')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
@@ -18,6 +19,8 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
 
   const normalized = normPhone(phone)            // to'g'ri bo'lsa +998XXXXXXXXX, aks holda null
   const typedDigits = phone.replace(/\D/g, '').length
+  const nameOk = name.trim().replace(/\s/g, '').length >= 2   // kamida 2 harf
+  const canSend = !!normalized && nameOk
 
   // Qayta yuborish taymeri
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
     if (busy || code.length < 4) return
     setError(''); setBusy(true)
     try {
-      const { data } = await authAPI.verifyPhoneCode(phone, code)
+      const { data } = await authAPI.verifyPhoneCode(phone, code, name.trim())
       haptic('success')
       onVerified?.(data)
     } catch (e) {
@@ -88,9 +91,29 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
                 {t('phone_mandatory_note')}
               </div>
             )}
-            <div style={{ fontSize: 13.5, color: '#6b7280', marginBottom: 22, textAlign: 'center', lineHeight: 1.5, maxWidth: 300 }}>{t('phone_enter_sub')}</div>
+            <div style={{ fontSize: 13.5, color: '#6b7280', marginBottom: 20, textAlign: 'center', lineHeight: 1.5, maxWidth: 300 }}>{t('phone_enter_sub')}</div>
+
+            {/* Haqiqiy ism — SMS'da qarzdor shu ismni ko'radi (TG profil nomi emas) */}
+            <div style={{ width: '100%', maxWidth: 340, marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>{t('name_label')}</div>
+              <input
+                type="text" autoFocus
+                value={name}
+                onChange={(e) => { setName(e.target.value); if (error) setError('') }}
+                placeholder={t('name_ph')}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '13px 16px', borderRadius: 14, background: '#fff', fontSize: 16, fontWeight: 600, color: '#0f172a', fontFamily: 'inherit', outline: 'none',
+                  border: `2px solid ${name.trim() ? (nameOk ? '#16a34a' : '#f59e0b') : '#e5e7eb'}` }}
+              />
+              <div style={{ fontSize: 11.5, color: name.trim() && !nameOk ? '#b45309' : '#94a3b8', marginTop: 6, lineHeight: 1.4 }}>
+                {name.trim() && !nameOk ? t('name_hint_short') : t('name_hint')}
+              </div>
+            </div>
+
+            <div style={{ width: '100%', maxWidth: 340 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>{t('phone_label_short')}</div>
+            </div>
             <input
-              type="tel" inputMode="tel" autoFocus
+              type="tel" inputMode="tel"
               value={phone}
               onChange={(e) => { setPhone(e.target.value.replace(/[^\d+ ]/g, '')); if (error) setError('') }}
               placeholder="+998 90 123 45 67"
@@ -106,7 +129,7 @@ export default function PhoneVerify({ initialPhone = '', onClose, onVerified, ma
               </div>
             )}
             {error && <div style={{ marginTop: 12, fontSize: 13, color: '#ef4444', textAlign: 'center', lineHeight: 1.4 }}>{error}</div>}
-            <button onClick={sendCode} disabled={busy || !normalized} style={btn(busy || !normalized)}>
+            <button onClick={sendCode} disabled={busy || !canSend} style={btn(busy || !canSend)}>
               {busy ? t('phone_sending') : t('phone_send_code')}
             </button>
           </>

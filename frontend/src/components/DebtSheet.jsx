@@ -9,6 +9,7 @@ import { fmt, fmtDate, fmtDateTime, initials, haptic } from '../utils'
 import PhoneVerify from './PhoneVerify'
 import ContactAdminModal from './ContactAdminModal'
 import AskPhoneSheet from './AskPhoneSheet'
+import AskNameSheet from './AskNameSheet'
 import { useT } from '../i18n'
 
 // app-meta bir marta olinadi (DebtDetail bilan bir xil naqsh)
@@ -31,6 +32,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
   const [showContactAdmin, setShowContactAdmin] = useState(false)
   const [showVerify, setShowVerify] = useState(false)
   const [showAskPhone, setShowAskPhone] = useState(false)
+  const [showAskName, setShowAskName] = useState(false)
 
   // Ro'yxatdagi obyekt bilan darhol ochamiz, fonda yangilaymiz (payments/holat eskirgan bo'lishi mumkin)
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function DebtSheet({ debt: initial, onClose }) {
       if (d?.contact_admin) { setShowContactAdmin(true); setSmsState({ status: 'idle', msg: '' }); return }
       if (d?.need_verify) { setShowVerify(true); setSmsState({ status: 'idle', msg: '' }); return }
       if (d?.need_phone) { setShowAskPhone(true); setSmsState({ status: 'idle', msg: '' }); return }
+      if (d?.need_name) { setShowAskName(true); setSmsState({ status: 'idle', msg: '' }); return }
       setSmsState({ status: 'error', msg: d?.error || t('sms_err') })
     }
   }
@@ -79,7 +82,15 @@ export default function DebtSheet({ debt: initial, onClose }) {
   const sendSms = () => {
     if (!user?.can_send_sms) { haptic('medium'); setShowContactAdmin(true); return }
     if (!user?.phone_verified) { haptic('light'); setShowVerify(true); return }
+    if (!user?.real_name) { haptic('light'); setShowAskName(true); return }
     if (!debt.contact_detail?.phone) { haptic('light'); setShowAskPhone(true); return }
+    doSendSms()
+  }
+
+  // Haqiqiy ismni saqlab, keyin SMS yuboradi
+  const saveNameAndSend = async (name) => {
+    await useAuthStore.getState().updateUser({ real_name: name })
+    setShowAskName(false)
     doSendSms()
   }
 
@@ -287,6 +298,14 @@ export default function DebtSheet({ debt: initial, onClose }) {
           contactName={debt.contact_name}
           onClose={() => setShowAskPhone(false)}
           onSubmit={saveContactPhoneAndSend}
+        />
+      )}
+      {/* SMS: o'z ismi yo'q → shu yerda so'raladi */}
+      {showAskName && (
+        <AskNameSheet
+          initialName={user?.real_name || ''}
+          onClose={() => setShowAskName(false)}
+          onSubmit={saveNameAndSend}
         />
       )}
     </div>

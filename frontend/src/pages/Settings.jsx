@@ -6,6 +6,7 @@ import { statsAPI, authAPI, adminAPI } from '../api'
 import { CurrencyIcon, GlobeIcon, BellIcon, ExcelIcon, DeleteAllIcon } from '../components/Icons'
 import PinPad from '../components/PinPad'
 import PhoneVerify from '../components/PhoneVerify'
+import AskNameSheet from '../components/AskNameSheet'
 import { useT } from '../i18n'
 
 export default function Settings() {
@@ -21,6 +22,7 @@ export default function Settings() {
   const [pinErr, setPinErr] = useState('')
   const [pinBusy, setPinBusy] = useState(false)
   const [phoneVerify, setPhoneVerify] = useState(false)
+  const [editName, setEditName] = useState(false)
   const [smsMode, setSmsMode] = useState(user?.sms_mode || 'all')
 
   // Admin: SMS rejimini o'zgartirish — 'all' | 'selected' | 'off'
@@ -269,6 +271,13 @@ export default function Settings() {
             onChange={handlePinToggle}
           />
           <Divider />
+          {/* Haqiqiy ism — SMS'da qarzdor shuni ko'radi (TG profil nomi emas) */}
+          <Row
+            icon={<NameIcon />} label={t('name_label')}
+            value={user?.real_name || '—'}
+            onClick={() => { haptic('light'); setEditName(true) }}
+          />
+          <Divider />
           {user?.phone_verified ? (
             /* Tasdiqlangan — faqat raqam + ✓ ko'rsatamiz, qayta so'ramaymiz */
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
@@ -344,6 +353,20 @@ export default function Settings() {
             />
           </div>
         </div>
+      )}
+
+      {/* ISMNI TAHRIRLASH */}
+      {editName && (
+        <AskNameSheet
+          initialName={user?.real_name || ''}
+          onClose={() => setEditName(false)}
+          onSubmit={async (name) => {
+            await updateUser({ real_name: name })
+            setEditName(false)
+            haptic('success'); setToast(t('saved'))
+            setTimeout(() => setToast(''), 2000)
+          }}
+        />
       )}
 
       {/* TELEFON TASDIQLASH */}
@@ -436,6 +459,15 @@ function SmsIcon() {
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
       <path d="M3 4.5h14v9H8l-3.5 3v-3H3z" stroke="#16a34a" strokeWidth="1.5" strokeLinejoin="round"/>
       <path d="M6.5 9h7M6.5 6.5h7" stroke="#16a34a" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function NameIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="7" r="3.2" stroke="#16a34a" strokeWidth="1.5"/>
+      <path d="M4 16.5c0-2.8 2.7-4.5 6-4.5s6 1.7 6 4.5" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
