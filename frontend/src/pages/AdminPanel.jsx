@@ -137,24 +137,41 @@ function UsersTab({ navigate }) {
             {data.users.map((u) => {
               const av = avatarColor(u.name)
               return (
-                <div key={u.id} onClick={() => openUser(u)} className="list-item" style={{ background: '#fff', borderRadius: 14, padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,.04)' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{initials(u.name)}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{u.username ? `@${u.username}` : u.phone || `ID ${u.telegram_id}`} · {u.debts} qarz</div>
+                <div key={u.id} onClick={() => openUser(u)} className="list-item" style={{ background: '#fff', borderRadius: 14, padding: '11px 12px', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,.04)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{initials(u.name)}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>{u.username ? `@${u.username}` : `ID ${u.telegram_id}`} · {u.debts} qarz</div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      {u.net_uzs !== 0 && <div style={{ fontSize: 13, fontWeight: 800, color: u.net_uzs > 0 ? '#16a34a' : '#ef4444' }}>{u.net_uzs > 0 ? '+' : '−'}{n(u.net_uzs)} <span style={{ fontSize: 8, color: '#cbd5e1' }}>UZS</span></div>}
+                      {u.net_usd !== 0 && <div style={{ fontSize: 12, fontWeight: 800, color: u.net_usd > 0 ? '#16a34a' : '#ef4444' }}>{u.net_usd > 0 ? '+' : '−'}{n(u.net_usd)} <span style={{ fontSize: 8, color: '#cbd5e1' }}>$</span></div>}
+                      {u.net_uzs === 0 && u.net_usd === 0 && <div style={{ fontSize: 10, color: '#cbd5e1' }}>—</div>}
+                    </div>
                   </div>
-                  {/* SMS ruxsati chipi — bosilганда yoqiladi/o'chadi */}
-                  <button onClick={(e) => toggleSms(u, e)} title="SMS ruxsati" style={{
-                    flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, padding: '5px 9px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800,
-                    border: u.sms_allowed ? '1.5px solid #bbf7d0' : '1.5px solid #e5e7eb',
-                    background: u.sms_allowed ? '#f0fdf4' : '#fff', color: u.sms_allowed ? '#16a34a' : '#94a3b8',
-                  }}>
-                    📩 {u.sms_allowed ? 'ON' : 'OFF'}
-                  </button>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    {u.net_uzs !== 0 && <div style={{ fontSize: 13, fontWeight: 800, color: u.net_uzs > 0 ? '#16a34a' : '#ef4444' }}>{u.net_uzs > 0 ? '+' : '−'}{n(u.net_uzs)} <span style={{ fontSize: 8, color: '#cbd5e1' }}>UZS</span></div>}
-                    {u.net_usd !== 0 && <div style={{ fontSize: 12, fontWeight: 800, color: u.net_usd > 0 ? '#16a34a' : '#ef4444' }}>{u.net_usd > 0 ? '+' : '−'}{n(u.net_usd)} <span style={{ fontSize: 8, color: '#cbd5e1' }}>$</span></div>}
-                    {u.net_uzs === 0 && u.net_usd === 0 && <div style={{ fontSize: 10, color: '#cbd5e1' }}>—</div>}
+
+                  {/* SMS tekshiruvi — admin kiritilgan ismni ko'rib ruxsat beradi */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, paddingTop: 9, borderTop: '1px solid #f1f5f9' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ color: '#94a3b8' }}>SMS ismi: </span>
+                        {u.real_name
+                          ? <b style={{ color: '#0f172a' }}>{u.real_name}</b>
+                          : <b style={{ color: '#f59e0b' }}>kiritilmagan</b>}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: '#94a3b8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {u.phone ? `${u.phone}${u.phone_verified ? ' ✓' : ''}` : "telefon yo'q"}
+                        {u.tg_name ? ` · TG: ${u.tg_name}` : ''}
+                      </div>
+                    </div>
+                    <button onClick={(e) => toggleSms(u, e)} title="SMS ruxsati" style={{
+                      flexShrink: 0, padding: '6px 10px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800,
+                      border: u.sms_allowed ? '1.5px solid #bbf7d0' : '1.5px solid #e5e7eb',
+                      background: u.sms_allowed ? '#f0fdf4' : '#fff', color: u.sms_allowed ? '#16a34a' : '#94a3b8',
+                    }}>
+                      📩 {u.sms_allowed ? 'ON' : 'OFF'}
+                    </button>
                   </div>
                 </div>
               )

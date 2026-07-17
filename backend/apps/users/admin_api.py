@@ -109,6 +109,8 @@ def admin_users(request):
             'notifications': u.notifications_enabled,
             'sms_allowed': u.sms_allowed,
             'phone_verified': u.phone_verified,
+            'real_name': u.real_name,        # SMS'da chiqadigan ism (admin tekshiradi)
+            'tg_name': u.full_name,          # Telegram profil nomi — solishtirish uchun
         })
     return Response({'count': users.count(), 'users': out})
 
