@@ -4,7 +4,7 @@ import { authAPI, debtsAPI, contactsAPI, statsAPI } from '../api'
 // ── Lokal sozlama (pref) saqlash ──────────────────────────────────────
 // Til/valyuta/eslatma tanlovi backendga yozilmasa ham refreshdan keyin
 // yo'qolmasligi uchun localStorage'da ham saqlaymiz.
-const PREF_KEYS = ['currency', 'language', 'notifications_enabled']
+const PREF_KEYS = ['currency', 'language', 'notifications_enabled', 'theme']
 const loadPrefs = () => {
   try { return JSON.parse(localStorage.getItem('prefs') || '{}') } catch { return {} }
 }
@@ -240,13 +240,31 @@ export const useStatsStore = create((set) => ({
     }
   },
 
+  // Excel eksport.
+  // Telegram webview'da blob'ni <a download> bilan yuklab olib bo'lmaydi —
+  // hech narsa sodir bo'lmaydi (eksport "ishlamayapti" deb ko'ringan sabab shu).
+  // Shuning uchun Telegram ichida faylni bot orqali yuboramiz, brauzerda esa
+  // odatdagidek yuklab olamiz. {ok, via} qaytaradi.
   exportExcel: async () => {
+    const inTelegram = !!window.Telegram?.WebApp?.initData
+
+    if (inTelegram) {
+      await statsAPI.send('excel')
+      return { ok: true, via: 'telegram' }
+    }
+
     const { data } = await statsAPI.export()
-    const url = URL.createObjectURL(new Blob([data]))
+    const blob = new Blob([data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = 'qarz_yordamchi.xlsx'
+    a.style.display = 'none'
+    document.body.appendChild(a)     // Safari/iOS: DOM'da bo'lmasa click ishlamaydi
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url) }, 1000)
+    return { ok: true, via: 'download' }
   },
 }))

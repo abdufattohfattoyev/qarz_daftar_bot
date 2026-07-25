@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { HomeIcon, UsersIcon, ChartIcon, SettingIcon, PlusIcon } from './Icons'
 import { useT } from '../i18n'
+import { useTheme } from '../theme'
 import ErrorBoundary from './ErrorBoundary'
 
 const NAV = [
@@ -74,6 +75,7 @@ const CSS = `
 
 export default function Layout() {
   const t = useT()
+  const c = useTheme()
   const location = useLocation()
   const prevPath = useRef(location.pathname)
   const key = location.pathname
@@ -83,7 +85,7 @@ export default function Layout() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100vh',
-      maxWidth: 430, margin: '0 auto', background: '#F0F2F5',
+      maxWidth: 430, margin: '0 auto', background: c.bg,
       position: 'relative', overflow: 'hidden',
     }}>
       <style>{CSS}</style>
@@ -97,11 +99,11 @@ export default function Layout() {
       {/* ── BOTTOM NAV ── */}
       <nav style={{
         display: 'flex', alignItems: 'flex-end',
-        background: '#fff',
-        borderTop: '1px solid rgba(0,0,0,0.06)',
+        background: c.navBg,
+        borderTop: `1px solid ${c.border}`,
         paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
         paddingTop: 6,
-        boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
+        boxShadow: c.dark ? '0 -4px 24px rgba(0,0,0,0.4)' : '0 -4px 24px rgba(0,0,0,0.08)',
         position: 'relative', zIndex: 50,
       }}>
         {NAV.map((item) => {
@@ -118,7 +120,7 @@ export default function Layout() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   marginTop: -22,
                   boxShadow: '0 6px 20px rgba(21,128,61,0.5), 0 2px 8px rgba(21,128,61,0.3)',
-                  border: '3px solid #fff',
+                  border: `3px solid ${c.navBg}`,
                 }}>
                   <PlusIcon />
                 </div>
@@ -148,7 +150,7 @@ export default function Layout() {
               {/* icon wrapper */}
               <div style={{
                 width: 42, height: 32, borderRadius: 12,
-                background: active ? '#f0fdf4' : 'transparent',
+                background: active ? c.greenSoft : 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'background .2s',
               }}>
@@ -157,7 +159,7 @@ export default function Layout() {
 
               <span style={{
                 fontSize: 10, fontWeight: active ? 700 : 500,
-                color: active ? '#15803d' : '#94a3b8',
+                color: active ? (c.dark ? '#4ade80' : '#15803d') : c.muted,
                 transition: 'color .2s',
                 letterSpacing: active ? '-.01em' : 0,
               }}>{t(item.labelKey)}</span>

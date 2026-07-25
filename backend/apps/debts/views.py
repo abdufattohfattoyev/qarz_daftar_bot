@@ -21,6 +21,10 @@ class DebtFilter(df_filters.FilterSet):
         fields = ['status', 'debt_type', 'currency', 'contact', 'date_from', 'date_to']
 
 
+SMS_BRAND = 't.me/Qarz_Yordamchi_Bot'
+SMS_MAX_LEN = 300
+
+
 def _reminder_text(user, debt):
     """Qarzdorga ketadigan SMS matni. DIQQAT: tuzilishi TextUP'da tasdiqlangan
     shablonga mos bo'lishi SHART — o'zgartirsangiz, avval moderatsiyadan o'tkazing.
@@ -30,7 +34,25 @@ def _reminder_text(user, debt):
     amount = f"{debt.remaining_amount:,.0f}".replace(',', ' ') + f" {debt.currency}"
     return (f"Assalomu alaykum! Eslatib o'tamiz, {owner}ga {amount} miqdoridagi "
             f"qarzingiz mavjud. Iltimos, to'lovni belgilangan muddatda amalga "
-            f"oshiring. Rahmat! t.me/Qarz_Yordamchi_Bot")
+            f"oshiring. Rahmat! {SMS_BRAND}")
+
+
+def _clean_custom_text(raw):
+    """Foydalanuvchi tahrirlagan SMS matnini tekshiradi.
+    (matn, xato) qaytaradi — xato bo'lsa matn None.
+
+    TextUP shabloni moderatsiyadan o'tgani uchun brend qatori majburiy qoladi:
+    matn oxirida bo'lmasa, o'zimiz qo'shamiz."""
+    text = (raw or '').strip()
+    if not text:
+        return None, "Matn bo'sh bo'lishi mumkin emas"
+    if len(text) < 20:
+        return None, "Matn juda qisqa (kamida 20 ta belgi)"
+    if SMS_BRAND not in text:
+        text = f"{text} {SMS_BRAND}"
+    if len(text) > SMS_MAX_LEN:
+        return None, f"Matn juda uzun ({len(text)}/{SMS_MAX_LEN} belgi)"
+    return text, None
 
 
 def _sms_check(user, debt):
@@ -101,6 +123,16 @@ class DebtViewSet(viewsets.ModelViewSet):
         full = DebtSerializer(serializer.instance, context={'request': request})
         return Response(full.data, status=status.HTTP_201_CREATED)
 
+    def perform_destroy(self, instance):
+        """Qarz o'chirilganda, kontaktda boshqa qarz qolmasa — kontaktni ham
+        o'chiramiz. Aks holda qarzdorlar ro'yxatida faqat ismi qolib ketardi
+        va u yerdan o'chirishning iloji yo'q edi."""
+        from apps.contacts.models import Contact
+        contact_id = instance.contact_id
+        instance.delete()
+        if contact_id and not Debt.objects.filter(contact_id=contact_id).exists():
+            Contact.objects.filter(id=contact_id, owner=self.request.user).delete()
+
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
         """Qarzni to'lash yoki qisman to'lash.
@@ -154,6 +186,10 @@ class DebtViewSet(viewsets.ModelViewSet):
             'text': _reminder_text(request.user, debt),
             'contact_name': debt.contact.name,
             'phone': debt.contact.phone,
+            # Matnni tahrirlash mumkin — chegaralar frontendga
+            'editable': True,
+            'max_len': SMS_MAX_LEN,
+            'brand': SMS_BRAND,
         })
 
     @action(detail=True, methods=['post'], url_path='send_sms')
@@ -172,7 +208,13 @@ class DebtViewSet(viewsets.ModelViewSet):
             return Response({'error': "SMS yaqinda yuborilgan — 5 daqiqadan keyin qayta urinib ko'ring"},
                             status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        text = _reminder_text(request.user, debt)
+        # Foydalanuvchi tasdiqlash oynasida matnni tahrirlagan bo'lishi mumkin
+        if request.data.get('text'):
+            text, err = _clean_custom_text(request.data.get('text'))
+            if err:
+                return Response({'error': err}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            text = _reminder_text(request.user, debt)
 
         try:
             sms_id = sms.send_sms(debt.contact.phone, text, name=f'debt-{debt.id}')
@@ -196,13 +238,88 @@ class DebtViewSet(viewsets.ModelViewSet):
         payments = debt.payments.all()
         return Response(PaymentSerializer(payments, many=True).data)
 
-    @action(detail=False, methods=['delete'], url_path='delete_all')
-    def delete_all(self, request):
-        """Foydalanuvchining barcha qarz va kontaktlarini o'chirish"""
+    @action(detail=True, methods=['delete'], url_path='payments/(?P<payment_id>[^/.]+)')
+    def delete_payment(self, request, pk=None, payment_id=None):
+        """Xato kiritilgan to'lovni (tarix yozuvini) o'chirish.
+        Payment.save qarz paid_amount va holatini qayta hisoblaydi, shuning uchun
+        o'chirgach qarz avtomatik 'active'/'partial' ga qaytadi."""
+        from django.db import transaction
+        debt = self.get_object()
+        try:
+            with transaction.atomic():
+                payment = debt.payments.select_for_update().get(pk=payment_id)
+                payment.delete()
+                # paid_amount ni qolgan to'lovlardan qayta hisoblaymiz
+                debt.refresh_from_db()
+                total = sum(p.amount for p in debt.payments.all())
+                debt.paid_amount = total
+                debt.save(update_fields=['paid_amount', 'status'])
+        except Payment.DoesNotExist:
+            return Response({'error': "To'lov topilmadi"}, status=status.HTTP_404_NOT_FOUND)
+        debt.refresh_from_db()
+        return Response(DebtSerializer(debt, context={'request': request}).data)
+
+    @action(detail=False, methods=['get'], url_path='delete_preview')
+    def delete_preview(self, request):
+        """O'chirish oynasi uchun: har kategoriyada nechta yozuv borligi.
+        Foydalanuvchi nima yo'qolishini bilib turib bosadi."""
         from apps.contacts.models import Contact
-        deleted_debts, _ = Debt.objects.filter(user=request.user).delete()
-        deleted_contacts, _ = Contact.objects.filter(owner=request.user).delete()
+        from apps.notifications.models import SmsLog
+
+        debts = Debt.objects.filter(user=request.user)
         return Response({
-            'deleted_debts': deleted_debts,
-            'deleted_contacts': deleted_contacts,
-        }, status=status.HTTP_200_OK)
+            'paid_debts': debts.filter(status='paid').count(),
+            'active_debts': debts.filter(status__in=['active', 'partial']).count(),
+            'all_debts': debts.count(),
+            'contacts': Contact.objects.filter(owner=request.user).count(),
+            'empty_contacts': Contact.objects.filter(owner=request.user)
+                                             .exclude(debts__isnull=False).count(),
+            'sms_logs': SmsLog.objects.filter(sender=request.user).count(),
+        })
+
+    @action(detail=False, methods=['delete', 'post'], url_path='delete_all')
+    def delete_all(self, request):
+        """Tanlangan kategoriyalarni o'chirish.
+
+        scopes: ['paid_debts', 'active_debts', 'all_debts',
+                 'empty_contacts', 'contacts', 'sms_logs']
+        Bo'sh kelsa — hech narsa o'chirilmaydi (bilmasdan bosishdan himoya).
+        Eski mijozlar uchun scopes=['everything'] — avvalgi xatti-harakat."""
+        from apps.contacts.models import Contact
+        from apps.notifications.models import SmsLog
+
+        scopes = request.data.get('scopes') or []
+        if isinstance(scopes, str):
+            scopes = [scopes]
+        scopes = set(scopes)
+        if not scopes:
+            return Response({'error': "O'chiriladigan bo'limni tanlang"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if 'everything' in scopes:
+            scopes |= {'all_debts', 'contacts'}
+
+        result = {}
+        debts = Debt.objects.filter(user=request.user)
+
+        if 'all_debts' in scopes:
+            result['debts'] = debts.delete()[0]
+        else:
+            if 'paid_debts' in scopes:
+                result['paid_debts'] = debts.filter(status='paid').delete()[0]
+            if 'active_debts' in scopes:
+                result['active_debts'] = debts.filter(
+                    status__in=['active', 'partial']).delete()[0]
+
+        if 'contacts' in scopes:
+            result['contacts'] = Contact.objects.filter(owner=request.user).delete()[0]
+        elif 'empty_contacts' in scopes or 'all_debts' in scopes or 'paid_debts' in scopes \
+                or 'active_debts' in scopes:
+            # Qarzi qolmagan kontaktlar osilib qolmasin
+            result['empty_contacts'] = Contact.objects.filter(
+                owner=request.user).exclude(debts__isnull=False).delete()[0]
+
+        if 'sms_logs' in scopes:
+            result['sms_logs'] = SmsLog.objects.filter(sender=request.user).delete()[0]
+
+        return Response(result, status=status.HTTP_200_OK)

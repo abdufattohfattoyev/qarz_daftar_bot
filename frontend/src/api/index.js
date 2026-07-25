@@ -64,6 +64,9 @@ export const authAPI = {
   setPin: (pin) => api.post('/auth/pin/set/', { pin }),
   verifyPin: (pin) => api.post('/auth/pin/verify/', { pin }),
   disablePin: (pin) => api.post('/auth/pin/disable/', { pin }),
+  // PIN esdan chiqqanda — Telegramga tiklash kodi
+  resetPinRequest: () => api.post('/auth/pin/reset/request/', {}),
+  resetPinConfirm: (code) => api.post('/auth/pin/reset/confirm/', { code }),
   sendPhoneCode: (phone) => api.post('/auth/phone/send-code/', { phone }),
   verifyPhoneCode: (phone, code, name) => api.post('/auth/phone/verify-code/', { phone, code, name }),
 }
@@ -105,8 +108,11 @@ export const debtsAPI = {
   delete: (id) => api.delete(`/debts/${id}/`),
   pay: (id, data) => api.post(`/debts/${id}/pay/`, data),
   smsPreview: (id) => api.get(`/debts/${id}/sms_preview/`),
-  sendSms: (id) => api.post(`/debts/${id}/send_sms/`),
+  // text — foydalanuvchi tahrirlagan matn (bo'sh bo'lsa standart shablon ketadi)
+  sendSms: (id, text) => api.post(`/debts/${id}/send_sms/`, text ? { text } : {}),
   payments: (id) => api.get(`/debts/${id}/payments/`),
+  // Xato kiritilgan to'lovni tarixdan o'chirish — qarz qoldig'i qayta hisoblanadi
+  deletePayment: (id, paymentId) => api.delete(`/debts/${id}/payments/${paymentId}/`),
 }
 
 // Stats
@@ -114,7 +120,10 @@ export const statsAPI = {
   get: (params) => api.get('/stats/', { params }),
   export: () => api.get('/stats/export/', { responseType: 'blob' }),
   send: (format) => api.post('/stats/send/', { format }),
-  deleteAll: () => api.delete('/debts/delete_all/'),
+  // O'chirish oynasi: nima va nechta yo'qolishi
+  deletePreview: () => api.get('/debts/delete_preview/'),
+  // scopes — tanlangan bo'limlar ro'yxati (bo'sh bo'lsa backend rad etadi)
+  deleteAll: (scopes) => api.post('/debts/delete_all/', { scopes }),
 }
 
 export default api

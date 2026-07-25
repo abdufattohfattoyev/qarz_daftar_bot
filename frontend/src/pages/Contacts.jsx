@@ -4,6 +4,7 @@ import { useContactStore } from '../store'
 import { initials, avatarColor, haptic } from '../utils'
 import { SearchIcon, ChevronRight, ArrowUpIcon, ArrowDownIcon } from '../components/Icons'
 import { useT } from '../i18n'
+import { useTheme } from '../theme'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(Math.abs(parseFloat(v || 0))))
 
@@ -22,6 +23,7 @@ const TABS = [
 export default function Contacts() {
   const navigate = useNavigate()
   const t = useT()
+  const c = useTheme()
   const { contacts, loading, fetchContacts } = useContactStore()
   const [search, setSearch] = useState('')
   const [tab, setTab]       = useState('all')
@@ -45,12 +47,12 @@ export default function Contacts() {
   const totalGotUSD  = contacts.filter(c => (c.balance_usd || 0) < 0).reduce((s, c) => s + Math.abs(c.balance_usd || 0), 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: c.bg }}>
 
       {/* ── HEADER ── */}
-      <div style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 1px 8px rgba(0,0,0,.05)' }}>
+      <div style={{ flexShrink: 0, background: c.card, borderBottom: `1px solid ${c.border}`, boxShadow: c.shadowSm }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>{t('contacts_title')}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: c.text, letterSpacing: -0.5 }}>{t('contacts_title')}</div>
         </div>
 
         {/* Summary strip — chiroyli dual valyuta */}
@@ -88,12 +90,12 @@ export default function Contacts() {
         </div>
 
         {/* Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 16px 10px', padding: '9px 12px', background: '#f8fafc', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 16px 10px', padding: '9px 12px', background: c.card2, borderRadius: 13, border: `1.5px solid ${c.border}` }}>
           <SearchIcon />
           <input
             placeholder={t('search_placeholder')}
             value={search} onChange={e => setSearch(e.target.value)}
-            style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#111', fontFamily: 'inherit', outline: 'none', flex: 1 }}
+            style={{ border: 'none', background: 'transparent', fontSize: 13, color: c.text, fontFamily: 'inherit', outline: 'none', flex: 1 }}
           />
           {search && (
             <button onClick={() => setSearch('')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2, color: '#9ca3af' }}>
@@ -111,8 +113,8 @@ export default function Contacts() {
             <button key={tabItem.key} className="pill-btn" onClick={() => { haptic('light'); setTab(tabItem.key) }} style={{
               flex: tabItem.key === 'all' ? 0 : 1, padding: '7px 12px',
               borderRadius: 10, border: 'none', fontFamily: 'inherit',
-              background: tab === tabItem.key ? '#0f172a' : '#f1f5f9',
-              color: tab === tabItem.key ? '#fff' : '#64748b',
+              background: tab === tabItem.key ? c.pillActiveBg : c.chip,
+              color: tab === tabItem.key ? c.pillActiveText : c.text2,
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}>{t(tabItem.labelKey)}</button>
@@ -135,10 +137,10 @@ export default function Contacts() {
               <circle cx="35" cy="27" r="10" fill="#bbf7d0"/>
               <path d="M14 55c0-11.6 9.4-18 21-18s21 6.4 21 18" stroke="#86efac" strokeWidth="2.5" strokeLinecap="round"/>
             </svg>
-            <p style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
+            <p style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 700, color: c.text }}>
               {tab === 'all' ? t('no_debtors') : tab === 'gave' ? t('no_owes_me') : t('no_i_owe')}
             </p>
-            <p style={{ margin: '0 0 20px', fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>
+            <p style={{ margin: '0 0 20px', fontSize: 12, color: c.muted, textAlign: 'center' }}>
               {search ? t('not_found', { q: search }) : t('add_new_debt')}
             </p>
             {!search && (
@@ -168,9 +170,9 @@ export default function Contacts() {
                 className="list-item"
                 onClick={() => { haptic('light'); navigate(`/contacts/${contact.id}`) }}
                 style={{
-                  background: '#fff', borderRadius: 17, padding: '12px 13px',
+                  background: c.card, borderRadius: 17, padding: '12px 13px',
                   display: 'flex', alignItems: 'center', gap: 11,
-                  boxShadow: '0 2px 10px rgba(0,0,0,.05)',
+                  boxShadow: c.shadow,
                   cursor: 'pointer',
                   animation: `fadeUp .2s ${i * 0.03}s both`,
                   borderLeft: `3px solid ${borderColor}`,
@@ -189,7 +191,7 @@ export default function Contacts() {
                       width: 16, height: 16, borderRadius: '50%',
                       background: isPos ? '#16a34a' : '#ef4444',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      border: '2px solid #fff', color: '#fff',
+                      border: `2px solid ${c.card}`, color: '#fff',
                     }}>
                       {isPos ? <ArrowUpIcon /> : <ArrowDownIcon />}
                     </div>
@@ -198,17 +200,17 @@ export default function Contacts() {
 
                 {/* info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: '0 0 3px', fontSize: 14, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ margin: '0 0 3px', fontSize: 14, fontWeight: 700, color: c.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {contact.name}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {contact.phone ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#94a3b8' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: c.muted }}>
                         <PhoneIcon />
                         <span style={{ fontSize: 11 }}>{contact.phone}</span>
                       </div>
                     ) : (
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{t('no_phone')}</span>
+                      <span style={{ fontSize: 11, color: c.muted }}>{t('no_phone')}</span>
                     )}
                   </div>
                 </div>
@@ -216,7 +218,7 @@ export default function Contacts() {
                 {/* balance — UZS va USD alohida qatorlarda */}
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   {isZero ? (
-                    <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>{t('no_balance')}</span>
+                    <span style={{ fontSize: 11, color: c.muted, fontWeight: 600, background: c.chip, padding: '3px 8px', borderRadius: 6 }}>{t('no_balance')}</span>
                   ) : (
                     <div>
                       {balUZS !== 0 && (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore, useDebtStore, useContactStore } from '../store'
 import { initials, haptic } from '../utils'
@@ -8,14 +8,15 @@ import PinPad from '../components/PinPad'
 import PhoneVerify from '../components/PhoneVerify'
 import AskNameSheet from '../components/AskNameSheet'
 import { useT } from '../i18n'
+import { useTheme } from '../theme'
 
 export default function Settings() {
   const t = useT()
+  const c = useTheme()
   const navigate = useNavigate()
   const { user, updateUser } = useAuthStore()
-  const [modal, setModal] = useState(null) // 'currency' | 'language' | 'delete'
-  const [deleting, setDeleting] = useState(false)
-  const [sending, setSending] = useState('')   // '' | 'excel' | 'image'
+  const [modal, setModal] = useState(null) // 'currency' | 'language' | 'theme' | 'delete'
+  const [sending, setSending] = useState('')   // '' | 'excel' | 'image' | 'summary'
   const [toast, setToast] = useState('')
   const [pinMode, setPinMode] = useState(null)  // null | 'set' | 'confirm' | 'disable'
   const [newPin, setNewPin] = useState('')
@@ -24,6 +25,12 @@ export default function Settings() {
   const [phoneVerify, setPhoneVerify] = useState(false)
   const [editName, setEditName] = useState(false)
   const [smsMode, setSmsMode] = useState(user?.sms_mode || 'all')
+  const [supportUrl, setSupportUrl] = useState('')
+
+  // Qo'llab-quvvatlash — botning support oqimiga (shaxsiy lichkaga emas)
+  useEffect(() => {
+    authAPI.appMeta().then(({ data }) => { if (data?.support_url) setSupportUrl(data.support_url) }).catch(() => {})
+  }, [])
 
   // Admin: SMS rejimini o'zgartirish — 'all' | 'selected' | 'off'
   const changeSmsMode = async (mode) => {
@@ -38,7 +45,6 @@ export default function Settings() {
         useAuthStore.setState({ user: { ...user, sms_mode: data.sms_mode } })
         haptic('success'); setToast(t('saved'))
       } else {
-        // Eski backend — sms_mode qaytmadi: serverni yangilash kerak
         setSmsMode(prev); haptic('error'); setToast(t('backend_update_needed'))
       }
     } catch {
@@ -106,18 +112,6 @@ export default function Settings() {
     }
   }
 
-  const handleDeleteAll = async () => {
-    if (deleting) return
-    setDeleting(true)
-    try {
-      await statsAPI.deleteAll()
-      useDebtStore.setState({ debts: [] })
-      useContactStore.setState({ contacts: [] })
-      haptic('success')
-    } catch { haptic('error') }
-    finally { setDeleting(false); setModal(null) }
-  }
-
   const save = (key, val) => {
     haptic('light')
     setModal(null)
@@ -127,23 +121,10 @@ export default function Settings() {
 
   const openSupport = () => {
     haptic('light')
-    const url = 'https://t.me/fattoyev_a'
+    const url = supportUrl || 'https://t.me/Qarz_Yordamchi_Bot?start=support'
     const tg = window.Telegram?.WebApp
     if (tg?.openTelegramLink) tg.openTelegramLink(url)
     else window.open(url, '_blank')
-  }
-
-  const exportExcel = async () => {
-    haptic('light')
-    try {
-      const res = await statsAPI.export()
-      const url = URL.createObjectURL(new Blob([res.data]))
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'qarz_yordamchi.xlsx'
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch { }
   }
 
   const currencies = [
@@ -155,11 +136,17 @@ export default function Settings() {
     { val: 'uz', label: "O'zbek tili", icon: 'UZ', bg: '#fef9c3' },
     { val: 'ru', label: 'Русский язык', icon: 'RU', bg: '#fee2e2' },
   ]
+  const themes = [
+    { val: 'light', label: t('theme_light'), icon: '☀️' },
+    { val: 'dark',  label: t('theme_dark'),  icon: '🌙' },
+    { val: 'auto',  label: t('theme_auto'),  icon: '🔄', hint: t('theme_auto_hint') },
+  ]
+  const themeLabel = (user?.theme === 'dark' ? t('theme_dark') : user?.theme === 'auto' ? t('theme_auto') : t('theme_light'))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: c.bg }}>
       <div style={{ padding: '18px 18px 10px', flexShrink: 0 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>{t('settings_title')}</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: c.text, letterSpacing: -0.5 }}>{t('settings_title')}</div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 100px' }}>
@@ -200,7 +187,7 @@ export default function Settings() {
         {/* Admin panel — faqat admin uchun */}
         {user?.is_admin && (
           <div onClick={() => { haptic('light'); navigate('/admin') }} style={{
-            margin: '4px 0 8px', padding: '14px 16px', borderRadius: 16, cursor: 'pointer',
+            margin: '4px 16px 8px', padding: '14px 16px', borderRadius: 16, cursor: 'pointer',
             background: 'linear-gradient(135deg,#0f172a,#1e293b)', display: 'flex', alignItems: 'center', gap: 12,
             boxShadow: '0 4px 14px rgba(15,23,42,.25)',
           }}>
@@ -216,11 +203,11 @@ export default function Settings() {
         {/* Admin: SMS rejimi (Hammaga / Tanlangan / O'chiq) */}
         {user?.is_admin && (
           <>
-            <SectionLabel>{t('admin_sms_section')}</SectionLabel>
-            <Card>
+            <SectionLabel c={c}>{t('admin_sms_section')}</SectionLabel>
+            <Card c={c}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px 10px' }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><SmsIcon /></div>
-                <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#111' }}>{t('admin_sms_toggle')}</span>
+                <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: c.text }}>{t('admin_sms_toggle')}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, padding: '0 16px 10px' }}>
                 {[
@@ -233,14 +220,14 @@ export default function Settings() {
                   return (
                     <button key={o.v} onClick={() => changeSmsMode(o.v)} className="pill-btn" style={{
                       padding: '9px 4px', borderRadius: 11, fontFamily: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                      border: on ? `1.5px solid ${col}` : '1.5px solid #e5e7eb',
-                      background: on ? (o.v === 'off' ? '#fef2f2' : '#f0fdf4') : '#fff',
-                      color: on ? col : '#64748b',
+                      border: on ? `1.5px solid ${col}` : `1.5px solid ${c.borderStrong}`,
+                      background: on ? (o.v === 'off' ? c.redSoft : c.greenSoft) : c.card,
+                      color: on ? col : c.text2,
                     }}>{o.label}</button>
                   )
                 })}
               </div>
-              <div style={{ padding: '0 16px 12px', fontSize: 11.5, color: '#94a3b8', lineHeight: 1.5 }}>
+              <div style={{ padding: '0 16px 12px', fontSize: 11.5, color: c.muted, lineHeight: 1.5 }}>
                 {smsMode === 'selected' ? t('admin_sms_hint_selected')
                   : smsMode === 'off' ? t('admin_sms_hint_off')
                   : t('admin_sms_hint_all')}
@@ -250,13 +237,16 @@ export default function Settings() {
         )}
 
         {/* App settings */}
-        <SectionLabel>{t('app_settings')}</SectionLabel>
-        <Card>
-          <Row icon={<CurrencyIcon />} label={t('currency')} value={user?.currency} onClick={() => { haptic('light'); setModal('currency') }} />
-          <Divider />
-          <Row icon={<GlobeIcon />} label={t('language')} value={user?.language === 'ru' ? t('lang_ru_short') : t('lang_uz_short')} onClick={() => { haptic('light'); setModal('language') }} />
-          <Divider />
-          <ToggleRow
+        <SectionLabel c={c}>{t('app_settings')}</SectionLabel>
+        <Card c={c}>
+          <Row c={c} icon={<CurrencyIcon />} label={t('currency')} value={user?.currency} onClick={() => { haptic('light'); setModal('currency') }} />
+          <Divider c={c} />
+          <Row c={c} icon={<GlobeIcon />} label={t('language')} value={user?.language === 'ru' ? t('lang_ru_short') : t('lang_uz_short')} onClick={() => { haptic('light'); setModal('language') }} />
+          <Divider c={c} />
+          {/* Ko'rinish — kunduzgi / tungi / avtomatik */}
+          <Row c={c} icon={<ThemeIcon dark={c.dark} />} label={t('theme')} value={themeLabel} onClick={() => { haptic('light'); setModal('theme') }} />
+          <Divider c={c} />
+          <ToggleRow c={c}
             icon={<BellIcon />} label={t('notifications')}
             checked={user?.notifications_enabled}
             onChange={() => {
@@ -264,34 +254,34 @@ export default function Settings() {
               updateUser({ notifications_enabled: !user?.notifications_enabled }).catch(() => {})
             }}
           />
-          <Divider />
-          <ToggleRow
+          <Divider c={c} />
+          <ToggleRow c={c}
             icon={<LockIcon />} label={t('pin_lock')}
             checked={!!user?.has_pin}
             onChange={handlePinToggle}
           />
-          <Divider />
+          <Divider c={c} />
           {/* Haqiqiy ism — SMS'da qarzdor shuni ko'radi (TG profil nomi emas) */}
-          <Row
+          <Row c={c}
             icon={<NameIcon />} label={t('name_label')}
             value={user?.real_name || '—'}
             onClick={() => { haptic('light'); setEditName(true) }}
           />
-          <Divider />
+          <Divider c={c} />
           {user?.phone_verified ? (
             /* Tasdiqlangan — faqat raqam + ✓ ko'rsatamiz, qayta so'ramaymiz */
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><PhoneIcon /></div>
-              <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#111' }}>{t('phone_verify_row')}</span>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: c.text }}>{t('phone_verify_row')}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#111', whiteSpace: 'nowrap' }}>{user?.phone || '—'}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: c.text, whiteSpace: 'nowrap' }}>{user?.phone || '—'}</span>
                 <span style={{ width: 18, height: 18, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2.5 6l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </span>
               </span>
             </div>
           ) : (
-            <Row
+            <Row c={c}
               icon={<PhoneIcon />} label={t('phone_verify_row')}
               value={user?.phone || '—'}
               onClick={() => { haptic('light'); setPhoneVerify(true) }}
@@ -300,28 +290,29 @@ export default function Settings() {
         </Card>
 
         {/* Data */}
-        <SectionLabel>{t('data')}</SectionLabel>
-        <Card>
-          <Row icon={<ExcelIcon />} label={t('excel_to_tg')} value={sending === 'excel' ? '⏳' : '📤'} onClick={() => sendReport('excel')} />
-          <Divider />
-          <Row icon={<ExcelIcon />} label={t('image_to_tg')} value={sending === 'image' ? '⏳' : '🖼'} onClick={() => sendReport('image')} />
-          <Divider />
-          <Row icon={<ExcelIcon />} label={t('excel_download')} value="⬇" onClick={exportExcel} />
-          <Divider />
-          <Row icon={<DeleteAllIcon />} label={t('delete_all')} danger onClick={() => { haptic('medium'); setModal('delete') }} />
+        <SectionLabel c={c}>{t('data')}</SectionLabel>
+        <Card c={c}>
+          <Row c={c} icon={<ExcelIcon />} label={t('excel_to_tg')} value={sending === 'excel' ? '⏳' : '📤'} onClick={() => sendReport('excel')} />
+          <Divider c={c} />
+          <Row c={c} icon={<ExcelIcon />} label={t('image_to_tg')} value={sending === 'image' ? '⏳' : '🖼'} onClick={() => sendReport('image')} />
+          <Divider c={c} />
+          {/* Umumiy ma'lumot — barcha qarzdorlar ro'yxati tagma-tag */}
+          <Row c={c} icon={<ListIcon />} label={t('summary_to_tg')} value={sending === 'summary' ? '⏳' : '📋'} onClick={() => sendReport('summary')} />
+          <Divider c={c} />
+          <Row c={c} icon={<DeleteAllIcon />} label={t('delete_all')} danger onClick={() => { haptic('medium'); setModal('delete') }} />
         </Card>
 
         {/* Support */}
-        <SectionLabel>{t('support')}</SectionLabel>
-        <Card>
-          <Row icon={<SupportIcon />} label={t('support_label')} value="" onClick={openSupport} />
+        <SectionLabel c={c}>{t('support')}</SectionLabel>
+        <Card c={c}>
+          <Row c={c} icon={<SupportIcon />} label={t('support_label')} value="" onClick={openSupport} />
         </Card>
 
         {/* App version */}
         <div style={{ textAlign: 'center', marginTop: 18 }}>
           <div style={{ fontSize: 26, marginBottom: 4 }}>📒</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>{t('app_name')}</div>
-          <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 2 }}>v1.0</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: c.muted }}>{t('app_name')}</div>
+          <div style={{ fontSize: 11, color: c.faint, marginTop: 2 }}>v1.0</div>
         </div>
       </div>
 
@@ -335,11 +326,11 @@ export default function Settings() {
         }}>{toast}</div>
       )}
 
-      {/* PIN MODAL — to'liq ekran (klaviatura to'liq sig'ishi uchun) */}
+      {/* PIN MODAL — to'liq ekran */}
       {pinMode && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#F0F2F5', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: c.bg, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px' }}>
-            <button onClick={closePin} style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,.08)' }}>
+            <button onClick={closePin} style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: c.card, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: c.shadowSm }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="#64748b" strokeWidth="1.8" strokeLinecap="round"/></svg>
             </button>
           </div>
@@ -384,21 +375,17 @@ export default function Settings() {
       )}
 
       {/* MODALS */}
-      {modal && <BottomSheet onClose={() => setModal(null)}>
+      {modal && modal !== 'delete' && <BottomSheet c={c} onClose={() => setModal(null)}>
         {modal === 'currency' && (
           <>
-            <SheetTitle>{t('choose_currency')}</SheetTitle>
-            {currencies.map(c => (
-              <SheetOption
-                key={c.val}
-                onSelect={() => save('currency', c.val)}
-                active={user?.currency === c.val}
-              >
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: c.color }}>{c.code}</span>
+            <SheetTitle c={c}>{t('choose_currency')}</SheetTitle>
+            {currencies.map(cu => (
+              <SheetOption key={cu.val} c={c} onSelect={() => save('currency', cu.val)} active={user?.currency === cu.val}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: cu.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: cu.color }}>{cu.code}</span>
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{c.label}</span>
-                <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 600 }}>{c.val}</span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: c.text, flex: 1 }}>{cu.label}</span>
+                <span style={{ fontSize: 13, color: c.muted, fontWeight: 600 }}>{cu.val}</span>
               </SheetOption>
             ))}
             <div style={{ height: 20 }} />
@@ -407,40 +394,149 @@ export default function Settings() {
 
         {modal === 'language' && (
           <>
-            <SheetTitle>{t('choose_lang')}</SheetTitle>
+            <SheetTitle c={c}>{t('choose_lang')}</SheetTitle>
             {languages.map(l => (
-              <SheetOption
-                key={l.val}
-                onSelect={() => save('language', l.val)}
-                active={user?.language === l.val}
-              >
+              <SheetOption key={l.val} c={c} onSelect={() => save('language', l.val)} active={user?.language === l.val}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: l.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span style={{ fontSize: 14, fontWeight: 800, color: '#374151' }}>{l.icon}</span>
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 600, color: '#111', flex: 1 }}>{l.label}</span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: c.text, flex: 1 }}>{l.label}</span>
               </SheetOption>
             ))}
             <div style={{ height: 20 }} />
           </>
         )}
 
-        {modal === 'delete' && (
-          <div style={{ padding: '0 18px 20px' }}>
-            <div style={{ width: 56, height: 56, borderRadius: 18, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-              <DeleteAllIcon />
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>{t('delete_confirm_title')}</div>
-            <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 24, lineHeight: 1.6 }}>
-              {t('delete_confirm_desc')}
-            </div>
-            <SheetBtn onClick={() => setModal(null)} style={{ background: '#f3f4f6', color: '#111', marginBottom: 10 }}>{t('cancel_full')}</SheetBtn>
-            <SheetBtn onClick={handleDeleteAll} style={{ background: '#ef4444', color: '#fff' }}>
-              {deleting ? t('deleting') : t('yes_delete')}
-            </SheetBtn>
-          </div>
+        {modal === 'theme' && (
+          <>
+            <SheetTitle c={c}>{t('choose_theme')}</SheetTitle>
+            {themes.map(th => (
+              <SheetOption key={th.val} c={c} onSelect={() => save('theme', th.val)} active={(user?.theme || 'light') === th.val}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: c.chip, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>
+                  {th.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: c.text }}>{th.label}</div>
+                  {th.hint && <div style={{ fontSize: 11.5, color: c.muted, marginTop: 1 }}>{th.hint}</div>}
+                </div>
+              </SheetOption>
+            ))}
+            <div style={{ height: 20 }} />
+          </>
         )}
       </BottomSheet>}
+
+      {/* TANLAB O'CHIRISH — alohida komponent (kategoriyalar bilan) */}
+      {modal === 'delete' && (
+        <DeleteSheet c={c} onClose={() => setModal(null)} onDone={() => {
+          setModal(null); haptic('success'); setToast(t('del_done'))
+          setTimeout(() => setToast(''), 2500)
+        }} />
+      )}
     </div>
+  )
+}
+
+// ── Tanlab o'chirish oynasi ─────────────────────────────────────────
+// Bilmasdan bosilsa hamma narsa ketmasin — avval nima o'chishini ko'rsatamiz,
+// foydalanuvchi bo'limlarni belgilaydi, keyin tasdiqlaydi.
+function DeleteSheet({ c, onClose, onDone }) {
+  const t = useT()
+  const [preview, setPreview] = useState(null)
+  const [picked, setPicked] = useState({})
+  const [busy, setBusy] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+
+  useEffect(() => {
+    statsAPI.deletePreview().then(({ data }) => setPreview(data)).catch(() => setPreview({}))
+  }, [])
+
+  const OPTIONS = [
+    { key: 'active_debts',   label: t('del_active_debts'),   count: preview?.active_debts,   danger: true },
+    { key: 'paid_debts',     label: t('del_paid_debts'),     count: preview?.paid_debts },
+    { key: 'empty_contacts', label: t('del_empty_contacts'), count: preview?.empty_contacts },
+    { key: 'contacts',       label: t('del_contacts'),       count: preview?.contacts,       danger: true },
+    { key: 'sms_logs',       label: t('del_sms_logs'),       count: preview?.sms_logs },
+  ]
+
+  const scopes = Object.keys(picked).filter((k) => picked[k])
+  const toggle = (k) => { haptic('light'); setPicked((p) => ({ ...p, [k]: !p[k] })) }
+
+  const doDelete = async () => {
+    if (busy || scopes.length === 0) return
+    setBusy(true)
+    try {
+      await statsAPI.deleteAll(scopes)
+      // Lokal holatni yangilaymiz (qarz/kontakt o'chgan bo'lishi mumkin)
+      useDebtStore.getState().fetchDebts()
+      useContactStore.getState().fetchContacts()
+      onDone()
+    } catch { haptic('error') }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <BottomSheet c={c} onClose={onClose}>
+      {!confirm ? (
+        <div style={{ padding: '0 18px 20px' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: c.redSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <DeleteAllIcon />
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: c.text, textAlign: 'center', marginBottom: 6 }}>{t('delete_pick_title')}</div>
+          <div style={{ fontSize: 13, color: c.text2, textAlign: 'center', marginBottom: 18, lineHeight: 1.5 }}>{t('delete_pick_desc')}</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+            {OPTIONS.map((o) => {
+              const on = !!picked[o.key]
+              const disabled = preview && !o.count
+              return (
+                <button key={o.key} disabled={disabled} onClick={() => toggle(o.key)} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', borderRadius: 14,
+                  border: `1.5px solid ${on ? (o.danger ? c.redBorder : c.greenBorder) : c.borderStrong}`,
+                  background: on ? (o.danger ? c.redSoft : c.greenSoft) : c.card,
+                  cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  opacity: disabled ? 0.45 : 1, width: '100%',
+                }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: 7, flexShrink: 0,
+                    border: `2px solid ${on ? (o.danger ? '#ef4444' : '#16a34a') : c.borderStrong}`,
+                    background: on ? (o.danger ? '#ef4444' : '#16a34a') : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {on && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: o.danger ? '#ef4444' : c.text }}>{o.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: c.muted }}>
+                    {preview ? t('records_n', { n: o.count || 0 }) : '…'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          <button onClick={onClose} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: c.chip, color: c.text, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>{t('cancel_full')}</button>
+          <button onClick={() => scopes.length ? setConfirm(true) : haptic('error')} disabled={scopes.length === 0} style={{
+            width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none',
+            background: scopes.length ? '#ef4444' : c.chip, color: scopes.length ? '#fff' : c.muted,
+            cursor: scopes.length ? 'pointer' : 'default', fontFamily: 'inherit',
+          }}>
+            {scopes.length ? t('del_selected_n', { n: scopes.length }) : t('del_nothing_picked')}
+          </button>
+        </div>
+      ) : (
+        <div style={{ padding: '4px 18px 20px' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 18, background: c.redSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 26 }}>⚠️</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: c.text, textAlign: 'center', marginBottom: 8 }}>{t('delete_confirm_title')}</div>
+          <div style={{ fontSize: 14, color: c.text2, textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
+            {OPTIONS.filter((o) => picked[o.key]).map((o) => o.label).join(' · ')}
+          </div>
+          <button onClick={() => setConfirm(false)} disabled={busy} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: c.chip, color: c.text, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>{t('cancel_full')}</button>
+          <button onClick={doDelete} disabled={busy} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+            {busy ? t('deleting') : t('yes_delete')}
+          </button>
+        </div>
+      )}
+    </BottomSheet>
   )
 }
 
@@ -450,6 +546,28 @@ function LockIcon() {
       <rect x="4" y="9" width="12" height="8" rx="2.5" stroke="#16a34a" strokeWidth="1.5"/>
       <path d="M6.5 9V6.5a3.5 3.5 0 017 0V9" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
       <circle cx="10" cy="13" r="1.2" fill="#16a34a"/>
+    </svg>
+  )
+}
+
+function ThemeIcon({ dark }) {
+  return dark ? (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M16 11.5A6.5 6.5 0 018.5 4a6.5 6.5 0 108 7.5z" stroke="#16a34a" strokeWidth="1.5" strokeLinejoin="round"/>
+    </svg>
+  ) : (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="3.5" stroke="#16a34a" strokeWidth="1.5"/>
+      <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function ListIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M7 5.5h9M7 10h9M7 14.5h9" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="4" cy="5.5" r="1" fill="#16a34a"/><circle cx="4" cy="10" r="1" fill="#16a34a"/><circle cx="4" cy="14.5" r="1" fill="#16a34a"/>
     </svg>
   )
 }
@@ -490,27 +608,27 @@ function SupportIcon() {
   )
 }
 
-function SectionLabel({ children }) {
+function SectionLabel({ children, c }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 700, color: '#b0b0b0', letterSpacing: '0.07em', textTransform: 'uppercase', padding: '0 20px 8px' }}>
+    <div style={{ fontSize: 11, fontWeight: 700, color: c.muted, letterSpacing: '0.07em', textTransform: 'uppercase', padding: '0 20px 8px' }}>
       {children}
     </div>
   )
 }
 
-function Card({ children }) {
+function Card({ children, c }) {
   return (
-    <div style={{ margin: '0 16px 16px', background: '#fff', borderRadius: 20, overflow: 'hidden', border: '0.5px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+    <div style={{ margin: '0 16px 16px', background: c.card, borderRadius: 20, overflow: 'hidden', border: `0.5px solid ${c.border}`, boxShadow: c.shadowSm }}>
       {children}
     </div>
   )
 }
 
-function Divider() {
-  return <div style={{ height: '0.5px', background: 'rgba(0,0,0,0.06)', marginLeft: 58 }} />
+function Divider({ c }) {
+  return <div style={{ height: '0.5px', background: c.border, marginLeft: 58 }} />
 }
 
-function Row({ icon, label, value, onClick, danger }) {
+function Row({ icon, label, value, onClick, danger, c }) {
   return (
     <button onClick={onClick} style={{
       width: '100%', display: 'flex', alignItems: 'center', gap: 12,
@@ -519,22 +637,22 @@ function Row({ icon, label, value, onClick, danger }) {
       <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {icon}
       </div>
-      <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: danger ? '#ef4444' : '#111' }}>{label}</span>
-      <span style={{ fontSize: 13, color: '#bbb' }}>{value} ›</span>
+      <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: danger ? '#ef4444' : c.text }}>{label}</span>
+      <span style={{ fontSize: 13, color: c.muted }}>{value} ›</span>
     </button>
   )
 }
 
-function ToggleRow({ icon, label, checked, onChange }) {
+function ToggleRow({ icon, label, checked, onChange, c }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
       <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {icon}
       </div>
-      <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#111' }}>{label}</span>
+      <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: c.text }}>{label}</span>
       <button onClick={onChange} style={{
         width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0,
-        background: checked ? '#22c55e' : '#e5e7eb', transition: 'background .2s'
+        background: checked ? '#22c55e' : c.borderStrong, transition: 'background .2s'
       }}>
         <div style={{
           width: 24, height: 24, borderRadius: '50%', background: '#fff',
@@ -547,27 +665,25 @@ function ToggleRow({ icon, label, checked, onChange }) {
 }
 
 // ── BOTTOM SHEET COMPONENTS ─────────────────────────────────────────
-// Plain onClick everywhere — reliable in Telegram webview.
-// Backdrop closes only when the tap target IS the backdrop itself.
-function BottomSheet({ onClose, children }) {
+function BottomSheet({ onClose, children, c }) {
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 998, background: c.overlay, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{ background: '#fff', borderRadius: '22px 22px 0 0', paddingBottom: 'env(safe-area-inset-bottom, 20px)', maxHeight: '75vh', overflowY: 'auto' }}>
-        <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '12px auto 18px' }} />
+      <div style={{ background: c.sheetBg, borderRadius: '22px 22px 0 0', paddingBottom: 'env(safe-area-inset-bottom, 20px)', maxHeight: '82vh', overflowY: 'auto' }}>
+        <div style={{ width: 36, height: 4, background: c.borderStrong, borderRadius: 2, margin: '12px auto 18px' }} />
         {children}
       </div>
     </div>
   )
 }
 
-function SheetTitle({ children }) {
-  return <div style={{ fontSize: 16, fontWeight: 800, color: '#111', padding: '0 20px 12px' }}>{children}</div>
+function SheetTitle({ children, c }) {
+  return <div style={{ fontSize: 16, fontWeight: 800, color: c.text, padding: '0 20px 12px' }}>{children}</div>
 }
 
-function SheetOption({ onSelect, active, children }) {
+function SheetOption({ onSelect, active, children, c }) {
   return (
     <button
       type="button"
@@ -575,8 +691,8 @@ function SheetOption({ onSelect, active, children }) {
       style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 14,
         padding: '14px 20px', cursor: 'pointer', border: 'none',
-        borderBottom: '0.5px solid #f3f4f6', fontFamily: 'inherit',
-        background: active ? '#f0fdf4' : '#fff', textAlign: 'left',
+        borderBottom: `0.5px solid ${c.border}`, fontFamily: 'inherit',
+        background: active ? c.greenSoft : 'transparent', textAlign: 'left',
         WebkitTapHighlightColor: 'transparent',
       }}
     >
@@ -586,18 +702,6 @@ function SheetOption({ onSelect, active, children }) {
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
       )}
-    </button>
-  )
-}
-
-function SheetBtn({ onClick, style, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{ width: '100%', padding: '15px', borderRadius: 16, fontSize: 16, fontWeight: 700, textAlign: 'center', cursor: 'pointer', border: 'none', fontFamily: 'inherit', display: 'block', WebkitTapHighlightColor: 'transparent', ...style }}
-    >
-      {children}
     </button>
   )
 }

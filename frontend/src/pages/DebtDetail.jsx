@@ -29,6 +29,8 @@ export function DebtDetail() {
   const [loading, setLoading] = useState(true)
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [delPayment, setDelPayment] = useState(null)   // o'chiriladigan to'lov
+  const [payBusy, setPayBusy] = useState(false)
   const [smsState, setSmsState] = useState({ status: 'idle', msg: '' }) // idle|sending|sent|error
   const [showContactAdmin, setShowContactAdmin] = useState(false)
   const [showVerify, setShowVerify] = useState(false)
@@ -53,6 +55,21 @@ export function DebtDetail() {
     }
   }
 
+  // Xato kiritilgan to'lovni tarixdan o'chirish
+  const handleDeletePayment = async () => {
+    if (payBusy || !delPayment) return
+    setPayBusy(true)
+    try {
+      const { data } = await debtsAPI.deletePayment(id, delPayment.id)
+      setDebt(data)
+      useDebtStore.setState((s) => ({ debts: s.debts.map((d) => (d.id === data.id ? data : d)) }))
+      haptic('success')
+      setDelPayment(null)
+    } catch {
+      haptic('error')
+    } finally { setPayBusy(false) }
+  }
+
   // Qarz kartochkasini Telegram orqali ulashish — qarzdor havola bosса botga tushadi
   const shareDebt = async () => {
     haptic('light')
@@ -69,12 +86,12 @@ export function DebtDetail() {
   }
 
   // Qarzdorga SMS eslatma (TextUP) — pullik, shuning uchun faqat tugma bosilganda
-  const doSendSms = async () => {
+  const doSendSms = async (customText) => {
     if (smsState.status === 'sending' || smsState.status === 'sent') return
     haptic('light')
     setSmsState({ status: 'sending', msg: '' })
     try {
-      await debtsAPI.sendSms(id)
+      await debtsAPI.sendSms(id, customText)
       haptic('success')
       setSmsState({ status: 'sent', msg: '' })
     } catch (e) {
@@ -114,9 +131,9 @@ export function DebtDetail() {
     openConfirm()
   }
 
-  // Tasdiqlangach yuboriladi
-  const confirmSend = async () => {
-    await doSendSms()
+  // Tasdiqlangach yuboriladi (text — tahrirlangan bo'lsa)
+  const confirmSend = async (text) => {
+    await doSendSms(text)
     setPreview(null)
   }
 
@@ -276,11 +293,14 @@ export function DebtDetail() {
             {debt.payments?.map((p) => (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: '#111' }}>{t('payment')} {p.note || ''}</div>
                   <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{fmtDateTime(p.paid_at)}</div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{fmt(p.amount, debt.currency)}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', flexShrink: 0 }}>{fmt(p.amount, debt.currency)}</div>
+                <button onClick={() => { haptic('medium'); setDelPayment(p) }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0, lineHeight: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 5h10M7.5 5V3.5h3V5M5.5 5l.5 9h6l.5-9" stroke="#ef4444" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
               </div>
             ))}
             {debt.payments?.length === 0 && (
@@ -301,6 +321,23 @@ export function DebtDetail() {
             <button onClick={() => setConfirmDel(false)} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#f3f4f6', color: '#111', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>{t('cancel_full')}</button>
             <button onClick={handleDelete} disabled={deleting} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
               {deleting ? t('deleting') : t('yes_delete')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* To'lovni (tarix) o'chirishni tasdiqlash */}
+      {delPayment && (
+        <div onClick={(e) => { if (e.target === e.currentTarget && !payBusy) setDelPayment(null) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1002, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'flex-end' }}>
+          <div className="sheet-anim" style={{ background: '#fff', borderRadius: '22px 22px 0 0', width: '100%', padding: '20px 18px', paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 18, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 26 }}>🗑</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>{t('del_payment_q')}</div>
+            <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 8, lineHeight: 1.6 }}>{t('del_payment_desc')}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#16a34a', textAlign: 'center', marginBottom: 20 }}>{fmt(delPayment.amount, debt.currency)}</div>
+            <button onClick={() => setDelPayment(null)} disabled={payBusy} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#f3f4f6', color: '#111', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>{t('cancel_full')}</button>
+            <button onClick={handleDeletePayment} disabled={payBusy} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {payBusy ? t('deleting') : t('del_payment_btn')}
             </button>
           </div>
         </div>

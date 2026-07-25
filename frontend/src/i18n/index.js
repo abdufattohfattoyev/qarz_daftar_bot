@@ -197,6 +197,73 @@ export const translations = {
     yes_delete: "Ha, o'chirish",
     deleting: "O'chirilmoqda...",
 
+    // ── Tema (tungi rejim) ──
+    theme: 'Ko\'rinish',
+    theme_light: 'Kunduzgi',
+    theme_dark: 'Tungi',
+    theme_auto: 'Avtomatik',
+    theme_auto_hint: 'Telegram mavzusiga moslashadi',
+    choose_theme: 'Ko\'rinishni tanlang',
+
+    // ── Umumiy ma'lumot (hisobot) ──
+    summary_to_tg: "Umumiy ma'lumot — Telegramga",
+    summary_hint: 'Barcha qarzdorlar ro\'yxati: ism va summa',
+
+    // ── Tanlab o'chirish ──
+    delete_pick_title: "Nimani o'chiramiz?",
+    delete_pick_desc: "Faqat belgilangan bo'limlar o'chiriladi. Bu amalni qaytarib bo'lmaydi.",
+    del_paid_debts: "To'langan qarzlar",
+    del_active_debts: 'Faol qarzlar',
+    del_all_debts: 'Barcha qarzlar',
+    del_empty_contacts: 'Qarzsiz qarzdorlar',
+    del_contacts: 'Barcha qarzdorlar',
+    del_sms_logs: 'SMS tarixi',
+    del_nothing_picked: "Avval bo'limni belgilang",
+    del_selected_n: '{n} ta bo\'lim tanlandi',
+    del_done: "✅ O'chirildi",
+    records_n: '{n} ta yozuv',
+
+    // ── PIN tiklash ──
+    pin_forgot: 'PIN esdan chiqdimi?',
+    pin_reset_title: 'PIN ni tiklash',
+    pin_reset_sub: 'Telegramga 6 xonali kod yubordik — shuni kiriting',
+    pin_reset_send: 'Telegramga kod yuborish',
+    pin_reset_sent: '✅ Kod Telegramga yuborildi',
+    pin_reset_ok: '🔓 PIN o\'chirildi — endi kirishingiz mumkin',
+    pin_reset_code_ph: '6 xonali kod',
+    pin_reset_confirm: 'Tasdiqlash',
+
+    // ── SMS matnini tahrirlash ──
+    sms_edit_btn: 'Matnni tahrirlash',
+    sms_edit_done: 'Tayyor',
+    sms_edit_reset: 'Standart matn',
+    sms_len: '{n}/{max} belgi',
+    sms_brand_note: 'Havola qatori majburiy — o\'zi qo\'shiladi',
+
+    // ── Uzun izoh ──
+    note_more: "ko'proq",
+    note_less: 'yopish',
+
+    // ── Ikki valyuta ──
+    dual_currency: 'Ikkalasi ham',
+    dual_hint: "So'm va dollarni bir vaqtda kiritishingiz mumkin",
+    amount_uzs: "Summa (so'm)",
+    amount_usd: 'Summa (dollar)',
+    err_amount_any: 'Kamida bitta summa kiriting',
+    usd_rate_label: 'Bugungi kurs',
+
+    // ── To'lovni (tarix) o'chirish ──
+    del_payment_q: "To'lovni o'chirasizmi?",
+    del_payment_desc: 'Bu to\'lov tarixdan o\'chadi va qarz qoldig\'i qayta hisoblanadi.',
+    del_payment_btn: "To'lovni o'chirish",
+
+    // ── Kontakt sahifasi ──
+    pay_for: "To'lash",
+    choose_debt_to_pay: "Qaysi qarzni to'laysiz?",
+    delete_contact: "Qarzdorni o'chirish",
+    delete_contact_q: "Qarzdorni o'chirasizmi?",
+    delete_contact_desc: 'Bu odam va uning barcha qarzlari o\'chiriladi.',
+
     // DebtDetail / Pay
     debt_info: "Qarz ma'lumoti",
     must_give_me: 'Menga berishi kerak',
@@ -457,6 +524,73 @@ export const translations = {
     delete_confirm_desc: 'Все долги и контакты будут удалены. Это действие необратимо.',
     yes_delete: 'Да, удалить',
     deleting: 'Удаление...',
+
+    // ── Тема ──
+    theme: 'Оформление',
+    theme_light: 'Светлая',
+    theme_dark: 'Тёмная',
+    theme_auto: 'Авто',
+    theme_auto_hint: 'Подстраивается под тему Telegram',
+    choose_theme: 'Выберите оформление',
+
+    // ── Общая сводка ──
+    summary_to_tg: 'Общая сводка — в Telegram',
+    summary_hint: 'Список всех должников: имя и сумма',
+
+    // ── Выборочное удаление ──
+    delete_pick_title: 'Что удаляем?',
+    delete_pick_desc: 'Удалится только отмеченное. Это действие необратимо.',
+    del_paid_debts: 'Погашенные долги',
+    del_active_debts: 'Активные долги',
+    del_all_debts: 'Все долги',
+    del_empty_contacts: 'Должники без долгов',
+    del_contacts: 'Все должники',
+    del_sms_logs: 'История SMS',
+    del_nothing_picked: 'Сначала отметьте раздел',
+    del_selected_n: 'Выбрано разделов: {n}',
+    del_done: '✅ Удалено',
+    records_n: 'записей: {n}',
+
+    // ── Сброс PIN ──
+    pin_forgot: 'Забыли PIN?',
+    pin_reset_title: 'Сброс PIN-кода',
+    pin_reset_sub: 'Мы отправили 6-значный код в Telegram — введите его',
+    pin_reset_send: 'Отправить код в Telegram',
+    pin_reset_sent: '✅ Код отправлен в Telegram',
+    pin_reset_ok: '🔓 PIN снят — можно входить',
+    pin_reset_code_ph: '6-значный код',
+    pin_reset_confirm: 'Подтвердить',
+
+    // ── Редактирование SMS ──
+    sms_edit_btn: 'Изменить текст',
+    sms_edit_done: 'Готово',
+    sms_edit_reset: 'Стандартный текст',
+    sms_len: '{n}/{max} символов',
+    sms_brand_note: 'Строка со ссылкой обязательна — добавится сама',
+
+    // ── Длинная заметка ──
+    note_more: 'ещё',
+    note_less: 'свернуть',
+
+    // ── Две валюты ──
+    dual_currency: 'Обе',
+    dual_hint: 'Можно указать сумму в сумах и в долларах сразу',
+    amount_uzs: 'Сумма (сум)',
+    amount_usd: 'Сумма (доллар)',
+    err_amount_any: 'Укажите хотя бы одну сумму',
+    usd_rate_label: 'Курс на сегодня',
+
+    // ── Удаление платежа ──
+    del_payment_q: 'Удалить платёж?',
+    del_payment_desc: 'Этот платёж удалится из истории, остаток пересчитается.',
+    del_payment_btn: 'Удалить платёж',
+
+    // ── Страница контакта ──
+    pay_for: 'Оплатить',
+    choose_debt_to_pay: 'Какой долг оплачиваете?',
+    delete_contact: 'Удалить должника',
+    delete_contact_q: 'Удалить должника?',
+    delete_contact_desc: 'Этот человек и все его долги будут удалены.',
 
     // DebtDetail / Pay
     debt_info: 'Информация о долге',

@@ -4,6 +4,7 @@ import { useStatsStore } from '../store'
 import { initials, avatarColor, haptic } from '../utils'
 import { ArrowUpIcon, ArrowDownIcon } from '../components/Icons'
 import { useT } from '../i18n'
+import { useTheme } from '../theme'
 
 const n = (v) => new Intl.NumberFormat('uz-UZ').format(Math.round(parseFloat(v || 0)))
 
@@ -24,6 +25,7 @@ const PERIODS = [
 export default function Stats() {
   const navigate = useNavigate()
   const t = useT()
+  const c = useTheme()
   const { stats, loading, period: storePeriod, currency, fetchStats, exportExcel } = useStatsStore()
   const [activePeriod, setActivePeriod] = useState(storePeriod || 'month')
   const periodLabel = (v) => t(PERIODS.find(p => p.value === v)?.labelKey || 'period_month')
@@ -52,12 +54,12 @@ export default function Stats() {
   const hasData  = gave || got || iLent || iBorrow || received || paidOut
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F0F2F5' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: c.bg }}>
 
       {/* ── HEADER ── */}
-      <div style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 1px 6px rgba(0,0,0,.04)' }}>
+      <div style={{ flexShrink: 0, background: c.card, borderBottom: `1px solid ${c.border}`, boxShadow: c.shadowSm }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#111', letterSpacing: -0.5 }}>{t('stats_title')}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: c.text, letterSpacing: -0.5 }}>{t('stats_title')}</div>
           <button onClick={() => { haptic('light'); exportExcel() }} className="pill-btn" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: 10,
@@ -75,8 +77,8 @@ export default function Stats() {
               <button key={p.value} className="pill-btn" onClick={() => handlePeriod(p.value)} style={{
                 padding: '8px 16px', borderRadius: 99, fontSize: 13,
                 fontWeight: active ? 700 : 500, flexShrink: 0, border: 'none',
-                background: active ? '#0f172a' : '#f1f5f9',
-                color: active ? '#fff' : '#64748b',
+                background: active ? c.pillActiveBg : c.chip,
+                color: active ? c.pillActiveText : c.text2,
                 cursor: 'pointer', fontFamily: 'inherit',
                 boxShadow: active ? '0 3px 10px rgba(15,23,42,.25)' : 'none',
                 transition: 'all .18s',
@@ -124,45 +126,45 @@ export default function Stats() {
 
             {/* PAYMENTS — qabul qildim / to'ladim */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '0 14px 12px' }}>
-              <PayCard color="#16a34a" bg="#f0fdf4" icon="↓" label={t('received_label')} value={n(received)} cur={cur} />
-              <PayCard color="#ef4444" bg="#fef2f2" icon="↑" label={t('paid_out_label')} value={n(paidOut)} cur={cur} />
+              <PayCard c={c} color="#16a34a" bg={c.greenSoft} icon="↓" label={t('received_label')} value={n(received)} cur={cur} />
+              <PayCard c={c} color="#ef4444" bg={c.redSoft} icon="↑" label={t('paid_out_label')} value={n(paidOut)} cur={cur} />
             </div>
 
             {/* OWED — menga qarzdor / men qarzdor */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '0 14px 12px' }}>
-              <InfoCard label={t('owes_me_short')} value={n(iLent)} sub={`${debtors} ${t('people_count')}`} color="#16a34a" />
-              <InfoCard label={t('i_owe_short')} value={n(iBorrow)} sub={`${totalCount} ${t('count_suffix')}`} color="#ef4444" />
+              <InfoCard c={c} label={t('owes_me_short')} value={n(iLent)} sub={`${debtors} ${t('people_count')}`} color="#16a34a" />
+              <InfoCard c={c} label={t('i_owe_short')} value={n(iBorrow)} sub={`${totalCount} ${t('count_suffix')}`} color="#ef4444" />
             </div>
 
             {/* CHART — kunlik harakat */}
-            <div style={{ margin: '0 14px 12px', background: '#fff', borderRadius: 18, padding: '14px 14px 10px', boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
+            <div style={{ margin: '0 14px 12px', background: c.card, borderRadius: 18, padding: '14px 14px 10px', boxShadow: c.shadow }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{t('chart_title')}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{t('chart_title')}</span>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <Legend color="#22c55e" text={t('gave_label')} />
-                  <Legend color="#ef4444" text={t('got_label')} />
+                  <Legend c={c} color="#22c55e" text={t('gave_label')} />
+                  <Legend c={c} color="#ef4444" text={t('got_label')} />
                 </div>
               </div>
 
               {chart.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: '#94a3b8' }}>{t('no_chart')}</div>
+                <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: c.muted }}>{t('no_chart')}</div>
               ) : (
-                <BarChart chart={chart} />
+                <BarChart chart={chart} c={c} />
               )}
             </div>
 
             {/* TRANSACTIONS row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '0 14px 12px' }}>
-              <MiniStat label={t('total_ops')} value={totalCount} sub={t('transactions')} />
-              <MiniStat label={t('payment')} value={payCount} sub={t('payments_cnt')} />
+              <MiniStat c={c} label={t('total_ops')} value={totalCount} sub={t('transactions')} />
+              <MiniStat c={c} label={t('payment')} value={payCount} sub={t('payments_cnt')} />
             </div>
 
             {/* TOP DEBTORS */}
             {stats.top_debtors?.length > 0 && (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{t('top_debtors')}</span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{stats.top_debtors.length} {t('count_suffix')}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{t('top_debtors')}</span>
+                  <span style={{ fontSize: 11, color: c.muted }}>{stats.top_debtors.length} {t('count_suffix')}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 14px' }}>
                   {stats.top_debtors.map((dbt, i) => {
@@ -171,24 +173,24 @@ export default function Stats() {
                     const w = maxRem ? (dbt.remaining / maxRem) * 100 : 0
                     return (
                       <div key={dbt.id} onClick={() => { haptic('light'); navigate('/contacts') }} className="list-item" style={{
-                        background: '#fff', borderRadius: 16, padding: '11px 13px',
+                        background: c.card, borderRadius: 16, padding: '11px 13px',
                         display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,0,0,.04)',
+                        boxShadow: c.shadow,
                         animation: `fadeUp .2s ${i * 0.04}s both`,
                       }}>
-                        <div style={{ width: 22, fontSize: 13, fontWeight: 800, color: '#cbd5e1', textAlign: 'center', flexShrink: 0 }}>{i + 1}</div>
+                        <div style={{ width: 22, fontSize: 13, fontWeight: 800, color: c.faint, textAlign: 'center', flexShrink: 0 }}>{i + 1}</div>
                         <div style={{ width: 40, height: 40, borderRadius: 12, background: av.bg, color: av.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                           {initials(dbt.name)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dbt.name}</div>
-                          <div style={{ height: 5, borderRadius: 3, background: '#f1f5f9', marginTop: 5, overflow: 'hidden' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: c.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dbt.name}</div>
+                          <div style={{ height: 5, borderRadius: 3, background: c.chip, marginTop: 5, overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${w}%`, borderRadius: 3, background: 'linear-gradient(90deg,#22c55e,#16a34a)', transition: 'width .5s' }} />
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{ fontSize: 14, fontWeight: 800, color: '#16a34a', letterSpacing: -.3 }}>{n(dbt.remaining)}</div>
-                          <div style={{ fontSize: 9, color: '#cbd5e1', fontWeight: 600 }}>{cur}</div>
+                          <div style={{ fontSize: 9, color: c.faint, fontWeight: 600 }}>{cur}</div>
                         </div>
                       </div>
                     )
@@ -206,10 +208,10 @@ export default function Stats() {
                   <rect x="31" y="26" width="7" height="22" rx="2" fill="#4ade80"/>
                   <rect x="42" y="30" width="7" height="18" rx="2" fill="#86efac"/>
                 </svg>
-                <p style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 700, color: '#0f172a', textAlign: 'center' }}>
+                <p style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 700, color: c.text, textAlign: 'center' }}>
                   {t('no_data_period', { period: periodLabel(activePeriod) })}
                 </p>
-                <p style={{ margin: 0, fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>{t('no_data_desc')}</p>
+                <p style={{ margin: 0, fontSize: 12, color: c.muted, textAlign: 'center' }}>{t('no_data_desc')}</p>
               </div>
             )}
           </>
@@ -233,44 +235,44 @@ function HeroCol({ icon, label, value, cur, left }) {
   )
 }
 
-function PayCard({ color, bg, icon, label, value, cur }) {
+function PayCard({ color, bg, icon, label, value, cur, c }) {
   return (
     <div style={{ background: bg, borderRadius: 16, padding: '12px 13px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-        <div style={{ width: 26, height: 26, borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color, flexShrink: 0 }}>{icon}</div>
+        <div style={{ width: 26, height: 26, borderRadius: 8, background: c.card, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color, flexShrink: 0 }}>{icon}</div>
         <span style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '.03em' }}>{label}</span>
       </div>
-      <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#0f172a', letterSpacing: -.4 }}>{value}</p>
-      <p style={{ margin: '1px 0 0', fontSize: 9, color: '#94a3b8', fontWeight: 600 }}>{cur}</p>
+      <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: c.text, letterSpacing: -.4 }}>{value}</p>
+      <p style={{ margin: '1px 0 0', fontSize: 9, color: c.muted, fontWeight: 600 }}>{cur}</p>
     </div>
   )
 }
 
-function InfoCard({ label, value, sub, color }) {
+function InfoCard({ label, value, sub, color, c }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: '13px 14px', boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
-      <p style={{ margin: '0 0 8px', fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</p>
+    <div style={{ background: c.card, borderRadius: 16, padding: '13px 14px', boxShadow: c.shadow }}>
+      <p style={{ margin: '0 0 8px', fontSize: 10, color: c.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</p>
       <p style={{ margin: '0 0 2px', fontSize: 20, fontWeight: 900, color, letterSpacing: -.5 }}>{value}</p>
-      <p style={{ margin: 0, fontSize: 10, color: '#94a3b8' }}>{sub}</p>
+      <p style={{ margin: 0, fontSize: 10, color: c.muted }}>{sub}</p>
     </div>
   )
 }
 
-function MiniStat({ label, value, sub }) {
+function MiniStat({ label, value, sub, c }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: '13px 14px', boxShadow: '0 2px 10px rgba(0,0,0,.05)' }}>
-      <p style={{ margin: '0 0 8px', fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</p>
-      <p style={{ margin: '0 0 2px', fontSize: 20, fontWeight: 900, color: '#0f172a', letterSpacing: -.5 }}>{value}</p>
-      <p style={{ margin: 0, fontSize: 10, color: '#94a3b8' }}>{sub}</p>
+    <div style={{ background: c.card, borderRadius: 16, padding: '13px 14px', boxShadow: c.shadow }}>
+      <p style={{ margin: '0 0 8px', fontSize: 10, color: c.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</p>
+      <p style={{ margin: '0 0 2px', fontSize: 20, fontWeight: 900, color: c.text, letterSpacing: -.5 }}>{value}</p>
+      <p style={{ margin: 0, fontSize: 10, color: c.muted }}>{sub}</p>
     </div>
   )
 }
 
-function Legend({ color, text }) {
+function Legend({ color, text, c }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <div style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
-      <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>{text}</span>
+      <span style={{ fontSize: 10, color: c.text2, fontWeight: 600 }}>{text}</span>
     </div>
   )
 }
@@ -288,7 +290,7 @@ function fmtShort(v) {
   return Math.round(v)
 }
 
-function BarChart({ chart }) {
+function BarChart({ chart, c }) {
   const CHART_H = 150
   const Y_W = 34
   const GAP = chart.length > 20 ? 1 : chart.length > 12 ? 2 : 4
@@ -322,10 +324,10 @@ function BarChart({ chart }) {
             display: 'flex', alignItems: 'flex-end', gap: 6,
             pointerEvents: 'none',
           }}>
-            <span style={{ width: Y_W, fontSize: 8, color: '#cbd5e1', fontWeight: 700, textAlign: 'right', flexShrink: 0, lineHeight: 1, marginBottom: 2 }}>
+            <span style={{ width: Y_W, fontSize: 8, color: c.faint, fontWeight: 700, textAlign: 'right', flexShrink: 0, lineHeight: 1, marginBottom: 2 }}>
               {fmtShort(yMax * t)}
             </span>
-            <div style={{ flex: 1, height: 1, background: t === 0 ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.05)' }} />
+            <div style={{ flex: 1, height: 1, background: c.border }} />
           </div>
         ))}
 
@@ -371,7 +373,7 @@ function BarChart({ chart }) {
               position: 'absolute',
               left: `${pct}%`,
               transform: idx === 0 ? 'none' : idx === chart.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
-              fontSize: 9, color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap',
+              fontSize: 9, color: c.muted, fontWeight: 600, whiteSpace: 'nowrap',
             }}>
               {fmtDay(chart[idx]?.date)}
             </span>

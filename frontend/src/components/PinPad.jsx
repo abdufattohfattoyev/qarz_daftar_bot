@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { haptic } from '../utils'
+import { useT } from '../i18n'
 
 // 4 xonali PIN kiritish — nuqtalar + raqamli klaviatura.
 // onComplete(pin) 4 raqam kiritilganda chaqiriladi; keyin avtomatik tozalanadi.
 export default function PinPad({ title, sub, error, onComplete, onForgot, busy }) {
+  const t = useT()
   const [pin, setPin] = useState('')
 
   const press = (d) => {
@@ -49,7 +51,7 @@ export default function PinPad({ title, sub, error, onComplete, onForgot, busy }
 
       {onForgot && (
         <button onClick={onForgot} style={{ marginTop: 22, background: 'none', border: 'none', color: '#16a34a', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-          Kodni unutdingizmi?
+          {t('pin_forgot')}
         </button>
       )}
     </div>

@@ -3,9 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store'
 import { authAPI } from './api'
 import PinPad from './components/PinPad'
+import PinReset from './components/PinReset'
 import PhoneVerify from './components/PhoneVerify'
 import Onboarding from './components/Onboarding'
 import { useT } from './i18n'
+import { useApplyTheme } from './theme'
 import Home from './pages/Home'
 import Contacts from './pages/Contacts'
 import Stats from './pages/Stats'
@@ -22,9 +24,11 @@ import Layout from './components/Layout'
 export default function App() {
   const { init, loading, user, needDevLogin, devLogin } = useAuthStore()
   const t = useT()
+  useApplyTheme()   // tanlangan tema (kunduzgi/tungi) hujjatga qo'llansin
   const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('pin_ok') === '1')
   const [pinErr, setPinErr] = useState('')
   const [pinBusy, setPinBusy] = useState(false)
+  const [showPinReset, setShowPinReset] = useState(false)
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem('onboarded') === '1')
 
   useEffect(() => { init() }, [])
@@ -44,11 +48,14 @@ export default function App() {
     } finally { setPinBusy(false) }
   }
 
-  const forgotPin = () => {
-    const url = 'https://t.me/fattoyev_a'
-    const tg = window.Telegram?.WebApp
-    if (tg?.openTelegramLink) tg.openTelegramLink(url)
-    else window.open(url, '_blank')
+  const forgotPin = () => setShowPinReset(true)
+
+  // PIN tiklandi (o'chirildi) — qulfni ochamiz va yangi kod so'ramaymiz
+  const onPinResetDone = () => {
+    setShowPinReset(false)
+    useAuthStore.setState({ user: { ...useAuthStore.getState().user, has_pin: false } })
+    sessionStorage.setItem('pin_ok', '1')
+    setUnlocked(true)
   }
 
   if (loading) return (
@@ -91,6 +98,7 @@ export default function App() {
         onComplete={tryUnlock}
         onForgot={forgotPin}
       />
+      {showPinReset && <PinReset onClose={() => setShowPinReset(false)} onDone={onPinResetDone} />}
     </div>
   )
 

@@ -1,15 +1,22 @@
 // SMS yuborishdan oldingi tasdiqlash — kimga va aynan qanday matn ketishini ko'rsatadi.
 // SMS qaytarib bo'lmaydi va pullik, shuning uchun bu oyna xato raqamdan saqlaydi.
-import React from 'react'
+// Matnni shu yerda tahrirlash mumkin — onConfirm(text) bilan qaytadi.
+import React, { useState } from 'react'
 import { initials, avatarColor, fmtPhone, normPhone } from '../utils'
 import { useT } from '../i18n'
 
 export default function SmsConfirmSheet({ preview, busy, onClose, onConfirm }) {
   const t = useT()
+  const [editing, setEditing] = useState(false)
+  const [text, setText] = useState(preview?.text || '')
   if (!preview) return null
 
   const av = avatarColor(preview.contact_name || '')
   const nice = fmtPhone(normPhone(preview.phone)) || preview.phone
+  const maxLen = preview.max_len || 300
+  const edited = editing && text.trim() !== (preview.text || '').trim()
+  // Standart matnda o'zgartirilmagan bo'lsa text yubormaymiz (backend shablonni ishlatadi)
+  const sendText = () => onConfirm(edited ? text : undefined)
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose() }}
@@ -38,18 +45,47 @@ export default function SmsConfirmSheet({ preview, busy, onClose, onConfirm }) {
           </div>
         </div>
 
-        {/* Qarzdor o'qiydigan aynan matn */}
-        <div style={{ fontSize: 11.5, color: '#94a3b8', marginBottom: 6, fontWeight: 600 }}>{t('sms_confirm_text')}</div>
-        <div style={{ background: '#f8fafc', borderRadius: 13, padding: 12, marginBottom: 18, fontSize: 13, lineHeight: 1.6, color: '#334155', whiteSpace: 'pre-wrap' }}>
-          {preview.text}
+        {/* Qarzdor o'qiydigan aynan matn — tahrirlash mumkin */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: 600, flex: 1 }}>{t('sms_confirm_text')}</span>
+          {!busy && (
+            <button onClick={() => { if (editing) { setText(preview.text || '') } setEditing((v) => !v) }}
+              style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+              {editing ? t('sms_edit_reset') : `✎ ${t('sms_edit_btn')}`}
+            </button>
+          )}
         </div>
+
+        {editing ? (
+          <>
+            <textarea
+              value={text} maxLength={maxLen} rows={5} autoFocus disabled={busy}
+              onChange={(e) => setText(e.target.value)}
+              style={{
+                width: '100%', boxSizing: 'border-box', background: '#fff', borderRadius: 13,
+                padding: 12, marginBottom: 6, fontSize: 13, lineHeight: 1.6, color: '#0f172a',
+                border: '1.5px solid #16a34a', fontFamily: 'inherit', outline: 'none', resize: 'vertical',
+              }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 11, color: '#94a3b8', flex: 1 }}>{t('sms_brand_note')}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: text.length > maxLen * 0.9 ? '#f97316' : '#94a3b8' }}>
+                {t('sms_len', { n: text.length, max: maxLen })}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div style={{ background: '#f8fafc', borderRadius: 13, padding: 12, marginBottom: 18, fontSize: 13, lineHeight: 1.6, color: '#334155', whiteSpace: 'pre-wrap' }}>
+            {edited ? text : preview.text}
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 9 }}>
           <button onClick={onClose} disabled={busy} style={{
             padding: 14, borderRadius: 14, border: '1.5px solid #e2e8f0', background: '#fff',
             color: '#64748b', fontSize: 14, fontWeight: 700, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit',
           }}>{t('cancel_full')}</button>
-          <button onClick={onConfirm} disabled={busy} style={{
+          <button onClick={sendText} disabled={busy || (editing && text.trim().length < 20)} style={{
             padding: 14, borderRadius: 14, border: 'none',
             background: busy ? '#e2e8f0' : 'linear-gradient(135deg,#22c55e,#16a34a)',
             color: busy ? '#94a3b8' : '#fff', fontSize: 14, fontWeight: 700,

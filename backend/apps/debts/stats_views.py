@@ -155,7 +155,7 @@ def export_excel(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_report(request):
-    """Hisobotni Telegram bot orqali yuborish. format: 'excel' | 'image'."""
+    """Hisobotni Telegram bot orqali yuborish. format: 'excel' | 'image' | 'summary'."""
     import logging, traceback
     logger = logging.getLogger(__name__)
 
@@ -167,10 +167,16 @@ def send_report(request):
         fmt = request.data.get('format', 'excel')
         from django.conf import settings
         from apps.notifications import bot
-        from .reports import build_excel, build_image
+        from .reports import build_excel, build_image, build_summary_messages
 
         if not settings.BOT_TOKEN:
             return Response({'error': 'BOT_TOKEN sozlanmagan'}, status=500)
+
+        if fmt == 'summary':
+            # Qarzdorlar ro'yxati — tagma-tag ism va summa (bir nechta xabar bo'lishi mumkin)
+            for part in build_summary_messages(user):
+                bot.send(user.telegram_id, part)
+            return Response({'ok': True})
 
         if fmt == 'image':
             img = build_image(user)

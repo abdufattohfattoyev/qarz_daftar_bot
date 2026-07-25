@@ -141,6 +141,101 @@ def build_excel(user):
     return buf.getvalue()
 
 
+# ── UMUMIY MA'LUMOT (matn ro'yxati) ──────────────────────────────────────────
+
+TG_LIMIT = 3800   # Telegram xabar chegarasi 4096 — zaxira bilan
+
+
+def _contact_rows(user):
+    """Har kontakt uchun valyuta bo'yicha qoldiq: {contact_name: {cur: net}}.
+    net > 0 — menga qarzdor, net < 0 — men qarzdorman."""
+    rows = {}
+    qs = (Debt.objects
+          .filter(user=user, status__in=['active', 'partial'])
+          .select_related('contact'))
+    for d in qs:
+        name = d.contact.name
+        cur = d.currency
+        sign = 1 if d.debt_type == 'gave' else -1
+        rows.setdefault(name, {}).setdefault(cur, Decimal(0))
+        rows[name][cur] += sign * d.remaining_amount
+    # Nolga teng bo'lib qolganlarini tashlab yuboramiz
+    return {n: {c: v for c, v in cur_map.items() if v} for n, cur_map in rows.items()}
+
+
+def _money(v, cur):
+    return f"{abs(v):,.0f}".replace(',', ' ') + (' $' if cur == 'USD' else " so'm")
+
+
+def build_summary_messages(user):
+    """Barcha qarzdorlar ro'yxati — tagma-tag, ism va summa bilan.
+    Telegram uchun bo'laklangan xabarlar ro'yxatini qaytaradi."""
+    rows = _contact_rows(user)
+
+    owes_me, i_owe = [], []      # (ism, [(cur, qiymat)])
+    for name, cur_map in rows.items():
+        plus = [(c, v) for c, v in cur_map.items() if v > 0]
+        minus = [(c, v) for c, v in cur_map.items() if v < 0]
+        if plus:
+            owes_me.append((name, plus))
+        if minus:
+            i_owe.append((name, minus))
+
+    # Eng kattadan kichikka (UZS ustun, bo'lmasa USD)
+    def weight(item):
+        m = dict(item[1])
+        return abs(m.get('UZS', 0)) + abs(m.get('USD', 0)) * 12000
+    owes_me.sort(key=weight, reverse=True)
+    i_owe.sort(key=weight, reverse=True)
+
+    name_str = user.full_name or user.telegram_username or 'Foydalanuvchi'
+    head = (f"📋 <b>Umumiy ma'lumot</b>\n"
+            f"<i>{name_str} · {timezone.now().strftime('%d.%m.%Y %H:%M')}</i>")
+
+    if not owes_me and not i_owe:
+        return [f"{head}\n\nHozircha faol qarzlar yo'q. 🎉"]
+
+    def block(title, items, emoji_):
+        out = [f"\n{emoji_} <b>{title}</b> — {len(items)} ta\n"]
+        for i, (name, pairs) in enumerate(items, 1):
+            amounts = ' · '.join(_money(v, c) for c, v in sorted(pairs))
+            out.append(f"{i}. <b>{name}</b> — {amounts}")
+        return out
+
+    lines = [head]
+    if owes_me:
+        lines += block('Menga qarzdor', owes_me, '🟢')
+    if i_owe:
+        lines += block('Men qarzdorman', i_owe, '🔴')
+
+    # Jami
+    totals = {}
+    for _, pairs in owes_me:
+        for c, v in pairs:
+            totals.setdefault(c, [Decimal(0), Decimal(0)])[0] += v
+    for _, pairs in i_owe:
+        for c, v in pairs:
+            totals.setdefault(c, [Decimal(0), Decimal(0)])[1] += -v
+    lines.append('\n➖➖➖➖➖➖➖➖')
+    for cur in sorted(totals):
+        got_in, got_out = totals[cur]
+        net = got_in - got_out
+        lines.append(f"<b>{cur}</b> · olaman: {_money(got_in, cur)} · "
+                     f"beraman: {_money(got_out, cur)} · "
+                     f"{'🟢' if net >= 0 else '🔴'} sof: {_money(net, cur)}")
+
+    # Telegram chegarasiga bo'laklaymiz
+    messages, buf = [], ''
+    for ln in lines:
+        if len(buf) + len(ln) + 1 > TG_LIMIT:
+            messages.append(buf)
+            buf = ''
+        buf += ('\n' if buf else '') + ln
+    if buf:
+        messages.append(buf)
+    return messages
+
+
 # ── RASM (PNG) ───────────────────────────────────────────────────────────────
 
 def build_image(user):

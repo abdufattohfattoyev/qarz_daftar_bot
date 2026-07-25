@@ -25,6 +25,10 @@ HDRS = {'X-Bot-Secret': TOKEN, 'Host': 'nasiya-karta.uz'}
 # Admin uchun tasdiqlanmagan qarz draftlari (chat_id → draft). Bitta admin, bitta jarayon.
 PENDING_DEBTS = {}
 
+# Qo'llab-quvvatlash: savol yozishni kutayotgan foydalanuvchilar (chat_id → True).
+# Ilovadagi «Qo'llab-quvvatlash» tugmasi endi shaxsiy lichkaga emas, shu oqimga olib keladi.
+SUPPORT_WAITING = {}
+
 
 def is_admin(chat_id):
     return ADMIN_CHAT_ID and str(chat_id) == str(ADMIN_CHAT_ID)
@@ -435,8 +439,59 @@ def main_menu(notif_on=True):
         [{'text': '🔑 Saytga kirish kodi', 'callback_data': 'web_login'}],
         [{'text': '📊 Statistika', 'callback_data': 'stats'},
          {'text': notif,           'callback_data': 'toggle'}],
-        [{'text': '❓ Yordam',       'callback_data': 'help'}],
+        [{'text': '❓ Yordam',       'callback_data': 'help'},
+         {'text': '💬 Qo\'llab-quvvatlash', 'callback_data': 'support'}],
     ]}
+
+
+# ── Qo'llab-quvvatlash oqimi ─────────────────────────────────────────────────
+
+def support_prompt(chat_id):
+    """Foydalanuvchidan savolini so'raymiz — javob adminga yetkaziladi."""
+    SUPPORT_WAITING[chat_id] = True
+    tg('sendMessage', {'chat_id': chat_id, 'parse_mode': 'HTML',
+        'text': ("💬 <b>Qo'llab-quvvatlash</b>\n\n"
+                 "Savolingizni yoki muammoni shu yerga <b>bitta xabar</b> qilib yozing "
+                 "(rasm ham yuborishingiz mumkin).\n\n"
+                 "Javobni shu botda olasiz.\n\n"
+                 "Bekor qilish: /bekor")})
+
+
+def support_forward(chat_id, msg):
+    """Foydalanuvchi savolini adminga uzatamiz va unga tasdiq beramiz."""
+    SUPPORT_WAITING.pop(chat_id, None)
+    frm = msg.get('from', {})
+    name = f"{frm.get('first_name', '')} {frm.get('last_name', '')}".strip() or 'Foydalanuvchi'
+    uname = f"@{frm['username']}" if frm.get('username') else '—'
+
+    if not ADMIN_CHAT_ID:
+        tg('sendMessage', {'chat_id': chat_id,
+            'text': "⚠️ Qo'llab-quvvatlash hozircha mavjud emas. Keyinroq urinib ko'ring."})
+        return
+
+    tg('sendMessage', {'chat_id': ADMIN_CHAT_ID, 'parse_mode': 'HTML',
+        'text': (f"💬 <b>Yangi murojaat</b>\n\n"
+                 f"👤 <b>{name}</b> · {uname}\n"
+                 f"🆔 <code>{chat_id}</code>\n\n"
+                 f"Javob berish:\n<code>/javob {chat_id} matn</code>")})
+    # Xabarning o'zini (rasm/matn) adminga nusxalaymiz
+    copy_message(ADMIN_CHAT_ID, chat_id, msg['message_id'])
+
+    tg('sendMessage', {'chat_id': chat_id, 'parse_mode': 'HTML',
+        'text': "✅ Murojaatingiz qabul qilindi. Tez orada javob beramiz."})
+
+
+def support_reply(admin_chat, text):
+    """/javob <chat_id> <matn> — admin javobini foydalanuvchiga yetkazadi."""
+    parts = text.split(maxsplit=2)
+    if len(parts) < 3 or not parts[1].lstrip('-').isdigit():
+        tg('sendMessage', {'chat_id': admin_chat, 'parse_mode': 'HTML',
+                           'text': "Format: <code>/javob &lt;chat_id&gt; matn</code>"})
+        return
+    target, answer = parts[1], parts[2]
+    tg('sendMessage', {'chat_id': target, 'parse_mode': 'HTML',
+        'text': f"💬 <b>Qo'llab-quvvatlash javobi</b>\n\n{answer}"})
+    tg('sendMessage', {'chat_id': admin_chat, 'text': f"✅ Javob {target} ga yuborildi."})
 
 
 def back_menu():
@@ -473,6 +528,11 @@ def help_text():
 # ── Handlers ─────────────────────────────────────────────────────────────────
 
 def handle_start(chat_id, from_user, payload=''):
+    # Deep-link: ilovadagi «Qo'llab-quvvatlash» tugmasi — to'g'ridan-to'g'ri savol oynasi
+    if payload == 'support':
+        register_user(from_user)
+        support_prompt(chat_id)
+        return
     # Deep-link: qarz kartochkasi ulashilganda havola ref_<taklif qilgan id> bo'ladi
     ref = payload[4:] if payload.startswith('ref_') else None
     created = register_user(from_user, ref)
@@ -510,6 +570,10 @@ def handle_callback(cb):
     elif action == 'help':
         tg('answerCallbackQuery', {'callback_query_id': cb_id})
         edit(help_text(), back_menu())
+
+    elif action == 'support':
+        tg('answerCallbackQuery', {'callback_query_id': cb_id})
+        support_prompt(chat_id)
 
     elif action == 'web_login':
         tg('answerCallbackQuery', {'callback_query_id': cb_id})
@@ -649,6 +713,18 @@ def main():
                     payload = parts[1].strip() if len(parts) > 1 else ''
                     log.info(f'/start → {chat_id} (payload={payload or "-"})')
                     handle_start(chat_id, msg.get('from', {}), payload)
+
+                elif is_admin(chat_id) and text.startswith('/javob'):
+                    support_reply(chat_id, text)
+
+                elif chat_id in SUPPORT_WAITING and text.strip() == '/bekor':
+                    SUPPORT_WAITING.pop(chat_id, None)
+                    tg('sendMessage', {'chat_id': chat_id, 'text': "❌ Bekor qilindi"})
+                    handle_start(chat_id, msg.get('from', {}))
+
+                elif chat_id in SUPPORT_WAITING:
+                    # Qo'llab-quvvatlash: savolni adminga uzatamiz
+                    support_forward(chat_id, msg)
 
                 elif is_admin(chat_id) and text.strip() == '/reklama':
                     _awaiting_ad = True

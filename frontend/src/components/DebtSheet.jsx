@@ -11,6 +11,7 @@ import ContactAdminModal from './ContactAdminModal'
 import AskPhoneSheet from './AskPhoneSheet'
 import AskNameSheet from './AskNameSheet'
 import SmsConfirmSheet from './SmsConfirmSheet'
+import NoteText from './NoteText'
 import { useT } from '../i18n'
 
 // app-meta bir marta olinadi (DebtDetail bilan bir xil naqsh)
@@ -29,6 +30,8 @@ export default function DebtSheet({ debt: initial, onClose }) {
   const [debt, setDebt] = useState(initial)
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [delPayment, setDelPayment] = useState(null)   // o'chiriladigan to'lov {id, amount}
+  const [payBusy, setPayBusy] = useState(false)
   const [smsState, setSmsState] = useState({ status: 'idle', msg: '' })
   const [showContactAdmin, setShowContactAdmin] = useState(false)
   const [showVerify, setShowVerify] = useState(false)
@@ -62,12 +65,13 @@ export default function DebtSheet({ debt: initial, onClose }) {
   }
 
   // Haqiqiy yuborish (tekshiruvlardan keyin yoki tasdiqlashdan so'ng chaqiriladi)
-  const doSendSms = async () => {
+  // customText — foydalanuvchi tasdiqlash oynasida tahrirlagan matn (ixtiyoriy)
+  const doSendSms = async (customText) => {
     if (smsState.status === 'sending' || smsState.status === 'sent') return
     haptic('light')
     setSmsState({ status: 'sending', msg: '' })
     try {
-      await debtsAPI.sendSms(debt.id)
+      await debtsAPI.sendSms(debt.id, customText)
       haptic('success')
       setSmsState({ status: 'sent', msg: '' })
     } catch (e) {
@@ -107,9 +111,9 @@ export default function DebtSheet({ debt: initial, onClose }) {
     openConfirm()
   }
 
-  // Tasdiqlangach yuboriladi
-  const confirmSend = async () => {
-    await doSendSms()
+  // Tasdiqlangach yuboriladi (text — tahrirlangan bo'lsa)
+  const confirmSend = async (text) => {
+    await doSendSms(text)
     setPreview(null)
   }
 
@@ -139,6 +143,22 @@ export default function DebtSheet({ debt: initial, onClose }) {
       haptic('error')
       setDeleting(false)
     }
+  }
+
+  // Xato kiritilgan to'lovni tarixdan o'chirish — qarz qoldig'i qayta hisoblanadi
+  const handleDeletePayment = async () => {
+    if (payBusy || !delPayment) return
+    setPayBusy(true)
+    try {
+      const { data } = await debtsAPI.deletePayment(debt.id, delPayment.id)
+      setDebt(data)
+      // Home ro'yxatidagi qarzni ham yangilaymiz
+      useDebtStore.setState((s) => ({ debts: s.debts.map((d) => (d.id === data.id ? data : d)) }))
+      haptic('success')
+      setDelPayment(null)
+    } catch {
+      haptic('error')
+    } finally { setPayBusy(false) }
   }
 
   const go = (path) => { onClose(); navigate(path) }
@@ -296,6 +316,12 @@ export default function DebtSheet({ debt: initial, onClose }) {
                         <div style={{ fontSize: 10.5, color: '#aaa', marginTop: 1 }}>{fmtDateTime(p.paid_at)}</div>
                       </div>
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: '#16a34a', flexShrink: 0 }}>{fmt(p.amount, debt.currency)}</div>
+                      {/* Xato to'lovni o'chirish */}
+                      <button onClick={() => { haptic('medium'); setDelPayment(p) }} style={{
+                        border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0, lineHeight: 0,
+                      }}>
+                        <svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M4 5h10M7.5 5V3.5h3V5M5.5 5l.5 9h6l.5-9" stroke="#ef4444" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
                     </div>
                   ))}
                   {(!debt.payments || debt.payments.length === 0) && (
@@ -342,6 +368,22 @@ export default function DebtSheet({ debt: initial, onClose }) {
           onClose={() => setShowAskName(false)}
           onSubmit={saveNameAndSend}
         />
+      )}
+      {/* To'lovni (tarix) o'chirishni tasdiqlash */}
+      {delPayment && (
+        <div onClick={(e) => { if (e.target === e.currentTarget && !payBusy) setDelPayment(null) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1002, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div className="sheet-anim" style={{ background: '#fff', borderRadius: '22px 22px 0 0', width: '100%', maxWidth: 520, padding: '20px 18px', paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 18, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 26 }}>🗑</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#111', textAlign: 'center', marginBottom: 8 }}>{t('del_payment_q')}</div>
+            <div style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 8, lineHeight: 1.6 }}>{t('del_payment_desc')}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#16a34a', textAlign: 'center', marginBottom: 20 }}>{fmt(delPayment.amount, debt.currency)}</div>
+            <button onClick={() => setDelPayment(null)} disabled={payBusy} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#f3f4f6', color: '#111', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>{t('cancel_full')}</button>
+            <button onClick={handleDeletePayment} disabled={payBusy} style={{ width: '100%', padding: 15, borderRadius: 16, fontSize: 15, fontWeight: 700, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {payBusy ? t('deleting') : t('del_payment_btn')}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

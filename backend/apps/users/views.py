@@ -102,7 +102,15 @@ def app_meta(request):
         except Exception as e:
             logger.warning('CBU kursi olinmadi: %s', e)
 
-    return Response({'bot_username': bot_username, 'usd': usd})
+    # Qo'llab-quvvatlash — shaxsiy lichkaga emas, botning support oqimiga
+    support_url = (f'https://t.me/{bot_username}?start=support'
+                   if bot_username else '')
+
+    return Response({
+        'bot_username': bot_username,
+        'usd': usd,
+        'support_url': support_url,
+    })
 
 
 @api_view(['GET', 'PATCH'])
@@ -471,6 +479,64 @@ def disable_pin(request):
         return Response({'error': "PIN noto'g'ri"}, status=400)
     request.user.pin_code = ''
     request.user.save(update_fields=['pin_code'])
+    return Response({'ok': True, 'has_pin': False})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_pin_request(request):
+    """PIN esdan chiqqan — Telegramga 6 xonali tiklash kodi yuboradi.
+    Adminga murojaat qilish shart emas, foydalanuvchi o'zi tiklaydi."""
+    import random
+    from django.core.cache import cache
+    from apps.notifications import bot as tg_bot
+
+    user = request.user
+    if not user.pin_code:
+        return Response({'error': "PIN o'rnatilmagan"}, status=400)
+    if not user.telegram_id:
+        return Response({'error': "Telegram ulanmagan — kod yuborib bo'lmaydi"}, status=400)
+
+    rl_key = f'pinreset_rl:{user.id}'
+    if cache.get(rl_key):
+        return Response({'error': "Kod yaqinda yuborildi — 1 daqiqadan keyin urinib ko'ring"},
+                        status=429)
+
+    code = f'{random.randint(0, 999999):06d}'
+    tg_bot.send(user.telegram_id,
+                f"🔑 <b>PIN kodni tiklash</b>\n\n<code>{code}</code>\n\n"
+                f"Bu kodni ilovadagi «PIN ni tiklash» oynasiga kiriting.\n"
+                f"⏱ 10 daqiqa amal qiladi. Hech kimga bermang!")
+    cache.set(f'pinreset:{user.id}', {'code': code, 'attempts': 0}, 600)
+    cache.set(rl_key, 1, 60)
+    return Response({'ok': True, 'sent_to': 'telegram'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_pin_confirm(request):
+    """Tiklash kodi to'g'ri bo'lsa PINni o'chiradi — foydalanuvchi ilovaga kiradi
+    va xohlasa Sozlamalardan yangi PIN qo'yadi."""
+    from django.core.cache import cache
+
+    key = f'pinreset:{request.user.id}'
+    data = cache.get(key)
+    if not data:
+        return Response({'error': "Kod eskirgan — qaytadan so'rang"}, status=400)
+    if data.get('attempts', 0) >= 5:
+        cache.delete(key)
+        return Response({'error': "Juda ko'p urinish — kodni qaytadan so'rang"}, status=400)
+
+    code = str(request.data.get('code', '')).strip()
+    if code != data['code']:
+        data['attempts'] = data.get('attempts', 0) + 1
+        cache.set(key, data, 600)
+        return Response({'error': "Kod noto'g'ri",
+                         'attempts_left': 5 - data['attempts']}, status=400)
+
+    request.user.pin_code = ''
+    request.user.save(update_fields=['pin_code'])
+    cache.delete(key)
     return Response({'ok': True, 'has_pin': False})
 
 
